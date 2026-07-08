@@ -43,7 +43,7 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
   }
 
   static getConfigElement(): LovelaceCardEditor {
-    return document.createElement("heating-visualizer-editor");
+    return document.createElement("heating-visualizer-editor") as LovelaceCardEditor;
   }
 
   static getStubConfig(): Record<string, unknown> {
@@ -64,7 +64,7 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
     return html`
       <ha-card>
         ${!schema.nodes.length && !schema.overlays.length
-          ? html`<div class="empty">${t("card.empty")}</div>`
+          ? html`<div class="empty">${t.t("card.empty")}</div>`
           : html`
             <heating-schema-canvas
               .hass="${this.hass}"
@@ -75,12 +75,6 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
           `}
       </ha-card>
     `;
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "heating-visualizer-card": HeatingVisualizerCard;
   }
 }
 

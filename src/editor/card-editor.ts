@@ -152,15 +152,15 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           <button
             class="${this._tab === "schema" ? "active" : ""}"
             @click="${() => { this._tab = "schema"; }}"
-          >${t("editor.schema_tab")}</button>
+          >${t.t("editor.schema_tab")}</button>
           <button
             class="${this._tab === "overlays" ? "active" : ""}"
             @click="${() => { this._tab = "overlays"; }}"
-          >${t("editor.overlay_tab")}</button>
+          >${t.t("editor.overlay_tab")}</button>
           <button
             class="${this._tab === "translations" ? "active" : ""}"
             @click="${() => { this._tab = "translations"; }}"
-          >${t("editor.translations")}</button>
+          >${t.t("editor.translations")}</button>
         </div>
 
         ${this._tab === "schema" ? this._renderSchemaTab(t) : nothing}
@@ -184,12 +184,12 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           )}
         </select>
         <button class="primary" @click="${this._addHeatPump}">
-          ${t("editor.add_heat_pump")}
+          ${t.t("editor.add_heat_pump")}
         </button>
         ${this._selectedNodeId
           ? html`
             <button class="danger" @click="${this._deleteSelected}">
-              ${t("editor.delete_selected")}
+              ${t.t("editor.delete_selected")}
             </button>
           `
           : nothing}
@@ -197,12 +197,12 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
       ${this._pendingPort
         ? html`<p class="connection-hint">
-            ${t("editor.connection_pending", this._portLabel(t, this._pendingPort))}
+            ${t.t("editor.connection_pending", this._portLabel(t, this._pendingPort))}
           </p>`
         : nothing}
 
       ${!schema.nodes.length
-        ? html`<p class="hint">${t("editor.empty_hint")}</p>`
+        ? html`<p class="hint">${t.t("editor.empty_hint")}</p>`
         : nothing}
 
       <heating-schema-canvas
@@ -224,12 +224,12 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     return html`
       <div class="toolbar">
         <button class="primary" @click="${this._addOverlay}">
-          ${t("editor.add_overlay")}
+          ${t.t("editor.add_overlay")}
         </button>
       </div>
 
       ${!overlays.length
-        ? html`<p class="hint">${t("editor.overlays_empty")}</p>`
+        ? html`<p class="hint">${t.t("editor.overlays_empty")}</p>`
         : nothing}
 
       <heating-schema-canvas
@@ -246,7 +246,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             <button class="danger" @click="${() => this._removeOverlay(overlay.id)}">×</button>
           </header>
           <div class="field">
-            <label>${t("overlay.entity")}</label>
+            <label>${t.t("overlay.entity")}</label>
             ${this._hass
               ? html`
                 <ha-entity-picker
@@ -270,7 +270,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               `}
           </div>
           <div class="field">
-            <label>${t("overlay.template")}</label>
+            <label>${t.t("overlay.template")}</label>
             <input
               placeholder="{{ state }} °C"
               .value="${overlay.template ?? ""}"
@@ -316,7 +316,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     );
 
     return html`
-      <p class="hint">${t("editor.language")}: ${this._config.language}</p>
+      <p class="hint">${t.t("editor.language")}: ${this._config.language}</p>
       ${entries.map(([key, value]) => html`
         <div class="translation-item">
           <header><code>${key}</code></header>
@@ -504,7 +504,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     if (!node) return ref.portId;
     const def = getDeviceDefinition(node.type);
     const port = def?.ports.find((p) => p.id === ref.portId);
-    return port ? t(port.labelKey) : ref.portId;
+    return port ? t.t(port.labelKey) : ref.portId;
   }
 
   private _cloneSchema(): HeatingSchema {
@@ -522,11 +522,5 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         rules: o.rules?.map((r) => ({ ...r, effect: { ...r.effect } })),
       })),
     };
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "heating-visualizer-editor": HeatingVisualizerEditor;
   }
 }

@@ -29,9 +29,6 @@ export interface LovelaceCardEditor extends HTMLElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "heating-visualizer-card": HTMLElement;
-    "heating-visualizer-editor": HTMLElement;
-    "heating-schema-canvas": HTMLElement;
     "ha-card": HTMLElement;
     "ha-entity-picker": HTMLElement;
   }

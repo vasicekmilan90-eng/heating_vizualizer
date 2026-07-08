@@ -1,6 +1,6 @@
 import { svg } from "lit";
-import type { DeviceDefinition } from "../models/schema.js";
-import type { Translator } from "../i18n/translations.js";
+import type { DeviceDefinition, PortDefinition } from "../../models/schema.js";
+import type { Translator } from "../../i18n/translations.js";
 
 export function renderHeatPump(
   def: DeviceDefinition,
@@ -24,9 +24,9 @@ export function renderHeatPump(
         stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round"
       />
       <text x="60" y="8" text-anchor="middle" class="device-label">
-        ${t(def.labelKey)}
+        ${t.t(def.labelKey)}
       </text>
-      ${def.ports.map((port) => svg`
+      ${def.ports.map((port: PortDefinition) => svg`
         <circle
           class="port port-${port.kind}"
           data-port-id="${port.id}"
@@ -35,7 +35,7 @@ export function renderHeatPump(
           stroke="${port.kind === "inlet" ? "#4fc3f7" : "#ff8a65"}"
           stroke-width="2"
         />
-        <title>${t(port.labelKey)}</title>
+        <title>${t.t(port.labelKey)}</title>
       `)}
     </g>
   `;

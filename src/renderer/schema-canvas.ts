@@ -181,7 +181,7 @@ export class HeatingSchemaCanvas extends LitElement {
     const style = resolveOverlayStyle(this.hass, overlay);
     if (!style.visible) return html``;
 
-    const label = overlay.labelKey ? t(overlay.labelKey) : overlay.entity_id;
+    const label = overlay.labelKey ? t.t(overlay.labelKey) : overlay.entity_id;
     const display = `${label}: ${text}`;
     const width = Math.max(80, display.length * 7 + 16);
 
@@ -283,11 +283,5 @@ export class HeatingSchemaCanvas extends LitElement {
         composed: true,
       })
     );
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "heating-schema-canvas": HeatingSchemaCanvas;
   }
 }
