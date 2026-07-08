@@ -1,0 +1,26 @@
+{
+  "name": "heating-visualizer-card",
+  "version": "0.1.0",
+  "description": "Home Assistant Lovelace card for heating schema design and visualization",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/heating-visualizer-card.git"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.34.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "lit": "^3.2.1"
+  }
+}

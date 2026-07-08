@@ -1,0 +1,7 @@
+{
+  "name": "Heating Visualizer Card",
+  "filename": "heating-visualizer-card.js",
+  "content_in_root": true,
+  "render_readme": true,
+  "homeassistant": "2026.7.0"
+}
