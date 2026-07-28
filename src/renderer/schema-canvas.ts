@@ -6,7 +6,7 @@ import { getDeviceDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
 import { buildPipePath, getAbsolutePort } from "../utils/geometry.js";
-import { formatOverlayValue, resolveOverlayStyle } from "../utils/entity.js";
+import { formatOverlayValue, resolveNodeVisualState, resolveOverlayStyle } from "../utils/entity.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import type { HeatingVisualizerConfig } from "../models/schema.js";
 
@@ -159,7 +159,8 @@ export class HeatingSchemaCanvas extends LitElement {
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const deviceSvg = renderDeviceByType(node.type, def, t, selected);
+    const visualState = resolveNodeVisualState(this.hass, node.state);
+    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState);
     if (!deviceSvg) return html``;
 
     return svg`

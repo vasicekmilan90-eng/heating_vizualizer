@@ -21,6 +21,15 @@ export interface SchemaNode {
   type: string;
   position: { x: number; y: number };
   rotation?: number;
+  state?: NodeStateBinding;
+}
+
+export interface NodeStateBinding {
+  entity_id?: string;
+  active_state?: string;
+  mode_attribute?: string;
+  branch_a_value?: string;
+  branch_b_value?: string;
 }
 
 export interface PortRef {

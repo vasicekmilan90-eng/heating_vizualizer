@@ -4,6 +4,7 @@ import type { HomeAssistant, LovelaceCardEditor } from "../types/home-assistant.
 import {
   generateId,
   normalizeConfig,
+  DEFAULT_LANGUAGE,
   type HeatingSchema,
   type HeatingVisualizerConfig,
   type PortRef,
@@ -12,7 +13,11 @@ import {
   type SchemaOverlay,
   type TranslationMap,
 } from "../models/schema.js";
-import { getDeviceDefinition, HEAT_PUMP } from "../models/device-registry.js";
+import {
+  DEVICE_TYPES,
+  getDeviceDefinition,
+  HEAT_PUMP,
+} from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import { portRefsEqual } from "../utils/geometry.js";
 import "../renderer/schema-canvas.js";
@@ -27,6 +32,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _tab: EditorTab = "schema";
   @state() private _selectedNodeId?: string;
   @state() private _pendingPort?: PortRef;
+  @state() private _selectedDeviceType = HEAT_PUMP.type;
   @state() private _translationEdits: TranslationMap = {};
 
   static styles = css`
@@ -172,19 +178,33 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _renderSchemaTab(t: ReturnType<typeof createTranslator>): TemplateResult {
     const schema = this._config.schema!;
+    const selectedNode = schema.nodes.find((n) => n.id === this._selectedNodeId);
 
     return html`
       <div class="toolbar">
+        <label>${t.t("editor.device_type")}</label>
         <select
-          .value="${this._config.language ?? "en"}"
+          .value="${this._selectedDeviceType}"
+          @change="${(ev: Event) => {
+            this._selectedDeviceType = (ev.target as HTMLSelectElement).value;
+          }}"
+        >
+          ${DEVICE_TYPES.map((deviceType) => html`
+            <option value="${deviceType}">
+              ${t.t(`devices.${deviceType}.name`)}
+            </option>
+          `)}
+        </select>
+        <select
+          .value="${this._config.language ?? DEFAULT_LANGUAGE}"
           @change="${this._onLanguageChange}"
         >
           ${t.getAvailableLanguages().map(
             (lang) => html`<option value="${lang}">${lang}</option>`
           )}
         </select>
-        <button class="primary" @click="${this._addHeatPump}">
-          ${t.t("editor.add_heat_pump")}
+        <button class="primary" @click="${this._addDevice}">
+          ${t.t("editor.add_selected_device")}
         </button>
         ${this._selectedNodeId
           ? html`
@@ -215,6 +235,85 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         @node-move="${this._onNodeMove}"
         @port-click="${this._onPortClick}"
       ></heating-schema-canvas>
+
+      ${selectedNode
+        ? html`
+          <div class="overlay-item">
+            <header>
+              <span>${t.t("editor.node_state_title")}</span>
+              <span>${t.t(`devices.${selectedNode.type}.name`)}</span>
+            </header>
+            <div class="field">
+              <label>${t.t("editor.node_state_entity")}</label>
+              ${this._hass
+                ? html`
+                  <ha-entity-picker
+                    .hass="${this._hass}"
+                    .value="${selectedNode.state?.entity_id ?? ""}"
+                    allow-custom-entity
+                    @value-changed="${(ev: CustomEvent) =>
+                      this._updateNodeState(selectedNode.id, {
+                        entity_id: (ev.detail as { value: string }).value ?? "",
+                      })}"
+                  ></ha-entity-picker>
+                `
+                : html`
+                  <input
+                    .value="${selectedNode.state?.entity_id ?? ""}"
+                    @change="${(ev: Event) =>
+                      this._updateNodeState(selectedNode.id, {
+                        entity_id: (ev.target as HTMLInputElement).value,
+                      })}"
+                  />
+                `}
+            </div>
+            <div class="field">
+              <label>${t.t("editor.node_state_active")}</label>
+              <input
+                .value="${selectedNode.state?.active_state ?? "on"}"
+                @change="${(ev: Event) =>
+                  this._updateNodeState(selectedNode.id, {
+                    active_state: (ev.target as HTMLInputElement).value,
+                  })}"
+              />
+            </div>
+            ${selectedNode.type === "valve_3way"
+              ? html`
+                <div class="field">
+                  <label>${t.t("editor.node_state_mode_attribute")}</label>
+                  <input
+                    .value="${selectedNode.state?.mode_attribute ?? "position"}"
+                    @change="${(ev: Event) =>
+                      this._updateNodeState(selectedNode.id, {
+                        mode_attribute: (ev.target as HTMLInputElement).value,
+                      })}"
+                  />
+                </div>
+                <div class="field">
+                  <label>${t.t("editor.node_state_branch_a")}</label>
+                  <input
+                    .value="${selectedNode.state?.branch_a_value ?? "a"}"
+                    @change="${(ev: Event) =>
+                      this._updateNodeState(selectedNode.id, {
+                        branch_a_value: (ev.target as HTMLInputElement).value,
+                      })}"
+                  />
+                </div>
+                <div class="field">
+                  <label>${t.t("editor.node_state_branch_b")}</label>
+                  <input
+                    .value="${selectedNode.state?.branch_b_value ?? "b"}"
+                    @change="${(ev: Event) =>
+                      this._updateNodeState(selectedNode.id, {
+                        branch_b_value: (ev.target as HTMLInputElement).value,
+                      })}"
+                  />
+                </div>
+              `
+              : nothing}
+          </div>
+        `
+        : nothing}
     `;
   }
 
@@ -346,12 +445,13 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     );
   }
 
-  private _addHeatPump(): void {
+  private _addDevice(): void {
     const schema = this._cloneSchema();
     const offset = schema.nodes.length * 30;
+    const type = this._selectedDeviceType;
     const node: SchemaNode = {
-      id: generateId("hp"),
-      type: HEAT_PUMP.type,
+      id: generateId(type),
+      type,
       position: { x: 80 + offset, y: 80 + offset },
     };
     schema.nodes.push(node);
@@ -427,6 +527,24 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     schema.nodes = schema.nodes.map((n) =>
       n.id === ev.detail.nodeId ? { ...n, position: ev.detail.position } : n
     );
+    this._emitConfig(schema);
+  }
+
+  private _updateNodeState(
+    nodeId: string,
+    patch: Partial<NonNullable<SchemaNode["state"]>>
+  ): void {
+    const schema = this._cloneSchema();
+    schema.nodes = schema.nodes.map((n) => {
+      if (n.id !== nodeId) return n;
+      return {
+        ...n,
+        state: {
+          ...(n.state ?? {}),
+          ...patch,
+        },
+      };
+    });
     this._emitConfig(schema);
   }
 
@@ -510,7 +628,11 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   private _cloneSchema(): HeatingSchema {
     const s = this._config.schema!;
     return {
-      nodes: s.nodes.map((n) => ({ ...n, position: { ...n.position } })),
+      nodes: s.nodes.map((n) => ({
+        ...n,
+        position: { ...n.position },
+        state: n.state ? { ...n.state } : undefined,
+      })),
       edges: s.edges.map((e) => ({
         ...e,
         from: { ...e.from },
