@@ -156,14 +156,17 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       <div class="editor">
         <div class="tabs">
           <button
+            type="button"
             class="${this._tab === "schema" ? "active" : ""}"
             @click="${() => { this._tab = "schema"; }}"
           >${t.t("editor.schema_tab")}</button>
           <button
+            type="button"
             class="${this._tab === "overlays" ? "active" : ""}"
             @click="${() => { this._tab = "overlays"; }}"
           >${t.t("editor.overlay_tab")}</button>
           <button
+            type="button"
             class="${this._tab === "translations" ? "active" : ""}"
             @click="${() => { this._tab = "translations"; }}"
           >${t.t("editor.translations")}</button>
@@ -203,12 +206,23 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             (lang) => html`<option value="${lang}">${lang}</option>`
           )}
         </select>
-        <button class="primary" @click="${this._addDevice}">
+        <button
+          type="button"
+          class="primary"
+          @click="${(ev: Event) => this._onAddDeviceClick(ev)}"
+        >
           ${t.t("editor.add_selected_device")}
+        </button>
+        <button
+          type="button"
+          class="primary"
+          @click="${(ev: Event) => this._onAddHeatPumpClick(ev)}"
+        >
+          ${t.t("editor.add_heat_pump")}
         </button>
         ${this._selectedNodeId
           ? html`
-            <button class="danger" @click="${this._deleteSelected}">
+            <button type="button" class="danger" @click="${(ev: Event) => this._onDeleteSelectedClick(ev)}">
               ${t.t("editor.delete_selected")}
             </button>
           `
@@ -322,7 +336,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
     return html`
       <div class="toolbar">
-        <button class="primary" @click="${this._addOverlay}">
+        <button type="button" class="primary" @click="${this._addOverlay}">
           ${t.t("editor.add_overlay")}
         </button>
       </div>
@@ -342,7 +356,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         <div class="overlay-item">
           <header>
             <span>${overlay.entity_id || `Overlay ${index + 1}`}</span>
-            <button class="danger" @click="${() => this._removeOverlay(overlay.id)}">×</button>
+            <button type="button" class="danger" @click="${() => this._removeOverlay(overlay.id)}">×</button>
           </header>
           <div class="field">
             <label>${t.t("overlay.entity")}</label>
@@ -430,12 +444,13 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   }
 
   private _emitConfig(schema: HeatingSchema, extra?: Partial<HeatingVisualizerConfig>): void {
-    const config: HeatingVisualizerConfig = {
+    const config = normalizeConfig({
       ...this._config,
       ...extra,
       schema,
-    };
+    });
     this._config = config;
+    this.requestUpdate();
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config },
@@ -445,10 +460,30 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     );
   }
 
-  private _addDevice(): void {
+  private _onAddDeviceClick(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this._addDevice(this._selectedDeviceType);
+  }
+
+  private _onAddHeatPumpClick(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this._selectedDeviceType = HEAT_PUMP.type;
+    this._addDevice(HEAT_PUMP.type);
+  }
+
+  private _onDeleteSelectedClick(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this._deleteSelected();
+  }
+
+  private _addDevice(type: string): void {
+    if (!getDeviceDefinition(type)) return;
+
     const schema = this._cloneSchema();
     const offset = schema.nodes.length * 30;
-    const type = this._selectedDeviceType;
     const node: SchemaNode = {
       id: generateId(type),
       type,
@@ -626,19 +661,19 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   }
 
   private _cloneSchema(): HeatingSchema {
-    const s = this._config.schema!;
+    const s = this._config.schema ?? { nodes: [], edges: [], overlays: [] };
     return {
-      nodes: s.nodes.map((n) => ({
+      nodes: (s.nodes ?? []).map((n) => ({
         ...n,
         position: { ...n.position },
         state: n.state ? { ...n.state } : undefined,
       })),
-      edges: s.edges.map((e) => ({
+      edges: (s.edges ?? []).map((e) => ({
         ...e,
         from: { ...e.from },
         to: { ...e.to },
       })),
-      overlays: s.overlays.map((o) => ({
+      overlays: (s.overlays ?? []).map((o) => ({
         ...o,
         position: { ...o.position },
         rules: o.rules?.map((r) => ({ ...r, effect: { ...r.effect } })),

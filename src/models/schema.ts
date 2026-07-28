@@ -92,17 +92,28 @@ export const EMPTY_SCHEMA: HeatingSchema = {
   overlays: [],
 };
 
+export function normalizeSchema(schema?: Partial<HeatingSchema>): HeatingSchema {
+  return {
+    nodes: [...(schema?.nodes ?? [])],
+    edges: [...(schema?.edges ?? [])],
+    overlays: [...(schema?.overlays ?? [])],
+  };
+}
+
 export function normalizeConfig(
   config: Partial<HeatingVisualizerConfig>
 ): HeatingVisualizerConfig {
   return {
     type: "custom:heating-visualizer-card",
-    schema: config.schema ?? EMPTY_SCHEMA,
+    schema: normalizeSchema(config.schema),
     language: config.language ?? DEFAULT_LANGUAGE,
     translations: config.translations ?? {},
   };
 }
 
 export function generateId(prefix: string): string {
-  return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
