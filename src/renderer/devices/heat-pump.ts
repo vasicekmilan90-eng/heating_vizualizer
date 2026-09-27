@@ -277,6 +277,40 @@ function renderFloorHeating(
   `;
 }
 
+function renderMixingValve(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): ReturnType<typeof svg> {
+  const stroke = selected ? "var(--primary-color, #03a9f4)" : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  const position = state.position;
+  const mixedColor =
+    position === undefined ? "var(--divider-color, #888)" : `hsl(${Math.round(210 * (1 - position / 100))}, 75%, 55%)`;
+
+  return svg`
+    <g class="device device-mixing-valve">
+      <line x1="0" y1="70" x2="22" y2="70" stroke="${SUPPLY_COLOR}" stroke-width="3" />
+      <line x1="50" y1="96" x2="50" y2="${def.height}" stroke="${RETURN_COLOR}" stroke-width="3" />
+      <line x1="78" y1="70" x2="${def.width}" y2="70" stroke="${mixedColor}" stroke-width="3" />
+      <path d="M 22 56 L 50 70 L 22 84 Z M 78 56 L 50 70 L 78 84 Z M 36 98 L 50 70 L 64 98 Z"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}"
+        stroke-linejoin="round" />
+      <line x1="50" y1="36" x2="50" y2="70" stroke="${stroke}" stroke-width="2" />
+      <rect x="28" y="10" width="44" height="26" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      ${position === undefined
+        ? svg``
+        : svg`<rect x="30" y="12" width="${(40 * position) / 100}" height="22" rx="3" fill="${mixedColor}" opacity="0.35" />`}
+      <text x="50" y="27" text-anchor="middle" class="device-value">
+        ${position === undefined ? "—" : `${Math.round(position)} %`}
+      </text>
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 export function renderDeviceByType(
   type: string,
   def: DeviceDefinition,
@@ -302,6 +336,8 @@ export function renderDeviceByType(
       return renderManifold(def, t, selected, state, channels);
     case "buffer_tank":
       return renderBufferTank(def, t, selected, state, channels);
+    case "mixing_valve":
+      return renderMixingValve(def, t, selected, state);
     default:
       return undefined;
   }

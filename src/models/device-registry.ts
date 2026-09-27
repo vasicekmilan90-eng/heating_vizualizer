@@ -243,6 +243,33 @@ export const BUFFER_TANK: DeviceDefinition = {
   },
 };
 
+export const MIXING_VALVE: DeviceDefinition = {
+  type: "mixing_valve",
+  labelKey: "devices.mixing_valve.name",
+  width: 100,
+  height: 110,
+  ports: [
+    {
+      id: "hot_in",
+      labelKey: "devices.mixing_valve.ports.hot_in",
+      kind: "inlet",
+      position: { x: 0, y: 70 },
+    },
+    {
+      id: "return_in",
+      labelKey: "devices.mixing_valve.ports.return_in",
+      kind: "inlet",
+      position: { x: 50, y: 110 },
+    },
+    {
+      id: "mixed_out",
+      labelKey: "devices.mixing_valve.ports.mixed_out",
+      kind: "outlet",
+      position: { x: 100, y: 70 },
+    },
+  ],
+};
+
 export const DEVICE_TYPES: string[] = [
   HEAT_PUMP.type,
   VALVE_3WAY.type,
@@ -252,6 +279,7 @@ export const DEVICE_TYPES: string[] = [
   FLOOR_HEATING.type,
   MANIFOLD.type,
   BUFFER_TANK.type,
+  MIXING_VALVE.type,
 ];
 
 const REGISTRY = new Map<string, DeviceDefinition>([
@@ -263,6 +291,7 @@ const REGISTRY = new Map<string, DeviceDefinition>([
   [FLOOR_HEATING.type, FLOOR_HEATING],
   [MANIFOLD.type, MANIFOLD],
   [BUFFER_TANK.type, BUFFER_TANK],
+  [MIXING_VALVE.type, MIXING_VALVE],
 ]);
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {

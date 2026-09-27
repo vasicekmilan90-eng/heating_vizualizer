@@ -1,4 +1,4 @@
-import type { HassEntities, HomeAssistantFormatters } from "../types/home-assistant.js";
+import type { HassEntities, HassEntity, HomeAssistantFormatters } from "../types/home-assistant.js";
 import type { NodeStateBinding, OverlayStateRule, SchemaOverlay } from "../models/schema.js";
 
 export function formatOverlayValue(
@@ -103,6 +103,8 @@ export interface NodeVisualState {
   /** Localized state including unit, e.g. "45.2 °C". */
   value?: string;
   numeric?: number;
+  /** Actuator opening 0–100 %. */
+  position?: number;
 }
 
 export function resolveNodeVisualState(
@@ -142,5 +144,16 @@ export function resolveNodeVisualState(
     valveBranch,
     value,
     numeric: entity.state.trim() !== "" && Number.isFinite(numeric) ? numeric : undefined,
+    position: resolvePosition(entity, binding.mode_attribute),
   };
+}
+
+// HA `valve` entities expose `current_position`; other entities report the opening as state.
+function resolvePosition(entity: HassEntity, attribute: string | undefined): number | undefined {
+  const raw = attribute
+    ? entity.attributes[attribute]
+    : (entity.attributes.current_position ?? entity.state);
+  const position = Number(raw);
+  if (raw === undefined || raw === null || raw === "" || !Number.isFinite(position)) return undefined;
+  return Math.min(100, Math.max(0, position));
 }
