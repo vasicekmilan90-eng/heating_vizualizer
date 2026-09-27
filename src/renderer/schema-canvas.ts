@@ -9,7 +9,15 @@ import type { HeatingSchema, SchemaNode } from "../models/schema.js";
 import { getDeviceDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
-import { buildPipePath, getAbsolutePort, getNodeBounds, normalizeRotation } from "../utils/geometry.js";
+import {
+  buildPipePath,
+  getAbsolutePort,
+  getNodeBounds,
+  normalizeRotation,
+  snapToGrid,
+  type Point,
+  type Rect,
+} from "../utils/geometry.js";
 import {
   formatOverlayName,
   formatOverlayValue,
@@ -19,6 +27,8 @@ import {
 import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import type { HeatingVisualizerConfig } from "../models/schema.js";
+
+const GRID_SIZE = 10;
 
 @customElement("heating-schema-canvas")
 export class HeatingSchemaCanvas extends LitElement {
@@ -63,6 +73,9 @@ export class HeatingSchemaCanvas extends LitElement {
       pointer-events: stroke;
       cursor: pointer;
     }
+    .grid-dot {
+      fill: var(--divider-color, #555);
+    }
     .device-label {
       fill: var(--primary-text-color, #e0e0e0);
       font-size: var(--ha-font-size-xs, 11px);
@@ -97,6 +110,9 @@ export class HeatingSchemaCanvas extends LitElement {
   `;
 
   private _dragNodeId?: string;
+  private _dragOffset?: Point;
+  // Frozen while dragging so the coordinate system does not shift under the pointer.
+  private _dragBounds?: Rect;
 
   private _states = new HassContextConsumer<HassEntities>(this, HA_CONTEXT.states);
   private _formatters = new HassContextConsumer<HomeAssistantFormatters>(
@@ -117,7 +133,7 @@ export class HeatingSchemaCanvas extends LitElement {
   protected render(): TemplateResult {
     const t = this._translator();
     const { nodes, edges, overlays } = this.schema;
-    const bounds = this._computeBounds(nodes);
+    const bounds = this._dragBounds ?? this._computeBounds(nodes);
 
     return html`
       <svg
@@ -127,6 +143,16 @@ export class HeatingSchemaCanvas extends LitElement {
         @pointerup="${this._onCanvasPointerUp}"
         @pointerleave="${this._onCanvasPointerUp}"
       >
+        ${this.editable
+          ? svg`
+            <defs>
+              <pattern id="grid" width="${GRID_SIZE * 2}" height="${GRID_SIZE * 2}" patternUnits="userSpaceOnUse">
+                <circle class="grid-dot" cx="0" cy="0" r="1" />
+              </pattern>
+            </defs>
+            <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" />
+          `
+          : nothing}
         ${edges.map((edge) => this._renderEdge(edge))}
         ${nodes.map((node) => this._renderNode(node, t))}
         ${overlays.map((overlay) => this._renderOverlay(overlay, t))}
@@ -286,33 +312,43 @@ export class HeatingSchemaCanvas extends LitElement {
     }
 
     this._dragNodeId = nodeId;
+    const local = this._toLocal(ev);
+    this._dragOffset = local
+      ? { x: local.x - node.position.x, y: local.y - node.position.y }
+      : { x: 0, y: 0 };
+    this._dragBounds = this._computeBounds(this.schema.nodes);
     nodeEl.setPointerCapture(ev.pointerId);
     this._dispatchSelect(nodeId);
     ev.preventDefault();
+  }
+
+  private _toLocal(ev: PointerEvent): Point | undefined {
+    const svgEl = this.renderRoot.querySelector("svg");
+    const ctm = svgEl?.getScreenCTM();
+    if (!svgEl || !ctm) return undefined;
+    const pt = svgEl.createSVGPoint();
+    pt.x = ev.clientX;
+    pt.y = ev.clientY;
+    return pt.matrixTransform(ctm.inverse());
   }
 
   private _onCanvasPointerMove(ev: PointerEvent): void {
     if (!this.editable || !this._dragNodeId) return;
 
     const node = this.schema.nodes.find((n) => n.id === this._dragNodeId);
-    if (!node) return;
+    const local = this._toLocal(ev);
+    if (!node || !local) return;
 
-    const svgEl = this.renderRoot.querySelector("svg");
-    if (!svgEl) return;
+    const offset = this._dragOffset ?? { x: 0, y: 0 };
+    const position = {
+      x: snapToGrid(local.x - offset.x, GRID_SIZE),
+      y: snapToGrid(local.y - offset.y, GRID_SIZE),
+    };
+    if (position.x === node.position.x && position.y === node.position.y) return;
 
-    const pt = svgEl.createSVGPoint();
-    pt.x = ev.clientX;
-    pt.y = ev.clientY;
-    const ctm = svgEl.getScreenCTM();
-    if (!ctm) return;
-
-    const local = pt.matrixTransform(ctm.inverse());
     this.dispatchEvent(
       new CustomEvent("node-move", {
-        detail: {
-          nodeId: node.id,
-          position: { x: Math.round(local.x), y: Math.round(local.y) },
-        },
+        detail: { nodeId: node.id, position },
         bubbles: true,
         composed: true,
       })
@@ -326,6 +362,9 @@ export class HeatingSchemaCanvas extends LitElement {
       ) as SVGGraphicsElement | null;
       nodeEl?.releasePointerCapture(ev.pointerId);
       this._dragNodeId = undefined;
+      this._dragOffset = undefined;
+      this._dragBounds = undefined;
+      this.requestUpdate();
     }
   }
 
