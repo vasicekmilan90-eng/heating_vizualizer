@@ -29,6 +29,15 @@ import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 
 const GRID_SIZE = 10;
+const NUDGE_STEP = GRID_SIZE;
+const NUDGE_STEP_LARGE = GRID_SIZE * 5;
+
+const ARROW_KEYS: Record<string, Point> = {
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+};
 
 @customElement("heating-schema-canvas")
 export class HeatingSchemaCanvas extends LitElement {
@@ -38,6 +47,8 @@ export class HeatingSchemaCanvas extends LitElement {
     overlays: [],
   };
   @property({ type: Boolean }) public editable = false;
+  /** Dragging devices and connecting ports; off by default so scrolling on touch screens cannot move anything. */
+  @property({ type: Boolean }) public drawing = false;
   @property({ attribute: false }) public selectedNodeId?: string;
   @property({ attribute: false }) public selectedEdgeId?: string;
   @property({ attribute: false }) public selectedPort?: { nodeId: string; portId: string };
@@ -105,10 +116,20 @@ export class HeatingSchemaCanvas extends LitElement {
       cursor: default;
     }
     :host([editable]) .node {
+      cursor: pointer;
+    }
+    :host([drawing]) .node {
       cursor: grab;
     }
-    :host([editable]) .node.dragging {
+    :host([drawing]) .node.dragging {
       cursor: grabbing;
+    }
+    :host([drawing]) svg {
+      touch-action: none;
+    }
+    svg:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: 2px;
     }
     .overlay-group {
       pointer-events: none;
@@ -148,6 +169,9 @@ export class HeatingSchemaCanvas extends LitElement {
     if (changed.has("editable")) {
       this.toggleAttribute("editable", this.editable);
     }
+    if (changed.has("drawing") || changed.has("editable")) {
+      this.toggleAttribute("drawing", this.editable && this.drawing);
+    }
   }
 
   protected render(): TemplateResult {
@@ -158,12 +182,14 @@ export class HeatingSchemaCanvas extends LitElement {
     return html`
       <svg
         viewBox="${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}"
+        tabindex="${this.editable ? "0" : nothing}"
+        @keydown="${this._onKeyDown}"
         @pointerdown="${this._onCanvasPointerDown}"
         @pointermove="${this._onCanvasPointerMove}"
         @pointerup="${this._onCanvasPointerUp}"
         @pointerleave="${this._onCanvasPointerUp}"
       >
-        ${this.editable
+        ${this.editable && this.drawing
           ? svg`
             <defs>
               <pattern id="grid" width="${GRID_SIZE * 2}" height="${GRID_SIZE * 2}" patternUnits="userSpaceOnUse">
@@ -323,13 +349,18 @@ export class HeatingSchemaCanvas extends LitElement {
     if (!node) return;
 
     const portEl = target?.closest?.("[data-port-id]") as SVGElement | null;
-    if (portEl) {
+    if (portEl && this.drawing) {
       const portId = portEl.getAttribute("data-port-id");
       if (portId) {
         this._dispatchPortClick(nodeId, portId);
         ev.stopPropagation();
         return;
       }
+    }
+
+    if (!this.drawing) {
+      this._dispatchSelect(nodeId);
+      return;
     }
 
     this._dragNodeId = nodeId;
@@ -341,6 +372,28 @@ export class HeatingSchemaCanvas extends LitElement {
     nodeEl.setPointerCapture(ev.pointerId);
     this._dispatchSelect(nodeId);
     ev.preventDefault();
+  }
+
+  /** Arrow keys move the selected device by one grid step, with Shift by five. */
+  private _onKeyDown(ev: KeyboardEvent): void {
+    const direction = ARROW_KEYS[ev.key];
+    const node = this.schema.nodes.find((n) => n.id === this.selectedNodeId);
+    if (!this.editable || !direction || !node) return;
+    ev.preventDefault();
+    const step = ev.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
+    this.dispatchEvent(
+      new CustomEvent("node-move", {
+        detail: {
+          nodeId: node.id,
+          position: {
+            x: snapToGrid(node.position.x + direction.x * step, GRID_SIZE),
+            y: snapToGrid(node.position.y + direction.y * step, GRID_SIZE),
+          },
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   private _toLocal(ev: PointerEvent): Point | undefined {

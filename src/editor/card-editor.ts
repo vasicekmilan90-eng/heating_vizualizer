@@ -23,6 +23,9 @@ import {
   renumberLoops,
 } from "../models/connections.js";
 import { normalizeConfig } from "../models/migrate.js";
+import { guessDeviceType, suggestAddons } from "../models/entity-mapping.js";
+import { instantiateTemplate, SCHEMA_TEMPLATES } from "../models/templates.js";
+import { autoLayout } from "../models/layout.js";
 import {
   connectionId,
   formatPortRef,
@@ -42,7 +45,14 @@ import {
 import { createTranslator, type Translator } from "../i18n/index.js";
 import { normalizeRotation } from "../utils/geometry.js";
 import type { FieldKind, FieldOption } from "./controls.js";
-import { attributeOptions, describeEntity, entityOptions, stateOptions, type EntityPreference } from "./suggestions.js";
+import {
+  attributeOptions,
+  describeEntity,
+  deviceName,
+  entityOptions,
+  stateOptions,
+  type EntityPreference,
+} from "./suggestions.js";
 import "./controls.js";
 import "../renderer/schema-canvas.js";
 
@@ -123,6 +133,10 @@ function addonFields(type: AddonType): BindingField[] {
 }
 
 const NEW_NODE_GRID = { columns: 4, stepX: 200, stepY: 180, originX: 40, originY: 40 };
+const NUDGE_STEP = 10;
+
+/** Domains offered first when a device is added from an entity. */
+const DEVICE_ENTITY_DOMAINS = ["climate", "water_heater", "valve", "fan", "switch", "sensor", "binary_sensor"];
 
 /** HA `ui_color` names accepted by overlay rules. */
 const UI_COLORS = [
@@ -166,6 +180,12 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _pendingPort?: PortRef;
   @state() private _newDeviceType = HEAT_PUMP.type;
   @state() private _newAddonType?: AddonType;
+  @state() private _entityToAdd?: string;
+  @state() private _entityDeviceType?: string;
+  @state() private _templateId = SCHEMA_TEMPLATES[0].id;
+  /** Positions before the last automatic layout; cleared by any other change. */
+  @state() private _layoutUndo?: Record<string, { x: number; y: number }>;
+  @state() private _drawing = false;
 
   public set hass(hass: HomeAssistant | undefined) {
     this._hass = hass;
@@ -305,6 +325,11 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     .row.selected {
       border-color: var(--primary-color);
     }
+    .row.static {
+      padding: 6px 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-md, 8px);
+    }
     .row-main {
       display: flex;
       flex: 1;
@@ -413,9 +438,21 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _renderCanvas(t: Translator, schema: HeatingSchema): TemplateResult {
     return html`
+      <div class="toolbar">
+        <button
+          type="button"
+          class="${this._drawing ? "primary" : ""}"
+          aria-pressed="${this._drawing}"
+          @click="${this._toggleDrawing}"
+        >✎ ${t.t("editor.drawing_mode")}</button>
+        <span class="hint" style="flex: 1">
+          ${t.t(this._drawing ? "editor.drawing_hint" : "editor.select_hint")}
+        </span>
+      </div>
       <heating-schema-canvas
         .schema="${schema}"
         .editable="${true}"
+        .drawing="${this._drawing}"
         .selectedNodeId="${this._selectedNodeId}"
         .selectedEdgeId="${this._selectedEdgeId}"
         .selectedPort="${this._pendingPort}"
@@ -459,6 +496,30 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           ${t.t("editor.add_device")}
         </button>
       </div>
+      <div class="toolbar">
+        <select
+          aria-label="${t.t("editor.template")}"
+          @change="${(ev: Event) => {
+            this._templateId = (ev.target as HTMLSelectElement).value;
+          }}"
+        >
+          ${SCHEMA_TEMPLATES.map(
+            (template) => html`<option value="${template.id}" ?selected="${template.id === this._templateId}">
+              ${t.t(`templates.${template.id}`)}
+            </option>`
+          )}
+        </select>
+        <button type="button" @click="${this._insertTemplate}">${t.t("editor.insert_template")}</button>
+      </div>
+      ${schema.nodes.length > 1
+        ? html`<div class="toolbar">
+            <button type="button" @click="${this._autoLayout}">${t.t("editor.auto_layout")}</button>
+            ${this._layoutUndo
+              ? html`<button type="button" @click="${this._undoLayout}">${t.t("editor.undo_layout")}</button>`
+              : nothing}
+          </div>`
+        : nothing}
+      ${this._renderAddFromEntity(t)}
 
       ${this._renderCanvas(t, schema)}
 
@@ -479,6 +540,54 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             </ul>
           `
         : html`<p class="hint">${t.t("editor.empty_hint")}</p>`}
+    `;
+  }
+
+  private _renderAddFromEntity(t: Translator): TemplateResult | typeof nothing {
+    const hass = this._hass;
+    if (!hass) return nothing;
+    const entity = this._entityToAdd ? hass.states[this._entityToAdd] : undefined;
+    const type = this._entityDeviceType ?? (entity ? guessDeviceType(entity) : undefined);
+
+    return html`
+      <section class="card">
+        <hv-field
+          kind="combo"
+          .label="${t.t("editor.add_from_entity")}"
+          .helper="${describeEntity(hass, this._entityToAdd) ?? t.t("editor.add_from_entity_helper")}"
+          .options="${entityOptions(hass, { domains: DEVICE_ENTITY_DOMAINS })}"
+          .value="${this._entityToAdd}"
+          @hv-change="${(ev: FieldEvent) => {
+            this._entityToAdd = asText(ev);
+            this._entityDeviceType = undefined;
+          }}"
+        ></hv-field>
+        ${entity
+          ? html`<div class="toolbar">
+              <select
+                aria-label="${t.t("editor.device_type")}"
+                @change="${(ev: Event) => {
+                  this._entityDeviceType = (ev.target as HTMLSelectElement).value || undefined;
+                }}"
+              >
+                ${type ? nothing : html`<option value="" selected>${t.t("editor.choose_type")}</option>`}
+                ${DEVICE_TYPES.map(
+                  (option) => html`<option value="${option}" ?selected="${option === type}">
+                    ${t.t(`devices.${option}.name`)}
+                  </option>`
+                )}
+              </select>
+              <button
+                type="button"
+                class="primary"
+                ?disabled="${!type}"
+                @click="${() => {
+                  if (type) this._addDevice(type, entity.entity_id);
+                }}"
+              >${t.t("editor.add_device")}</button>
+            </div>`
+          : nothing}
+      </section>
     `;
   }
 
@@ -534,6 +643,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       </section>
 
       ${this._renderAddons(t, node)}
+      ${this._renderSuggestions(t, node)}
       ${this._renderConnections(t, schema, node)}
 
       <section class="card">
@@ -553,6 +663,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           ></hv-field>
         </div>
         <div class="toolbar">
+          <button type="button" class="icon" aria-label="${t.t("editor.move_left")}" @click="${() => this._nudge(node, -1, 0)}">←</button>
+          <button type="button" class="icon" aria-label="${t.t("editor.move_up")}" @click="${() => this._nudge(node, 0, -1)}">↑</button>
+          <button type="button" class="icon" aria-label="${t.t("editor.move_down")}" @click="${() => this._nudge(node, 0, 1)}">↓</button>
+          <button type="button" class="icon" aria-label="${t.t("editor.move_right")}" @click="${() => this._nudge(node, 1, 0)}">→</button>
           <button type="button" @click="${() => this._rotateNode(node.id)}">↻ ${t.t("editor.rotate")}</button>
           <button type="button" class="danger" @click="${() => this._deleteNode(node.id)}">
             ${t.t("editor.delete_device")}
@@ -661,6 +775,46 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               </button>
             </div>`
           : nothing}
+      </section>
+    `;
+  }
+
+  /** Other entities of the same HA device, offered as add-ons. */
+  private _renderSuggestions(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
+    const suggestions = suggestAddons(this._hass, node);
+    if (!suggestions.length) return nothing;
+    const label = (addon: AddonConfig): string =>
+      addon.slot
+        ? `${t.t(`addons.${addon.type}.name`)} – ${t.t(`slots.${addon.slot}`)}`
+        : t.t(`addons.${addon.type}.name`);
+
+    return html`
+      <section class="card">
+        <div class="header">
+          <h3>${t.t("editor.suggested_title")}</h3>
+          <button type="button" @click="${() => this._addAddons(node.id, suggestions)}">
+            ${t.t("editor.add_all")}
+          </button>
+        </div>
+        <p class="hint">${t.t("editor.suggested_hint")}</p>
+        <ul class="list" style="margin-top: 8px">
+          ${suggestions.map((addon) => html`
+            <li>
+              <div class="row static">
+                <span class="row-main">
+                  <span>${label(addon)}</span>
+                  <span class="row-sub">${describeEntity(this._hass, addon.entity_id) ?? addon.entity_id}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                class="icon"
+                aria-label="${t.t("editor.add_addon")}"
+                @click="${() => this._addAddons(node.id, [addon])}"
+              >+</button>
+            </li>
+          `)}
+        </ul>
       </section>
     `;
   }
@@ -975,6 +1129,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   /** Applies a change to a copy of the schema and emits the new config. */
   private _update(mutate: (schema: HeatingSchema) => void): void {
     if (!this._config) return;
+    this._layoutUndo = undefined;
     const schema = structuredClone(schemaOf(this._config));
     mutate(schema);
     // JSON round-trip drops undefined values, which the dashboard YAML serializer rejects.
@@ -999,6 +1154,15 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     });
   }
 
+  private _nudge(node: SchemaNode, dx: number, dy: number): void {
+    this._moveNode(node.id, { x: node.position.x + dx * NUDGE_STEP, y: node.position.y + dy * NUDGE_STEP });
+  }
+
+  private _toggleDrawing(): void {
+    this._drawing = !this._drawing;
+    this._pendingPort = undefined;
+  }
+
   private _rotateNode(nodeId: string): void {
     this._update((schema) => {
       const node = schema.nodes.find((n) => n.id === nodeId);
@@ -1006,7 +1170,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     });
   }
 
-  private _addDevice(type: string): void {
+  private _addDevice(type: string, entityId?: string): void {
     if (!getDeviceDefinition(type)) return;
     const id = generateId(type);
     this._update((schema) => {
@@ -1014,6 +1178,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       const node: SchemaNode = {
         id,
         type,
+        name: deviceName(this._hass, entityId),
+        entity_id: entityId,
         position: {
           x: NEW_NODE_GRID.originX + (count % NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepX,
           y: NEW_NODE_GRID.originY + Math.floor(count / NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepY,
@@ -1024,7 +1190,43 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       }
       schema.nodes.push(node);
     });
+    this._entityToAdd = undefined;
+    this._entityDeviceType = undefined;
     this._openNode(id);
+  }
+
+  private _autoLayout(): void {
+    if (!this._config) return;
+    const previous = Object.fromEntries(schemaOf(this._config).nodes.map((n) => [n.id, { ...n.position }]));
+    this._update((schema) => {
+      schema.nodes = autoLayout(schema);
+    });
+    this._layoutUndo = previous;
+  }
+
+  private _undoLayout(): void {
+    const previous = this._layoutUndo;
+    if (!previous) return;
+    this._update((schema) => {
+      for (const node of schema.nodes) node.position = previous[node.id] ?? node.position;
+    });
+  }
+
+  private _insertTemplate(): void {
+    const template = SCHEMA_TEMPLATES.find((tpl) => tpl.id === this._templateId);
+    if (!template) return;
+    this._update((schema) => {
+      const part = instantiateTemplate(template, schema, (localId) => generateId(localId));
+      schema.nodes.push(...part.nodes);
+      schema.connections.push(...part.connections);
+    });
+  }
+
+  private _addAddons(nodeId: string, addons: AddonConfig[]): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      if (node) node.addons = [...(node.addons ?? []), ...addons];
+    });
   }
 
   private _deleteNode(nodeId: string): void {

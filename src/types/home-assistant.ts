@@ -41,9 +41,17 @@ export interface EntityRegistryDisplayEntry {
   area_id?: string | null;
 }
 
+/** Entry of `hass.devices` (device registry). */
+export interface DeviceRegistryEntry {
+  id: string;
+  name?: string | null;
+  name_by_user?: string | null;
+}
+
 export interface HomeAssistant extends HomeAssistantFormatters {
   states: HassEntities;
   entities?: Record<string, EntityRegistryDisplayEntry>;
+  devices?: Record<string, DeviceRegistryEntry>;
   language: string;
   localize(key: string, ...args: unknown[]): string;
 }
