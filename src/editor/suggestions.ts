@@ -92,6 +92,13 @@ export function stateOptions(
   return [...values].map((value) => ({ value }));
 }
 
+/** Name of the HA device an entity belongs to. */
+export function deviceName(hass: HomeAssistant | undefined, entityId: string | undefined): string | undefined {
+  const device = hass ? deviceOf(hass, entityId) : undefined;
+  const entry = device ? hass?.devices?.[device] : undefined;
+  return entry?.name_by_user || entry?.name || undefined;
+}
+
 /** Short description of the entity's current state, e.g. `Tank top · 48.5 °C`. */
 export function describeEntity(hass: HomeAssistant | undefined, entityId: string | undefined): string | undefined {
   const entity = entityId ? hass?.states[entityId] : undefined;

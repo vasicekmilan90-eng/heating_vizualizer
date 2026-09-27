@@ -23,6 +23,7 @@ import {
   renumberLoops,
 } from "../models/connections.js";
 import { normalizeConfig } from "../models/migrate.js";
+import { guessDeviceType, suggestAddons } from "../models/entity-mapping.js";
 import {
   connectionId,
   formatPortRef,
@@ -42,7 +43,14 @@ import {
 import { createTranslator, type Translator } from "../i18n/index.js";
 import { normalizeRotation } from "../utils/geometry.js";
 import type { FieldKind, FieldOption } from "./controls.js";
-import { attributeOptions, describeEntity, entityOptions, stateOptions, type EntityPreference } from "./suggestions.js";
+import {
+  attributeOptions,
+  describeEntity,
+  deviceName,
+  entityOptions,
+  stateOptions,
+  type EntityPreference,
+} from "./suggestions.js";
 import "./controls.js";
 import "../renderer/schema-canvas.js";
 
@@ -124,6 +132,9 @@ function addonFields(type: AddonType): BindingField[] {
 
 const NEW_NODE_GRID = { columns: 4, stepX: 200, stepY: 180, originX: 40, originY: 40 };
 
+/** Domains offered first when a device is added from an entity. */
+const DEVICE_ENTITY_DOMAINS = ["climate", "water_heater", "valve", "fan", "switch", "sensor", "binary_sensor"];
+
 /** HA `ui_color` names accepted by overlay rules. */
 const UI_COLORS = [
   "primary",
@@ -166,6 +177,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _pendingPort?: PortRef;
   @state() private _newDeviceType = HEAT_PUMP.type;
   @state() private _newAddonType?: AddonType;
+  @state() private _entityToAdd?: string;
+  @state() private _entityDeviceType?: string;
 
   public set hass(hass: HomeAssistant | undefined) {
     this._hass = hass;
@@ -304,6 +317,11 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     }
     .row.selected {
       border-color: var(--primary-color);
+    }
+    .row.static {
+      padding: 6px 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-md, 8px);
     }
     .row-main {
       display: flex;
@@ -459,6 +477,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           ${t.t("editor.add_device")}
         </button>
       </div>
+      ${this._renderAddFromEntity(t)}
 
       ${this._renderCanvas(t, schema)}
 
@@ -479,6 +498,54 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             </ul>
           `
         : html`<p class="hint">${t.t("editor.empty_hint")}</p>`}
+    `;
+  }
+
+  private _renderAddFromEntity(t: Translator): TemplateResult | typeof nothing {
+    const hass = this._hass;
+    if (!hass) return nothing;
+    const entity = this._entityToAdd ? hass.states[this._entityToAdd] : undefined;
+    const type = this._entityDeviceType ?? (entity ? guessDeviceType(entity) : undefined);
+
+    return html`
+      <section class="card">
+        <hv-field
+          kind="combo"
+          .label="${t.t("editor.add_from_entity")}"
+          .helper="${describeEntity(hass, this._entityToAdd) ?? t.t("editor.add_from_entity_helper")}"
+          .options="${entityOptions(hass, { domains: DEVICE_ENTITY_DOMAINS })}"
+          .value="${this._entityToAdd}"
+          @hv-change="${(ev: FieldEvent) => {
+            this._entityToAdd = asText(ev);
+            this._entityDeviceType = undefined;
+          }}"
+        ></hv-field>
+        ${entity
+          ? html`<div class="toolbar">
+              <select
+                aria-label="${t.t("editor.device_type")}"
+                @change="${(ev: Event) => {
+                  this._entityDeviceType = (ev.target as HTMLSelectElement).value || undefined;
+                }}"
+              >
+                ${type ? nothing : html`<option value="" selected>${t.t("editor.choose_type")}</option>`}
+                ${DEVICE_TYPES.map(
+                  (option) => html`<option value="${option}" ?selected="${option === type}">
+                    ${t.t(`devices.${option}.name`)}
+                  </option>`
+                )}
+              </select>
+              <button
+                type="button"
+                class="primary"
+                ?disabled="${!type}"
+                @click="${() => {
+                  if (type) this._addDevice(type, entity.entity_id);
+                }}"
+              >${t.t("editor.add_device")}</button>
+            </div>`
+          : nothing}
+      </section>
     `;
   }
 
@@ -534,6 +601,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       </section>
 
       ${this._renderAddons(t, node)}
+      ${this._renderSuggestions(t, node)}
       ${this._renderConnections(t, schema, node)}
 
       <section class="card">
@@ -661,6 +729,46 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               </button>
             </div>`
           : nothing}
+      </section>
+    `;
+  }
+
+  /** Other entities of the same HA device, offered as add-ons. */
+  private _renderSuggestions(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
+    const suggestions = suggestAddons(this._hass, node);
+    if (!suggestions.length) return nothing;
+    const label = (addon: AddonConfig): string =>
+      addon.slot
+        ? `${t.t(`addons.${addon.type}.name`)} – ${t.t(`slots.${addon.slot}`)}`
+        : t.t(`addons.${addon.type}.name`);
+
+    return html`
+      <section class="card">
+        <div class="header">
+          <h3>${t.t("editor.suggested_title")}</h3>
+          <button type="button" @click="${() => this._addAddons(node.id, suggestions)}">
+            ${t.t("editor.add_all")}
+          </button>
+        </div>
+        <p class="hint">${t.t("editor.suggested_hint")}</p>
+        <ul class="list" style="margin-top: 8px">
+          ${suggestions.map((addon) => html`
+            <li>
+              <div class="row static">
+                <span class="row-main">
+                  <span>${label(addon)}</span>
+                  <span class="row-sub">${describeEntity(this._hass, addon.entity_id) ?? addon.entity_id}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                class="icon"
+                aria-label="${t.t("editor.add_addon")}"
+                @click="${() => this._addAddons(node.id, [addon])}"
+              >+</button>
+            </li>
+          `)}
+        </ul>
       </section>
     `;
   }
@@ -1006,7 +1114,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     });
   }
 
-  private _addDevice(type: string): void {
+  private _addDevice(type: string, entityId?: string): void {
     if (!getDeviceDefinition(type)) return;
     const id = generateId(type);
     this._update((schema) => {
@@ -1014,6 +1122,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       const node: SchemaNode = {
         id,
         type,
+        name: deviceName(this._hass, entityId),
+        entity_id: entityId,
         position: {
           x: NEW_NODE_GRID.originX + (count % NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepX,
           y: NEW_NODE_GRID.originY + Math.floor(count / NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepY,
@@ -1024,7 +1134,16 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       }
       schema.nodes.push(node);
     });
+    this._entityToAdd = undefined;
+    this._entityDeviceType = undefined;
     this._openNode(id);
+  }
+
+  private _addAddons(nodeId: string, addons: AddonConfig[]): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      if (node) node.addons = [...(node.addons ?? []), ...addons];
+    });
   }
 
   private _deleteNode(nodeId: string): void {
