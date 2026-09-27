@@ -9,6 +9,8 @@ export type SvgResult = ReturnType<typeof svg>;
 export interface ResolvedAddon {
   config: AddonConfig;
   state: NodeVisualState;
+  /** Position in the node's add-on list. */
+  index?: number;
 }
 
 /** Node-specific states beyond the main binding. */

@@ -214,6 +214,20 @@
     "insert_template": "Vložit šablonu",
     "auto_layout": "Rozmístit automaticky",
     "undo_layout": "Vrátit rozmístění",
+    "actions_title": "Akce",
+    "tap_action": "Klepnutí",
+    "hold_action": "Podržení",
+    "double_tap_action": "Dvojité klepnutí",
+    "action_default_tap": "Výchozí (více informací)",
+    "action_default": "Výchozí (nic)",
+    "action_more_info": "Více informací",
+    "action_toggle": "Přepnout",
+    "action_navigate": "Přejít na stránku",
+    "action_none": "Nic",
+    "navigation_path": "Cesta stránky",
+    "pipe_style": "Vzhled potrubí",
+    "pipe_style_orthogonal": "Pravoúhlé potrubí",
+    "pipe_style_curved": "Oblouky",
     "drawing_mode": "Režim kreslení",
     "drawing_hint": "Přetáhněte zařízení; kliknutím na dva porty je propojíte.",
     "select_hint": "Kliknutím vyberete zařízení, šipkami ho posunete (Shift = rychleji).",
@@ -294,5 +308,9 @@
   },
   "card": {
     "empty": "Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma."
+  },
+  "a11y": {
+    "schema": "Schéma vytápění",
+    "active": "v provozu"
   }
 }
