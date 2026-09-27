@@ -4,11 +4,11 @@ import type { FieldOption } from "./controls.js";
 export interface EntityPreference {
   domains?: string[];
   deviceClasses?: string[];
+  /** Entities of this HA device are listed first. */
+  deviceId?: string;
   /** Entities of the same HA device as this one are listed first. */
   relatedTo?: string;
 }
-
-const MAX_ENTITY_OPTIONS = 300;
 
 const HIDDEN_ATTRIBUTES = new Set([
   "friendly_name",
@@ -43,7 +43,7 @@ function deviceOf(hass: HomeAssistant, entityId: string | undefined): string | u
 /** Entity suggestions ordered by relevance: same device, then preferred domain and device class. */
 export function entityOptions(hass: HomeAssistant | undefined, preference: EntityPreference = {}): FieldOption[] {
   if (!hass) return [];
-  const device = deviceOf(hass, preference.relatedTo);
+  const device = preference.deviceId ?? deviceOf(hass, preference.relatedTo);
   const scored = Object.values(hass.states).map((entity) => {
     const domain = entity.entity_id.split(".", 1)[0];
     const deviceClass = entity.attributes.device_class;
@@ -54,9 +54,17 @@ export function entityOptions(hass: HomeAssistant | undefined, preference: Entit
     return { entity, score, name: friendlyName(entity) };
   });
   scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  return scored
-    .slice(0, MAX_ENTITY_OPTIONS)
-    .map(({ entity, name }) => ({ value: entity.entity_id, label: name }));
+  return scored.map(({ entity, name }) => ({ value: entity.entity_id, label: name }));
+}
+
+/** Home Assistant devices that have at least one entity, by name. */
+export function deviceOptions(hass: HomeAssistant | undefined): FieldOption[] {
+  if (!hass?.devices) return [];
+  const withEntities = new Set(Object.values(hass.entities ?? {}).map((e) => e.device_id));
+  return Object.values(hass.devices)
+    .filter((d) => withEntities.has(d.id))
+    .map((d) => ({ value: d.id, label: d.name_by_user || d.name || d.id }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 export function attributeOptions(hass: HomeAssistant | undefined, entityId: string | undefined): FieldOption[] {

@@ -6,7 +6,11 @@ import type { AddonConfig, SchemaNode } from "./schema.js";
 /** Lower-case words of the entity id and name without diacritics, e.g. ` tc vratka teplota `. */
 function words(entity: HassEntity): string {
   const name = typeof entity.attributes.friendly_name === "string" ? entity.attributes.friendly_name : "";
-  const text = `${entity.entity_id} ${name}`
+  return normalizeWords(`${entity.entity_id} ${name}`);
+}
+
+function normalizeWords(value: string): string {
+  const text = value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
@@ -43,6 +47,17 @@ const DEVICE_KEYWORDS: [string, string][] = [
 ];
 
 const PIPE_SENSOR_CLASSES = new Set(["temperature", "pressure", "volume_flow_rate", "energy", "power"]);
+
+/** Words like "pump" or "outdoor" also appear in names of other devices' entities, so they do not claim ownership. */
+const GENERIC_KEYWORD_TYPES = new Set(["circulation_pump", "outdoor_temperature"]);
+
+/** Device type named in a text, e.g. `boiler` for "Heat pump DHW tank temperature". */
+function namedDeviceType(text: string): string | undefined {
+  const type = DEVICE_KEYWORDS.find(([pattern]) => has(text, pattern))?.[1];
+  return type && !GENERIC_KEYWORD_TYPES.has(type) ? type : undefined;
+}
+
+const HEAT_SOURCE_TYPES = new Set(["heat_pump", "heating_boiler", "solar_collector"]);
 
 /** Device type that most likely matches an entity; `undefined` when nothing fits. */
 export function guessDeviceType(entity: HassEntity): string | undefined {
@@ -86,7 +101,7 @@ export function guessAddonType(entity: HassEntity): AddonType | undefined {
 const SLOT_KEYWORDS: Record<string, string> = {
   top: "top|nahore|horni",
   upper: "upper",
-  middle: "middle|mid|stred|uprostred",
+  middle: "middle|stred|uprostred",
   lower: "lower",
   bottom: "bottom|dole|spodni|dolni",
   supply: "supply|flow|outlet|leaving|vystup|privod|topna voda",
@@ -109,21 +124,34 @@ function guessSlot(entity: HassEntity, slots: string[], used: Set<string | undef
 
 /**
  * Add-ons for the other entities of the node's HA device, e.g. tank sensors wired to the heat pump.
- * Respects the device's add-on limits and free slots; already bound entities are skipped.
+ * Entities naming another device type (a "DHW tank" sensor for a heat pump node) and entities in `taken`
+ * are skipped; the device's add-on limits and free slots are respected.
  */
-export function suggestAddons(hass: HomeAssistant | undefined, node: SchemaNode): AddonConfig[] {
-  const device = node.entity_id ? hass?.entities?.[node.entity_id]?.device_id : undefined;
+export function suggestAddons(
+  hass: HomeAssistant | undefined,
+  node: SchemaNode,
+  taken: ReadonlySet<string> = new Set()
+): AddonConfig[] {
+  const device = node.device_id ?? (node.entity_id ? hass?.entities?.[node.entity_id]?.device_id : undefined);
   const specs = getDeviceDefinition(node.type)?.addons ?? [];
   if (!hass || !device || !specs.length) return [];
 
   const addons = [...(node.addons ?? [])];
   const bound = new Set([node.entity_id, ...addons.map((a) => a.entity_id), ...addons.map((a) => a.temperature_entity_id)]);
   const suggestions: AddonConfig[] = [];
+  const deviceEntry = hass.devices?.[device];
+  const deviceType = namedDeviceType(normalizeWords(deviceEntry?.name_by_user || deviceEntry?.name || ""));
+  // Entities that name no device belong to the HA device itself, e.g. the heat pump.
+  const primary = deviceType ? node.type === deviceType : HEAT_SOURCE_TYPES.has(node.type);
 
   const candidates = Object.values(hass.entities ?? {})
-    .filter((entry) => entry.device_id === device && !bound.has(entry.entity_id))
+    .filter((entry) => entry.device_id === device && !bound.has(entry.entity_id) && !taken.has(entry.entity_id))
     .map((entry) => hass.states[entry.entity_id])
     .filter((entity): entity is HassEntity => entity !== undefined)
+    .filter((entity) => {
+      const owner = namedDeviceType(words(entity));
+      return owner ? owner === node.type : primary;
+    })
     .sort((a, b) => a.entity_id.localeCompare(b.entity_id));
 
   for (const entity of candidates) {
