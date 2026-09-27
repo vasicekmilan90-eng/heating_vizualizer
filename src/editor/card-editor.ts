@@ -1,298 +1,250 @@
-import { css, html, LitElement, nothing, TemplateResult } from "lit";
+import { css, html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import type {
-  HaFormSchema,
-  HaFormSelectorSchema,
-  HomeAssistant,
-  LovelaceCardEditor,
-} from "../types/home-assistant.js";
-import {
-  generateId,
-  normalizeConfig,
-  type HeatingSchema,
-  type HeatingVisualizerConfig,
-  type ChannelBinding,
-  type ChannelSpec,
-  type NodeStateBinding,
-  type OverlayConditionType,
-  type OverlayStateRule,
-  type PortRef,
-  type SchemaEdge,
-  type SchemaNode,
-  type SchemaOverlay,
-  type TranslationMap,
-} from "../models/schema.js";
+import type { HomeAssistant, LovelaceCardEditor } from "../types/home-assistant.js";
+import { ADDON_TYPES, addonLimit, type AddonSpec, type AddonType } from "../models/addons.js";
 import {
   DEVICE_TYPES,
   getDeviceDefinition,
   getNodeDefinition,
   HEAT_PUMP,
+  MANIFOLD,
+  MANIFOLD_DEFAULT_LOOPS,
 } from "../models/device-registry.js";
-import { createTranslator } from "../i18n/index.js";
-import type { Translator } from "../i18n/translations.js";
-import { normalizeRotation, portRefsEqual } from "../utils/geometry.js";
+import {
+  candidatePorts,
+  connectedPortCount,
+  findPort,
+  hasConnection,
+  invalidConnections,
+  makeConnection,
+  otherEnd,
+  portConnections,
+  pruneNodeConnections,
+  renumberLoops,
+} from "../models/connections.js";
+import { normalizeConfig } from "../models/migrate.js";
+import {
+  connectionId,
+  formatPortRef,
+  generateId,
+  parsePortRef,
+  SCHEMA_VERSION,
+  schemaOf,
+  type AddonConfig,
+  type Connection,
+  type HeatingSchema,
+  type HeatingVisualizerConfig,
+  type OverlayStateRule,
+  type PortRef,
+  type SchemaNode,
+  type SchemaOverlay,
+} from "../models/schema.js";
+import { createTranslator, type Translator } from "../i18n/index.js";
+import { normalizeRotation } from "../utils/geometry.js";
+import type { FieldKind, FieldOption } from "./controls.js";
+import { attributeOptions, describeEntity, entityOptions, stateOptions, type EntityPreference } from "./suggestions.js";
+import "./controls.js";
 import "../renderer/schema-canvas.js";
 
-type EditorTab = "schema" | "overlays" | "translations";
+type EditorTab = "schema" | "overlays";
 
-type FormData = Record<string, unknown>;
+type EditorView =
+  | { kind: "list" }
+  | { kind: "node"; nodeId: string }
+  | { kind: "addon"; nodeId: string; index: number };
 
-const NODE_STATE_LABELS: Record<string, string> = {
-  entity_id: "editor.node_state_entity",
-  active_state: "editor.node_state_active",
-  mode_attribute: "editor.node_state_mode_attribute",
-  branch_a_value: "editor.node_state_branch_a",
-  branch_b_value: "editor.node_state_branch_b",
+type BindingKey =
+  | "entity_id"
+  | "active_state"
+  | "value_attribute"
+  | "mode_attribute"
+  | "branch_a_value"
+  | "branch_b_value"
+  | "temperature_entity_id";
+
+type Binding = Partial<Record<BindingKey, string>>;
+
+interface BindingField {
+  key: BindingKey;
+  label: string;
+  helper?: string;
+}
+
+const ENTITY: BindingField = { key: "entity_id", label: "editor.entity" };
+const ACTIVE_STATE: BindingField = { key: "active_state", label: "editor.active_state", helper: "editor.active_state_helper" };
+const VALUE_ATTRIBUTE: BindingField = {
+  key: "value_attribute",
+  label: "editor.value_attribute",
+  helper: "editor.value_attribute_helper",
+};
+const POSITION_ATTRIBUTE: BindingField = {
+  key: "mode_attribute",
+  label: "editor.position_attribute",
+  helper: "editor.position_attribute_helper",
 };
 
-/** Runtime defaults applied in `resolveNodeVisualState`. */
-const NODE_STATE_DEFAULTS: Record<string, string> = {
-  active_state: "on",
-  mode_attribute: "position",
-  branch_a_value: "a",
-  branch_b_value: "b",
-};
+/** Fields of the device's main entity, matching `resolveNodeVisualState`. */
+function nodeFields(type: string): BindingField[] {
+  const valueDisplay = getDeviceDefinition(type)?.valueDisplay;
+  if (valueDisplay === "only") return [ENTITY, VALUE_ATTRIBUTE];
+  if (valueDisplay === "with_state") return [ENTITY, ACTIVE_STATE, VALUE_ATTRIBUTE];
+  if (type === "mixing_valve") return [{ ...ENTITY, label: "editor.actuator_entity" }, POSITION_ATTRIBUTE];
+  if (type === "valve_3way") {
+    return [
+      ENTITY,
+      ACTIVE_STATE,
+      { key: "mode_attribute", label: "editor.valve_attribute", helper: "editor.valve_attribute_helper" },
+      { key: "branch_a_value", label: "editor.branch_a", helper: "editor.branch_a_helper" },
+      { key: "branch_b_value", label: "editor.branch_b", helper: "editor.branch_b_helper" },
+    ];
+  }
+  return [ENTITY, ACTIVE_STATE];
+}
 
-const VALUE_ATTRIBUTE_FIELD: HaFormSchema = {
-  name: "value_attribute",
-  selector: { attribute: {} },
-  context: { filter_entity: "entity_id" },
-};
+function addonFields(type: AddonType): BindingField[] {
+  if (type === "loop") {
+    return [
+      { ...ENTITY, label: "editor.actuator_entity" },
+      ACTIVE_STATE,
+      { key: "temperature_entity_id", label: "editor.loop_temperature" },
+    ];
+  }
+  switch (ADDON_TYPES[type].display) {
+    case "value":
+    case "text":
+      return [ENTITY, VALUE_ATTRIBUTE];
+    case "binary":
+      return [ENTITY, ACTIVE_STATE];
+    case "position":
+      return [ENTITY, POSITION_ATTRIBUTE];
+    default:
+      return [];
+  }
+}
 
-const VALUE_LABELS: Record<string, string> = {
-  ...NODE_STATE_LABELS,
-  value_attribute: "editor.node_value_attribute",
-};
+const NEW_NODE_GRID = { columns: 4, stepX: 200, stepY: 180, originX: 40, originY: 40 };
 
-const VALUE_HELPERS: Record<string, string> = {
-  value_attribute: "editor.node_value_attribute_helper",
-};
-
-const MIXING_VALVE_LABELS: Record<string, string> = {
-  ...NODE_STATE_LABELS,
-  entity_id: "editor.node_state_position_entity",
-  mode_attribute: "editor.node_state_position_attribute",
-};
-
-const MIXING_VALVE_HELPERS: Record<string, string> = {
-  mode_attribute: "editor.node_state_position_helper",
-};
-
-const CHANNEL_LABELS: Record<string, string> = {
-  ...NODE_STATE_LABELS,
-  name: "editor.channel_name",
-};
-
-const CHANNEL_SCHEMA: HaFormSchema[] = [
-  { name: "name", selector: { text: {} } },
-  { name: "entity_id", selector: { entity: {} } },
-  { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
+/** HA `ui_color` names accepted by overlay rules. */
+const UI_COLORS = [
+  "primary",
+  "accent",
+  "red",
+  "pink",
+  "purple",
+  "indigo",
+  "blue",
+  "light-blue",
+  "cyan",
+  "teal",
+  "green",
+  "light-green",
+  "lime",
+  "yellow",
+  "amber",
+  "orange",
+  "deep-orange",
+  "brown",
+  "grey",
+  "blue-grey",
 ];
 
-const SENSOR_CHANNEL_SCHEMA: HaFormSchema[] = [
-  { name: "name", selector: { text: {} } },
-  { name: "entity_id", selector: { entity: {} } },
-];
+type FieldEvent = CustomEvent<{ value?: string | number | boolean }>;
 
-const NODE_NAME_SCHEMA: HaFormSchema[] = [{ name: "name", selector: { text: {} } }];
-
-const HEATER_SCHEMA: HaFormSchema[] = [
-  { name: "entity_id", selector: { entity: {} } },
-  { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
-];
-
-/** Channels padded to the count the device is drawn with. */
-function nodeChannels(node: SchemaNode, spec: ChannelSpec): ChannelBinding[] {
-  const channels = (node.channels ?? []).map((c) => ({ ...c }));
-  const count = channels.length || spec.default;
-  while (channels.length < count) channels.push({});
-  return channels;
-}
-
-const OVERLAY_LABELS: Record<string, string> = {
-  entity_id: "overlay.entity",
-  name: "overlay.name",
-  template: "overlay.template",
-};
-
-const OVERLAY_SCHEMA: HaFormSchema[] = [
-  { name: "entity_id", selector: { entity: {} } },
-  { name: "name", selector: { entity_name: {} }, context: { entity: "entity_id" } },
-  { name: "template", selector: { text: {} } },
-  {
-    type: "grid",
-    name: "position",
-    schema: [
-      { name: "x", selector: { number: { mode: "box" } } },
-      { name: "y", selector: { number: { mode: "box" } } },
-    ],
-  },
-];
-
-interface NodeFormSpec {
-  schema: HaFormSchema[];
-  labels: Record<string, string>;
-  helpers: Record<string, string>;
-}
-
-function nodeForm(nodeType: string): NodeFormSpec {
-  const entityField: HaFormSchema = { name: "entity_id", selector: { entity: {} } };
-  const activeField: HaFormSchema = {
-    name: "active_state",
-    selector: { state: {} },
-    context: { filter_entity: "entity_id" },
-  };
-  const valueDisplay = getDeviceDefinition(nodeType)?.valueDisplay;
-
-  if (valueDisplay === "only") {
-    return {
-      schema: [entityField, VALUE_ATTRIBUTE_FIELD],
-      labels: { ...VALUE_LABELS, entity_id: "editor.node_value_entity" },
-      helpers: VALUE_HELPERS,
-    };
-  }
-  if (valueDisplay === "with_state") {
-    return { schema: [entityField, activeField, VALUE_ATTRIBUTE_FIELD], labels: VALUE_LABELS, helpers: VALUE_HELPERS };
-  }
-  if (nodeType === "mixing_valve") {
-    return {
-      schema: [
-        entityField,
-        { name: "mode_attribute", selector: { attribute: {} }, context: { filter_entity: "entity_id" } },
-      ],
-      labels: MIXING_VALVE_LABELS,
-      helpers: MIXING_VALVE_HELPERS,
-    };
-  }
-  const schema: HaFormSchema[] = [entityField, activeField];
-  if (nodeType === "valve_3way") {
-    const branchContext = { filter_entity: "entity_id", filter_attribute: "mode_attribute" };
-    schema.push(
-      { name: "mode_attribute", selector: { attribute: {} }, context: { filter_entity: "entity_id" } },
-      { name: "branch_a_value", selector: { state: {} }, context: branchContext },
-      { name: "branch_b_value", selector: { state: {} }, context: branchContext }
-    );
-  }
-  return { schema, labels: NODE_STATE_LABELS, helpers: {} };
-}
-
-function compact(value: FormData): FormData {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, v]) => v !== undefined && v !== null && v !== "")
-  );
-}
-
-const RULE_LABELS: Record<string, string> = {
-  condition: "overlay.rule.condition",
-  entity: "overlay.rule.entity",
-  state: "overlay.rule.state",
-  above: "overlay.rule.above",
-  below: "overlay.rule.below",
-  color: "overlay.rule.color",
-  hide: "overlay.rule.hide",
-};
-
-const RULE_HELPERS: Record<string, string> = {
-  entity: "overlay.rule.entity_helper",
-};
-
-function ruleSchema(t: Translator): HaFormSchema[] {
-  const whenNumeric = { field: "condition", value: "numeric" };
-  return [
-    {
-      name: "condition",
-      selector: {
-        select: {
-          mode: "dropdown",
-          options: [
-            { value: "state", label: t.t("overlay.rule.condition_state") },
-            { value: "numeric", label: t.t("overlay.rule.condition_numeric") },
-          ],
-        },
-      },
-    },
-    { name: "entity", selector: { entity: {} } },
-    {
-      name: "state",
-      selector: { state: {} },
-      context: { filter_entity: "entity" },
-      visible: { field: "condition", value: "state" },
-    },
-    { name: "above", selector: { number: { mode: "box", step: "any" } }, visible: whenNumeric },
-    { name: "below", selector: { number: { mode: "box", step: "any" } }, visible: whenNumeric },
-    { name: "color", selector: { ui_color: {} } },
-    { name: "hide", selector: { boolean: {} } },
-  ];
-}
-
-function ruleToForm(rule: OverlayStateRule): FormData {
-  return {
-    condition: rule.condition,
-    entity: rule.entity,
-    state: rule.state,
-    above: rule.above,
-    below: rule.below,
-    color: rule.effect.color,
-    hide: rule.effect.visible === false,
-  };
-}
-
-function formToRule(value: FormData, previous: OverlayStateRule): OverlayStateRule {
-  const fields = compact(value);
-  const condition = (fields.condition as OverlayConditionType | undefined) ?? "state";
-  const toNumber = (v: unknown): number | undefined => (v === undefined ? undefined : Number(v));
-  return {
-    condition,
-    entity: fields.entity as string | undefined,
-    state: condition === "state" ? (fields.state as string | undefined) : undefined,
-    above: condition === "numeric" ? toNumber(fields.above) : undefined,
-    below: condition === "numeric" ? toNumber(fields.below) : undefined,
-    effect: {
-      ...previous.effect,
-      color: fields.color as string | undefined,
-      visible: fields.hide ? false : undefined,
-    },
-  };
-}
+const asText = (ev: FieldEvent): string | undefined =>
+  typeof ev.detail.value === "string" ? ev.detail.value : undefined;
+const asNumber = (ev: FieldEvent): number | undefined =>
+  typeof ev.detail.value === "number" && Number.isFinite(ev.detail.value) ? ev.detail.value : undefined;
 
 @customElement("heating-visualizer-editor")
 export class HeatingVisualizerEditor extends LitElement implements LovelaceCardEditor {
-  private _hass?: HomeAssistant;
-
-  @state() private _config!: HeatingVisualizerConfig;
+  @state() private _hass?: HomeAssistant;
+  @state() private _config?: HeatingVisualizerConfig;
   @state() private _tab: EditorTab = "schema";
+  @state() private _view: EditorView = { kind: "list" };
   @state() private _selectedNodeId?: string;
   @state() private _selectedEdgeId?: string;
   @state() private _pendingPort?: PortRef;
-  @state() private _selectedDeviceType = HEAT_PUMP.type;
-  @state() private _translationEdits: TranslationMap = {};
-  @state() private _formReady = customElements.get("ha-form") !== undefined;
+  @state() private _newDeviceType = HEAT_PUMP.type;
+  @state() private _newAddonType?: AddonType;
+
+  public set hass(hass: HomeAssistant | undefined) {
+    this._hass = hass;
+  }
+
+  public get hass(): HomeAssistant | undefined {
+    return this._hass;
+  }
+
+  public setConfig(config: HeatingVisualizerConfig): void {
+    this._config = normalizeConfig(config);
+  }
 
   static styles = css`
+    :host {
+      display: block;
+    }
     .editor {
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding: 8px 0;
     }
+    h3 {
+      margin: 8px 0 6px;
+      font-size: var(--ha-font-size-m, 14px);
+      font-weight: var(--ha-font-weight-medium, 500);
+      color: var(--primary-text-color);
+    }
+    button {
+      min-height: 36px;
+      padding: 6px 12px;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: transparent;
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-md, 8px);
+      cursor: pointer;
+    }
+    button:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 1px;
+    }
+    button.primary {
+      color: var(--text-primary-color, #fff);
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    button.danger {
+      color: var(--error-color, #db4437);
+      border-color: var(--error-color, #db4437);
+    }
+    button.icon {
+      min-width: 36px;
+      padding: 4px 8px;
+    }
+    select {
+      min-height: 36px;
+      padding: 6px 10px;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: var(--ha-color-form-background, var(--secondary-background-color));
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-md, 8px);
+    }
     .tabs {
       display: flex;
       gap: 4px;
-      border-bottom: 1px solid var(--divider-color, #444);
       padding-bottom: 8px;
+      border-bottom: 1px solid var(--divider-color);
     }
     .tabs button {
       flex: 1;
-      padding: 8px;
       border: none;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--primary-text-color, #e0e0e0);
-      cursor: pointer;
     }
-    .tabs button.active {
-      background: var(--primary-color, #03a9f4);
+    .tabs button[aria-selected="true"] {
       color: var(--text-primary-color, #fff);
+      background: var(--primary-color);
     }
     .toolbar {
       display: flex;
@@ -300,887 +252,941 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       gap: 8px;
       align-items: center;
     }
-    .toolbar button,
-    .toolbar select,
-    .field input,
-    .field select,
-    .field textarea {
-      font: inherit;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--divider-color, #555);
-      background: var(--card-background-color, #1c1c1c);
-      color: var(--primary-text-color, #e0e0e0);
+    .toolbar select {
+      flex: 1;
+      min-width: 160px;
     }
-    .toolbar button {
-      cursor: pointer;
+    .header {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
-    .toolbar button.primary {
-      background: var(--primary-color, #03a9f4);
-      border-color: var(--primary-color, #03a9f4);
-      color: #fff;
+    .header h3 {
+      flex: 1;
+      margin: 0;
     }
     .hint {
-      opacity: 0.75;
-      font-size: 0.9em;
       margin: 0;
+      font-size: var(--ha-font-size-s, 12px);
+      color: var(--secondary-text-color);
     }
-    .field {
+    .notice {
+      margin: 0;
+      font-size: var(--ha-font-size-s, 12px);
+      color: var(--primary-color);
+    }
+    .warning {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0;
+      color: var(--warning-color, #ffa600);
+    }
+    ul.list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      margin-bottom: 8px;
-    }
-    .field label {
-      font-size: 0.85em;
-      opacity: 0.85;
-    }
-    .overlay-item,
-    .translation-item {
-      border: 1px solid var(--divider-color, #444);
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 8px;
-    }
-    .overlay-item header,
-    .translation-item header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 0.9em;
-    }
-    .overlay-item button.danger,
-    .toolbar button.danger {
-      background: transparent;
-      border-color: #e57373;
-      color: #e57373;
-    }
-    .connection-hint {
-      font-size: 0.85em;
-      color: var(--primary-color, #03a9f4);
+      gap: 6px;
       margin: 0;
+      padding: 0;
+      list-style: none;
     }
-    .rules {
-      margin-top: 8px;
-      border-top: 1px solid var(--divider-color, #444);
-      padding-top: 8px;
-    }
-    .rules header {
+    ul.list li {
       display: flex;
-      justify-content: space-between;
+      gap: 6px;
+    }
+    .row {
+      display: flex;
+      flex: 1;
+      gap: 8px;
       align-items: center;
-      font-size: 0.9em;
+      text-align: start;
+    }
+    .row.selected {
+      border-color: var(--primary-color);
+    }
+    .row-main {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .row-sub {
+      overflow: hidden;
+      font-size: var(--ha-font-size-s, 12px);
+      color: var(--secondary-text-color);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    section.card {
+      padding: 10px;
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-card-border-radius, 12px);
+    }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .port {
+      padding: 6px 0;
+      border-top: 1px solid var(--divider-color);
+    }
+    .port-label {
+      margin-bottom: 4px;
+      font-size: var(--ha-font-size-s, 12px);
+      color: var(--secondary-text-color);
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .chip {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      padding: 2px 4px 2px 10px;
+      background: var(--secondary-background-color);
+      border-radius: 16px;
+    }
+    .chip button {
+      min-width: 28px;
+      min-height: 28px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+    }
+    .port select {
+      width: 100%;
     }
     .rule {
-      position: relative;
       margin-top: 8px;
-      padding: 8px 32px 8px 8px;
-      border-radius: 8px;
-      background: var(--secondary-background-color, rgba(127, 127, 127, 0.08));
-    }
-    .rule .remove-rule {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-    }
-    .rules button {
-      font: inherit;
-      padding: 4px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--divider-color, #555);
-      background: transparent;
-      color: var(--primary-text-color, #e0e0e0);
-      cursor: pointer;
-    }
-    .rules button.danger {
-      border-color: #e57373;
-      color: #e57373;
+      padding: 8px;
+      background: var(--secondary-background-color);
+      border-radius: var(--ha-border-radius-md, 8px);
     }
   `;
 
-  public set hass(hass: HomeAssistant | undefined) {
-    this._hass = hass;
-    this.requestUpdate();
-  }
-
-  public get hass(): HomeAssistant | undefined {
-    return this._hass;
-  }
-
-  public connectedCallback(): void {
-    super.connectedCallback();
-    if (!this._formReady) void this._loadHaForm();
-  }
-
-  public setConfig(config: HeatingVisualizerConfig): void {
-    this._config = normalizeConfig(config);
-    this._translationEdits = { ...this._translator().getEditableTranslations() };
-    this.requestUpdate();
-  }
-
   protected render(): TemplateResult {
     if (!this._config) return html``;
-
-    const t = this._translator();
+    const t = createTranslator(this._hass?.language);
+    const schema = schemaOf(this._config);
 
     return html`
       <div class="editor">
-        <div class="tabs">
-          <button
-            type="button"
-            class="${this._tab === "schema" ? "active" : ""}"
-            @click="${() => { this._tab = "schema"; }}"
-          >${t.t("editor.schema_tab")}</button>
-          <button
-            type="button"
-            class="${this._tab === "overlays" ? "active" : ""}"
-            @click="${() => { this._tab = "overlays"; }}"
-          >${t.t("editor.overlay_tab")}</button>
-          <button
-            type="button"
-            class="${this._tab === "translations" ? "active" : ""}"
-            @click="${() => { this._tab = "translations"; }}"
-          >${t.t("editor.translations")}</button>
+        <div class="tabs" role="tablist">
+          ${this._renderTab(t, "schema", "editor.schema_tab")}
+          ${this._renderTab(t, "overlays", "editor.overlay_tab")}
         </div>
-
-        ${this._tab === "schema" ? this._renderSchemaTab(t) : nothing}
-        ${this._tab === "overlays" ? this._renderOverlaysTab(t) : nothing}
-        ${this._tab === "translations" ? this._renderTranslationsTab(t) : nothing}
+        ${this._tab === "schema" ? this._renderSchemaTab(t, schema) : this._renderOverlaysTab(t, schema)}
       </div>
     `;
   }
 
-  private _renderSchemaTab(t: Translator): TemplateResult {
-    const schema = this._config.schema!;
-    const selectedNode = schema.nodes.find((n) => n.id === this._selectedNodeId);
-
+  private _renderTab(t: Translator, tab: EditorTab, label: string): TemplateResult {
     return html`
-      <div class="toolbar">
-        <label>${t.t("editor.device_type")}</label>
-        <select
-          .value="${this._selectedDeviceType}"
-          @change="${(ev: Event) => {
-            this._selectedDeviceType = (ev.target as HTMLSelectElement).value;
-          }}"
-        >
-          ${DEVICE_TYPES.map((deviceType) => html`
-            <option value="${deviceType}">
-              ${t.t(`devices.${deviceType}.name`)}
-            </option>
-          `)}
-        </select>
-        <select
-          .value="${this._config.language ?? ""}"
-          @change="${this._onLanguageChange}"
-        >
-          <option value="">${t.t("editor.language_auto")}</option>
-          ${t.getAvailableLanguages().map(
-            (lang) => html`<option value="${lang}">${lang}</option>`
-          )}
-        </select>
-        <button
-          type="button"
-          class="primary"
-          @click="${(ev: Event) => this._onAddDeviceClick(ev)}"
-        >
-          ${t.t("editor.add_selected_device")}
-        </button>
-        <button
-          type="button"
-          class="primary"
-          @click="${(ev: Event) => this._onAddHeatPumpClick(ev)}"
-        >
-          ${t.t("editor.add_heat_pump")}
-        </button>
-        ${this._selectedNodeId
-          ? html`
-            <button type="button" @click="${(ev: Event) => this._onRotateSelectedClick(ev)}">
-              ↻ ${t.t("editor.rotate_selected")}
-            </button>
-          `
-          : nothing}
-        ${this._selectedNodeId || this._selectedEdgeId
-          ? html`
-            <button type="button" class="danger" @click="${(ev: Event) => this._onDeleteSelectedClick(ev)}">
-              ${t.t("editor.delete_selected")}
-            </button>
-          `
-          : nothing}
-      </div>
+      <button
+        type="button"
+        role="tab"
+        aria-selected="${this._tab === tab}"
+        @click="${() => {
+          this._tab = tab;
+        }}"
+      >${t.t(label)}</button>
+    `;
+  }
 
-      ${this._pendingPort
-        ? html`<p class="connection-hint">
-            ${t.t("editor.connection_pending", this._portLabel(t, this._pendingPort))}
-          </p>`
-        : nothing}
+  // ---------------------------------------------------------------- schema tab
 
-      ${!schema.nodes.length
-        ? html`<p class="hint">${t.t("editor.empty_hint")}</p>`
-        : nothing}
+  private _renderSchemaTab(t: Translator, schema: HeatingSchema): TemplateResult {
+    const view = this._view;
+    const node = view.kind === "list" ? undefined : schema.nodes.find((n) => n.id === view.nodeId);
+    if (node && view.kind === "addon") {
+      const addon = node.addons?.[view.index];
+      if (addon) return this._renderAddonView(t, schema, node, addon, view.index);
+    }
+    if (node) return this._renderNodeView(t, schema, node);
+    return this._renderListView(t, schema);
+  }
 
+  private _renderCanvas(t: Translator, schema: HeatingSchema): TemplateResult {
+    return html`
       <heating-schema-canvas
-        .config="${this._config}"
         .schema="${schema}"
         .editable="${true}"
         .selectedNodeId="${this._selectedNodeId}"
         .selectedEdgeId="${this._selectedEdgeId}"
+        .selectedPort="${this._pendingPort}"
         @node-select="${this._onNodeSelect}"
         @edge-select="${this._onEdgeSelect}"
         @node-move="${this._onNodeMove}"
         @port-click="${this._onPortClick}"
       ></heating-schema-canvas>
-
-      ${selectedNode
-        ? html`
-          <div class="overlay-item">
-            <header>
-              <span>${t.t("editor.node_state_title")}</span>
-              <span>${t.t(`devices.${selectedNode.type}.name`)}</span>
-            </header>
-            ${this._renderForm(
-              t,
-              NODE_NAME_SCHEMA,
-              { name: selectedNode.name },
-              { name: "editor.node_name" },
-              (value) => this._setNodeName(selectedNode.id, value.name as string | undefined),
-              { name: "editor.node_name_helper" }
-            )}
-            ${this._renderNodeStateForm(t, selectedNode)}
-            ${this._renderChannels(t, selectedNode)}
-            ${getDeviceDefinition(selectedNode.type)?.heater
-              ? html`
-                <div class="rules">
-                  <header><span>${t.t("editor.heater_title")}</span></header>
-                  ${this._renderForm(
-                    t,
-                    HEATER_SCHEMA,
-                    { ...(selectedNode.heater ?? {}) },
-                    NODE_STATE_LABELS,
-                    (value) => this._setNodeHeater(selectedNode.id, value)
-                  )}
-                </div>
-              `
-              : nothing}
-          </div>
-        `
+      ${this._pendingPort
+        ? html`<p class="notice" role="status">
+            ${t.t("editor.connection_pending", this._portRefLabel(t, schema, this._pendingPort))}
+          </p>`
+        : nothing}
+      ${this._selectedEdgeId
+        ? html`<div class="toolbar">
+            <button type="button" class="danger" @click="${this._deleteSelectedConnection}">
+              ${t.t("editor.delete_connection")}
+            </button>
+          </div>`
         : nothing}
     `;
   }
 
-  private _renderNodeStateForm(t: Translator, node: SchemaNode): TemplateResult {
-    const form = nodeForm(node.type);
-    return this._renderForm(
-      t,
-      form.schema,
-      { ...(node.state ?? {}) },
-      form.labels,
-      (value) => this._setNodeState(node.id, value),
-      form.helpers
-    );
-  }
-
-  private _renderChannels(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
-    const spec = getDeviceDefinition(node.type)?.channels;
-    if (!spec) return nothing;
-    const channels = nodeChannels(node, spec);
-
-    return html`
-      <div class="rules">
-        <header>
-          <span>${t.t(spec.titleKey)} (${channels.length})</span>
-          <span>
-            <button
-              type="button"
-              ?disabled="${channels.length <= spec.min}"
-              @click="${() => this._setChannelCount(node.id, channels.length - 1)}"
-            >−</button>
-            <button
-              type="button"
-              ?disabled="${channels.length >= spec.max}"
-              @click="${() => this._setChannelCount(node.id, channels.length + 1)}"
-            >+</button>
-          </span>
-        </header>
-        ${channels.map((channel, index) => html`
-          <div class="rule">
-            <strong>${channel.name || t.t(spec.itemKey, String(index + 1))}</strong>
-            ${this._renderForm(
-              t,
-              spec.kind === "sensor" ? SENSOR_CHANNEL_SCHEMA : CHANNEL_SCHEMA,
-              { ...channel },
-              CHANNEL_LABELS,
-              (value) => this._setChannel(node.id, index, value)
-            )}
-          </div>
-        `)}
-      </div>
-    `;
-  }
-
-  private _renderOverlaysTab(t: Translator): TemplateResult {
-    const overlays = this._config.schema?.overlays ?? [];
-
+  private _renderListView(t: Translator, schema: HeatingSchema): TemplateResult {
+    const invalid = invalidConnections(schema);
     return html`
       <div class="toolbar">
-        <button type="button" class="primary" @click="${this._addOverlay}">
-          ${t.t("editor.add_overlay")}
+        <select
+          aria-label="${t.t("editor.device_type")}"
+          @change="${(ev: Event) => {
+            this._newDeviceType = (ev.target as HTMLSelectElement).value;
+          }}"
+        >
+          ${DEVICE_TYPES.map(
+            (type) => html`<option value="${type}" ?selected="${type === this._newDeviceType}">
+              ${t.t(`devices.${type}.name`)}
+            </option>`
+          )}
+        </select>
+        <button type="button" class="primary" @click="${() => this._addDevice(this._newDeviceType)}">
+          ${t.t("editor.add_device")}
         </button>
       </div>
 
-      ${!overlays.length
-        ? html`<p class="hint">${t.t("editor.overlays_empty")}</p>`
+      ${this._renderCanvas(t, schema)}
+
+      ${invalid.length
+        ? html`<p class="warning" role="alert">
+            ${t.t("editor.invalid_connections", String(invalid.length))}
+            <button type="button" @click="${() => this._removeConnections(invalid)}">
+              ${t.t("editor.remove_invalid")}
+            </button>
+          </p>`
         : nothing}
 
-      <heating-schema-canvas
-        .config="${this._config}"
-        .schema="${this._config.schema!}"
-        .editable="${false}"
-      ></heating-schema-canvas>
-
-      ${overlays.map((overlay, index) => html`
-        <div class="overlay-item">
-          <header>
-            <span>${overlay.entity_id || `Overlay ${index + 1}`}</span>
-            <button type="button" class="danger" @click="${() => this._removeOverlay(overlay.id)}">×</button>
-          </header>
-          ${this._renderForm(
-            t,
-            OVERLAY_SCHEMA,
-            {
-              entity_id: overlay.entity_id,
-              name: overlay.name,
-              template: overlay.template,
-              position: overlay.position,
-            },
-            OVERLAY_LABELS,
-            (value) => this._onOverlayFormChange(overlay.id, value)
-          )}
-          <div class="rules">
-            <header>
-              <span>${t.t("overlay.rules")}</span>
-              <button type="button" @click="${() => this._addRule(overlay)}">
-                ${t.t("overlay.add_rule")}
-              </button>
-            </header>
-            ${(overlay.rules ?? []).map((rule, ruleIndex) => html`
-              <div class="rule">
-                <button
-                  type="button"
-                  class="danger remove-rule"
-                  @click="${() => this._updateRules(overlay.id, (rules) =>
-                    rules.filter((_, i) => i !== ruleIndex))}"
-                >×</button>
-                ${this._renderForm(
-                  t,
-                  ruleSchema(t),
-                  ruleToForm(rule),
-                  RULE_LABELS,
-                  (value) => this._updateRules(overlay.id, (rules) =>
-                    rules.map((r, i) => (i === ruleIndex ? formToRule(value, r) : r))),
-                  RULE_HELPERS
-                )}
-              </div>
-            `)}
-          </div>
-        </div>
-      `)}
+      ${schema.nodes.length
+        ? html`
+            <h3>${t.t("editor.devices_title")}</h3>
+            <ul class="list">
+              ${schema.nodes.map((node) => this._renderNodeRow(t, schema, node))}
+            </ul>
+          `
+        : html`<p class="hint">${t.t("editor.empty_hint")}</p>`}
     `;
   }
 
-  private _renderForm(
-    t: Translator,
-    schema: HaFormSchema[],
-    data: FormData,
-    labels: Record<string, string>,
-    onChange: (value: FormData) => void,
-    helpers: Record<string, string> = {}
-  ): TemplateResult {
-    const computeLabel = (field: HaFormSchema): string =>
-      labels[field.name] ? t.t(labels[field.name]) : field.name.toUpperCase();
-    const computeHelper = (field: HaFormSchema): string | undefined => {
-      if (helpers[field.name]) return t.t(helpers[field.name]);
-      const fallback = NODE_STATE_DEFAULTS[field.name];
-      return fallback !== undefined ? t.t("editor.default_value", fallback) : undefined;
-    };
+  private _renderNodeRow(t: Translator, schema: HeatingSchema, node: SchemaNode): TemplateResult {
+    const [connected, total] = connectedPortCount(schema, node);
+    const details = [
+      node.entity_id ? (describeEntity(this._hass, node.entity_id) ?? node.entity_id) : t.t("editor.no_entity"),
+    ];
+    if (total) details.push(t.t("editor.ports_connected", String(connected), String(total)));
+    if (node.addons?.length) details.push(t.t("editor.addon_count", String(node.addons.length)));
 
-    if (this._formReady && this._hass) {
-      return html`
-        <ha-form
-          .hass="${this._hass}"
-          .data="${data}"
-          .schema="${schema}"
-          .computeLabel="${computeLabel}"
-          .computeHelper="${computeHelper}"
-          @value-changed="${(ev: CustomEvent<{ value: FormData }>) => {
-            ev.stopPropagation();
-            onChange(ev.detail.value);
-          }}"
-        ></ha-form>
-      `;
-    }
-
-    return html`${schema.map((item) =>
-      "schema" in item
-        ? item.schema.map((field) =>
-            this._renderFallbackField(field, item.name, data, computeLabel, onChange)
-          )
-        : this._renderFallbackField(item, undefined, data, computeLabel, onChange)
-    )}`;
+    return html`
+      <li>
+        <button
+          type="button"
+          class="row ${node.id === this._selectedNodeId ? "selected" : ""}"
+          @click="${() => this._openNode(node.id)}"
+        >
+          <span class="row-main">
+            <span>${this._nodeName(t, node)}</span>
+            <span class="row-sub">${details.join(" · ")}</span>
+          </span>
+          <span aria-hidden="true">›</span>
+        </button>
+      </li>
+    `;
   }
 
-  /** Plain input used only when `ha-form` could not be loaded. */
-  private _renderFallbackField(
-    field: HaFormSelectorSchema,
-    group: string | undefined,
-    data: FormData,
-    computeLabel: (field: HaFormSchema) => string,
-    onChange: (value: FormData) => void
-  ): TemplateResult | typeof nothing {
-    if ("entity_name" in field.selector) return nothing;
-    if (field.visible && data[field.visible.field] !== field.visible.value) return nothing;
-
-    const scope = group ? ((data[group] as FormData | undefined) ?? {}) : data;
-    const emit = (value: unknown): void => {
-      const next = { ...scope, [field.name]: value };
-      onChange(group ? { ...data, [group]: next } : next);
-    };
-
-    if ("boolean" in field.selector) {
-      return html`
-        <div class="field">
-          <label>
-            <input
-              type="checkbox"
-              .checked="${Boolean(scope[field.name])}"
-              @change="${(ev: Event) => emit((ev.target as HTMLInputElement).checked)}"
-            />
-            ${computeLabel(field)}
-          </label>
-        </div>
-      `;
-    }
-
-    const select = field.selector.select as
-      | { options: Array<{ value: string; label: string }> }
-      | undefined;
-    if (select) {
-      return html`
-        <div class="field">
-          <label>${computeLabel(field)}</label>
-          <select
-            .value="${String(scope[field.name] ?? "")}"
-            @change="${(ev: Event) => emit((ev.target as HTMLSelectElement).value)}"
-          >
-            ${select.options.map((o) => html`<option value="${o.value}">${o.label}</option>`)}
-          </select>
-        </div>
-      `;
-    }
-
-    const isNumber = "number" in field.selector;
+  private _renderHeader(t: Translator, title: string, back: () => void): TemplateResult {
     return html`
-      <div class="field">
-        <label>${computeLabel(field)}</label>
-        <input
-          type="${isNumber ? "number" : "text"}"
-          .value="${String(scope[field.name] ?? "")}"
-          @change="${(ev: Event) => {
-            const raw = (ev.target as HTMLInputElement).value;
-            emit(isNumber && raw !== "" ? Number(raw) : raw);
-          }}"
-        />
+      <div class="header">
+        <button type="button" class="icon" aria-label="${t.t("editor.back")}" @click="${back}">‹</button>
+        <h3>${title}</h3>
       </div>
     `;
   }
 
-  private _renderTranslationsTab(t: Translator): TemplateResult {
-    const entries = Object.entries(this._translationEdits).sort(([a], [b]) =>
-      a.localeCompare(b)
-    );
-
+  private _renderNodeView(t: Translator, schema: HeatingSchema, node: SchemaNode): TemplateResult {
+    const binding = node as Binding;
     return html`
-      <p class="hint">${t.t("editor.language")}: ${t.language}</p>
-      ${entries.map(([key, value]) => html`
-        <div class="translation-item">
-          <header><code>${key}</code></header>
-          <input
-            .value="${value}"
-            @input="${(ev: Event) =>
-              this._onTranslationInput(key, (ev.target as HTMLInputElement).value)}"
-          />
+      ${this._renderHeader(t, this._nodeName(t, node), () => this._openList())}
+      ${this._renderCanvas(t, schema)}
+
+      <section class="card">
+        <hv-field
+          .label="${t.t("editor.name")}"
+          .helper="${t.t("editor.name_helper")}"
+          .placeholder="${t.t(`devices.${node.type}.name`)}"
+          .value="${node.name}"
+          @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { name: asText(ev) })}"
+        ></hv-field>
+        ${this._renderBinding(t, binding, nodeFields(node.type), {}, (patch) => this._patchNode(node.id, patch))}
+      </section>
+
+      ${this._renderAddons(t, node)}
+      ${this._renderConnections(t, schema, node)}
+
+      <section class="card">
+        <h3>${t.t("editor.position_title")}</h3>
+        <div class="grid2">
+          <hv-field
+            kind="number"
+            label="X"
+            .value="${node.position.x}"
+            @hv-change="${(ev: FieldEvent) => this._moveNode(node.id, { x: asNumber(ev) })}"
+          ></hv-field>
+          <hv-field
+            kind="number"
+            label="Y"
+            .value="${node.position.y}"
+            @hv-change="${(ev: FieldEvent) => this._moveNode(node.id, { y: asNumber(ev) })}"
+          ></hv-field>
         </div>
-      `)}
+        <div class="toolbar">
+          <button type="button" @click="${() => this._rotateNode(node.id)}">↻ ${t.t("editor.rotate")}</button>
+          <button type="button" class="danger" @click="${() => this._deleteNode(node.id)}">
+            ${t.t("editor.delete_device")}
+          </button>
+        </div>
+      </section>
     `;
   }
 
-  private _emitConfig(schema: HeatingSchema, extra?: Partial<HeatingVisualizerConfig>): void {
+  private _renderBinding(
+    t: Translator,
+    binding: Binding,
+    fields: BindingField[],
+    preference: EntityPreference,
+    onChange: (patch: Binding) => void
+  ): TemplateResult {
+    return html`${fields.map((field) => {
+      const { kind, options, helper } = this._fieldSource(t, binding, field, preference);
+      return html`
+        <hv-field
+          .kind="${kind}"
+          .label="${t.t(field.label)}"
+          .helper="${helper}"
+          .options="${options}"
+          .value="${binding[field.key]}"
+          @hv-change="${(ev: FieldEvent) => onChange({ [field.key]: asText(ev) })}"
+        ></hv-field>
+      `;
+    })}`;
+  }
+
+  private _fieldSource(
+    t: Translator,
+    binding: Binding,
+    field: BindingField,
+    preference: EntityPreference
+  ): { kind: FieldKind; options: FieldOption[]; helper?: string } {
+    const hass = this._hass;
+    const helper = field.helper ? t.t(field.helper) : undefined;
+    switch (field.key) {
+      case "entity_id":
+      case "temperature_entity_id":
+        return {
+          kind: "combo",
+          options: entityOptions(hass, preference),
+          helper: describeEntity(hass, binding[field.key]) ?? helper,
+        };
+      case "value_attribute":
+      case "mode_attribute":
+        return { kind: "combo", options: attributeOptions(hass, binding.entity_id), helper };
+      case "branch_a_value":
+      case "branch_b_value":
+        return { kind: "combo", options: stateOptions(hass, binding.entity_id, binding.mode_attribute), helper };
+      default:
+        return { kind: "combo", options: stateOptions(hass, binding.entity_id), helper };
+    }
+  }
+
+  private _renderAddons(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
+    const specs = getDeviceDefinition(node.type)?.addons ?? [];
+    if (!specs.length) return nothing;
+    const addons = node.addons ?? [];
+    const available = specs.filter((spec) => this._remaining(node, spec) > 0);
+    const selected = available.find((s) => s.type === this._newAddonType)?.type ?? available[0]?.type;
+
+    return html`
+      <section class="card">
+        <h3>${t.t("editor.addons_title")}</h3>
+        ${addons.length
+          ? html`<ul class="list">
+              ${addons.map((addon, index) => html`
+                <li>
+                  <button type="button" class="row" @click="${() => this._openAddon(node.id, index)}">
+                    <span class="row-main">
+                      <span>${this._addonName(t, node, addon, index)}</span>
+                      <span class="row-sub">${this._addonSummary(t, addon)}</span>
+                    </span>
+                    <span aria-hidden="true">›</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon danger"
+                    aria-label="${t.t("editor.remove_addon")}"
+                    @click="${() => this._removeAddon(node.id, index)}"
+                  >×</button>
+                </li>
+              `)}
+            </ul>`
+          : html`<p class="hint">${t.t("editor.addons_empty")}</p>`}
+        ${selected
+          ? html`<div class="toolbar" style="margin-top: 8px">
+              <select
+                aria-label="${t.t("editor.addon_type")}"
+                @change="${(ev: Event) => {
+                  this._newAddonType = (ev.target as HTMLSelectElement).value as AddonType;
+                }}"
+              >
+                ${available.map((spec) => html`
+                  <option value="${spec.type}" ?selected="${spec.type === selected}">
+                    ${t.t(`addons.${spec.type}.name`)} (${t.t("editor.remaining", String(this._remaining(node, spec)))})
+                  </option>
+                `)}
+              </select>
+              <button type="button" @click="${() => this._addAddon(node.id, selected)}">
+                ${t.t("editor.add_addon")}
+              </button>
+            </div>`
+          : nothing}
+      </section>
+    `;
+  }
+
+  private _renderAddonView(
+    t: Translator,
+    schema: HeatingSchema,
+    node: SchemaNode,
+    addon: AddonConfig,
+    index: number
+  ): TemplateResult {
+    const spec = getDeviceDefinition(node.type)?.addons?.find((s) => s.type === addon.type);
+    const definition = ADDON_TYPES[addon.type];
+    const usedSlots = new Set((node.addons ?? []).filter((a, i) => i !== index && a.type === addon.type).map((a) => a.slot));
+    const slotOptions = (spec?.slots ?? [])
+      .filter((slot) => !usedSlots.has(slot))
+      .map((slot) => ({ value: slot, label: t.t(`slots.${slot}`) }));
+    const preference: EntityPreference = {
+      domains: definition.domains,
+      deviceClasses: definition.deviceClasses,
+      relatedTo: node.entity_id,
+    };
+
+    return html`
+      ${this._renderHeader(t, this._addonName(t, node, addon, index), () => this._openNode(node.id))}
+      ${this._renderCanvas(t, schema)}
+      <section class="card">
+        <p class="hint">${this._nodeName(t, node)} › ${t.t(`addons.${addon.type}.name`)}</p>
+        ${slotOptions.length
+          ? html`<hv-field
+              kind="select"
+              .label="${t.t("editor.slot")}"
+              .options="${slotOptions}"
+              .value="${addon.slot}"
+              @hv-change="${(ev: FieldEvent) => this._patchAddon(node.id, index, { slot: asText(ev) })}"
+            ></hv-field>`
+          : nothing}
+        <hv-field
+          .label="${t.t("editor.name")}"
+          .helper="${t.t("editor.addon_name_helper")}"
+          .value="${addon.name}"
+          @hv-change="${(ev: FieldEvent) => this._patchAddon(node.id, index, { name: asText(ev) })}"
+        ></hv-field>
+        ${definition.entityless
+          ? html`<p class="hint">${t.t(`addons.${addon.type}.hint`)}</p>`
+          : this._renderBinding(t, addon as Binding, addonFields(addon.type), preference, (patch) =>
+              this._patchAddon(node.id, index, patch)
+            )}
+      </section>
+      <div class="toolbar">
+        <button type="button" class="danger" @click="${() => this._removeAddon(node.id, index)}">
+          ${t.t("editor.remove_addon")}
+        </button>
+      </div>
+    `;
+  }
+
+  private _renderConnections(t: Translator, schema: HeatingSchema, node: SchemaNode): TemplateResult | typeof nothing {
+    const ports = getNodeDefinition(node)?.ports ?? [];
+    if (!ports.length) return nothing;
+
+    return html`
+      <section class="card">
+        <h3>${t.t("editor.connections_title")}</h3>
+        ${ports.map((port) => {
+          const ref: PortRef = { nodeId: node.id, portId: port.id };
+          const connections = portConnections(schema, ref);
+          const candidates = candidatePorts(schema, ref);
+          return html`
+            <div class="port">
+              <div class="port-label">
+                ${port.kind === "outlet" ? "→" : "←"} ${t.t(port.labelKey, ...(port.labelArgs ?? []))}
+              </div>
+              <div class="chips">
+                ${connections.length
+                  ? connections.map((connection) => {
+                      const other = otherEnd(connection, ref);
+                      return html`<span class="chip">
+                        ${other ? this._portRefLabel(t, schema, other) : "?"}
+                        <button
+                          type="button"
+                          aria-label="${t.t("editor.disconnect")}"
+                          @click="${() => this._removeConnections([connection])}"
+                        >×</button>
+                      </span>`;
+                    })
+                  : html`<span class="hint">${t.t("editor.not_connected")}</span>`}
+              </div>
+              ${candidates.length
+                ? html`<select
+                    aria-label="${t.t("editor.connect_to")}"
+                    @change="${(ev: Event) => {
+                      const select = ev.target as HTMLSelectElement;
+                      const target = parsePortRef(select.value);
+                      select.value = "";
+                      if (target) this._connect(ref, target);
+                    }}"
+                  >
+                    <option value="">${t.t("editor.connect_to")}…</option>
+                    ${candidates.map(
+                      (c) => html`<option value="${formatPortRef(c)}">${this._portRefLabel(t, schema, c)}</option>`
+                    )}
+                  </select>`
+                : nothing}
+            </div>
+          `;
+        })}
+      </section>
+    `;
+  }
+
+  // -------------------------------------------------------------- overlays tab
+
+  private _renderOverlaysTab(t: Translator, schema: HeatingSchema): TemplateResult {
+    return html`
+      <div class="toolbar">
+        <button type="button" class="primary" @click="${this._addOverlay}">${t.t("editor.add_overlay")}</button>
+      </div>
+      <heating-schema-canvas .schema="${schema}" .editable="${false}"></heating-schema-canvas>
+      ${schema.overlays.length ? nothing : html`<p class="hint">${t.t("editor.overlays_empty")}</p>`}
+      ${schema.overlays.map((overlay, index) => this._renderOverlay(t, overlay, index))}
+    `;
+  }
+
+  private _renderOverlay(t: Translator, overlay: SchemaOverlay, index: number): TemplateResult {
+    const hass = this._hass;
+    const patch = (value: Partial<SchemaOverlay>): void => this._patchOverlay(overlay.id, value);
+    const customName = overlay.name !== undefined && typeof overlay.name !== "string";
+
+    return html`
+      <section class="card">
+        <div class="header">
+          <h3>${overlay.entity_id || t.t("editor.overlay_n", String(index + 1))}</h3>
+          <button
+            type="button"
+            class="icon danger"
+            aria-label="${t.t("editor.remove_overlay")}"
+            @click="${() => this._removeOverlay(overlay.id)}"
+          >×</button>
+        </div>
+        <hv-field
+          kind="combo"
+          .label="${t.t("overlay.entity")}"
+          .options="${entityOptions(hass)}"
+          .helper="${describeEntity(hass, overlay.entity_id)}"
+          .value="${overlay.entity_id}"
+          @hv-change="${(ev: FieldEvent) => patch({ entity_id: asText(ev) ?? "" })}"
+        ></hv-field>
+        <hv-field
+          .label="${t.t("overlay.name")}"
+          .helper="${customName ? t.t("overlay.name_yaml") : t.t("overlay.name_helper")}"
+          .value="${typeof overlay.name === "string" ? overlay.name : undefined}"
+          @hv-change="${(ev: FieldEvent) => patch({ name: asText(ev) })}"
+        ></hv-field>
+        <hv-field
+          .label="${t.t("overlay.template")}"
+          .helper="${t.t("overlay.template_helper")}"
+          .value="${overlay.template}"
+          @hv-change="${(ev: FieldEvent) => patch({ template: asText(ev) })}"
+        ></hv-field>
+        <div class="grid2">
+          <hv-field
+            kind="number"
+            label="X"
+            .value="${overlay.position.x}"
+            @hv-change="${(ev: FieldEvent) => patch({ position: { ...overlay.position, x: asNumber(ev) ?? 0 } })}"
+          ></hv-field>
+          <hv-field
+            kind="number"
+            label="Y"
+            .value="${overlay.position.y}"
+            @hv-change="${(ev: FieldEvent) => patch({ position: { ...overlay.position, y: asNumber(ev) ?? 0 } })}"
+          ></hv-field>
+        </div>
+
+        <div class="header">
+          <h3>${t.t("overlay.rules")}</h3>
+          <button type="button" @click="${() => this._addRule(overlay)}">${t.t("overlay.add_rule")}</button>
+        </div>
+        ${(overlay.rules ?? []).map((rule, ruleIndex) => this._renderRule(t, overlay, rule, ruleIndex))}
+      </section>
+    `;
+  }
+
+  private _renderRule(t: Translator, overlay: SchemaOverlay, rule: OverlayStateRule, index: number): TemplateResult {
+    const update = (next: (rule: OverlayStateRule) => OverlayStateRule | undefined): void =>
+      this._updateRule(overlay.id, index, next);
+    const entity = rule.entity || overlay.entity_id;
+
+    return html`
+      <div class="rule">
+        <div class="header">
+          <hv-field
+            style="flex: 1"
+            kind="select"
+            .label="${t.t("overlay.rule.condition")}"
+            .options="${[
+              { value: "state", label: t.t("overlay.rule.condition_state") },
+              { value: "numeric", label: t.t("overlay.rule.condition_numeric") },
+            ]}"
+            .value="${rule.condition}"
+            @hv-change="${(ev: FieldEvent) =>
+              update((r) => ({
+                condition: asText(ev) === "numeric" ? "numeric" : "state",
+                entity: r.entity,
+                effect: r.effect,
+              }))}"
+          ></hv-field>
+          <button
+            type="button"
+            class="icon danger"
+            aria-label="${t.t("overlay.remove_rule")}"
+            @click="${() => update(() => undefined)}"
+          >×</button>
+        </div>
+        <hv-field
+          kind="combo"
+          .label="${t.t("overlay.rule.entity")}"
+          .helper="${t.t("overlay.rule.entity_helper")}"
+          .options="${entityOptions(this._hass)}"
+          .value="${rule.entity}"
+          @hv-change="${(ev: FieldEvent) => update((r) => ({ ...r, entity: asText(ev) }))}"
+        ></hv-field>
+        ${rule.condition === "state"
+          ? html`<hv-field
+              kind="combo"
+              .label="${t.t("overlay.rule.state")}"
+              .options="${stateOptions(this._hass, entity)}"
+              .value="${rule.state}"
+              @hv-change="${(ev: FieldEvent) => update((r) => ({ ...r, state: asText(ev) }))}"
+            ></hv-field>`
+          : html`<div class="grid2">
+              <hv-field
+                kind="number"
+                .label="${t.t("overlay.rule.above")}"
+                .value="${rule.above}"
+                @hv-change="${(ev: FieldEvent) => update((r) => ({ ...r, above: asNumber(ev) }))}"
+              ></hv-field>
+              <hv-field
+                kind="number"
+                .label="${t.t("overlay.rule.below")}"
+                .value="${rule.below}"
+                @hv-change="${(ev: FieldEvent) => update((r) => ({ ...r, below: asNumber(ev) }))}"
+              ></hv-field>
+            </div>`}
+        <hv-field
+          kind="combo"
+          .label="${t.t("overlay.rule.color")}"
+          .helper="${t.t("overlay.rule.color_helper")}"
+          .options="${UI_COLORS.map((value) => ({ value }))}"
+          .value="${rule.effect.color}"
+          @hv-change="${(ev: FieldEvent) => update((r) => ({ ...r, effect: { ...r.effect, color: asText(ev) } }))}"
+        ></hv-field>
+        <hv-field
+          kind="boolean"
+          .label="${t.t("overlay.rule.hide")}"
+          .value="${rule.effect.visible === false}"
+          @hv-change="${(ev: FieldEvent) =>
+            update((r) => ({ ...r, effect: { ...r.effect, visible: ev.detail.value ? false : undefined } }))}"
+        ></hv-field>
+      </div>
+    `;
+  }
+
+  // ------------------------------------------------------------------- labels
+
+  private _nodeName(t: Translator, node: SchemaNode): string {
+    return node.name || t.t(`devices.${node.type}.name`);
+  }
+
+  private _addonName(t: Translator, node: SchemaNode, addon: AddonConfig, index: number): string {
+    if (addon.name) return addon.name;
+    const typeName = t.t(`addons.${addon.type}.name`);
+    if (addon.slot) return `${typeName} – ${t.t(`slots.${addon.slot}`)}`;
+    const sameType = (node.addons ?? []).filter((a) => a.type === addon.type);
+    if (sameType.length < 2) return typeName;
+    const number = (node.addons ?? []).slice(0, index + 1).filter((a) => a.type === addon.type).length;
+    return `${typeName} ${number}`;
+  }
+
+  private _addonSummary(t: Translator, addon: AddonConfig): string {
+    if (ADDON_TYPES[addon.type].entityless) return t.t(`addons.${addon.type}.hint`);
+    if (!addon.entity_id) return t.t("editor.no_entity");
+    return describeEntity(this._hass, addon.entity_id) ?? addon.entity_id;
+  }
+
+  private _portRefLabel(t: Translator, schema: HeatingSchema, ref: PortRef): string {
+    const node = schema.nodes.find((n) => n.id === ref.nodeId);
+    const port = findPort(schema, ref);
+    const portName = port ? t.t(port.labelKey, ...(port.labelArgs ?? [])) : ref.portId;
+    return node ? `${this._nodeName(t, node)} › ${portName}` : formatPortRef(ref);
+  }
+
+  // --------------------------------------------------------------- navigation
+
+  private _openList(): void {
+    this._view = { kind: "list" };
+  }
+
+  private _openNode(nodeId: string): void {
+    this._view = { kind: "node", nodeId };
+    this._selectedNodeId = nodeId;
+    this._selectedEdgeId = undefined;
+  }
+
+  private _openAddon(nodeId: string, index: number): void {
+    this._view = { kind: "addon", nodeId, index };
+  }
+
+  // ---------------------------------------------------------------- mutations
+
+  /** Applies a change to a copy of the schema and emits the new config. */
+  private _update(mutate: (schema: HeatingSchema) => void): void {
+    if (!this._config) return;
+    const schema = structuredClone(schemaOf(this._config));
+    mutate(schema);
     // JSON round-trip drops undefined values, which the dashboard YAML serializer rejects.
     const config = JSON.parse(
-      JSON.stringify(normalizeConfig({ ...this._config, ...extra, schema }))
+      JSON.stringify({ ...this._config, ...schema, schema_version: SCHEMA_VERSION })
     ) as HeatingVisualizerConfig;
     this._config = config;
-    this.requestUpdate();
-    this.dispatchEvent(
-      new CustomEvent("config-changed", {
-        detail: { config },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
   }
 
-  private _onAddDeviceClick(ev: Event): void {
-    ev.preventDefault();
-    ev.stopPropagation();
-    this._addDevice(this._selectedDeviceType);
-  }
-
-  private _onAddHeatPumpClick(ev: Event): void {
-    ev.preventDefault();
-    ev.stopPropagation();
-    this._selectedDeviceType = HEAT_PUMP.type;
-    this._addDevice(HEAT_PUMP.type);
-  }
-
-  private _onDeleteSelectedClick(ev: Event): void {
-    ev.preventDefault();
-    ev.stopPropagation();
-    this._deleteSelected();
-  }
-
-  private _onRotateSelectedClick(ev: Event): void {
-    ev.preventDefault();
-    ev.stopPropagation();
-    const id = this._selectedNodeId;
-    if (!id) return;
-    const schema = this._cloneSchema();
-    schema.nodes = schema.nodes.map((n) => {
-      if (n.id !== id) return n;
-      const rotation = normalizeRotation((n.rotation ?? 0) + 90);
-      return { ...n, rotation: rotation || undefined };
+  private _patchNode(nodeId: string, patch: Partial<SchemaNode>): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      if (node) Object.assign(node, patch);
     });
-    this._emitConfig(schema);
+  }
+
+  private _moveNode(nodeId: string, position: { x?: number; y?: number }): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      if (node) node.position = { x: position.x ?? node.position.x, y: position.y ?? node.position.y };
+    });
+  }
+
+  private _rotateNode(nodeId: string): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      if (node) node.rotation = normalizeRotation((node.rotation ?? 0) + 90) || undefined;
+    });
   }
 
   private _addDevice(type: string): void {
-    const def = getDeviceDefinition(type);
-    if (!def) return;
-
-    const schema = this._cloneSchema();
-    const offset = schema.nodes.length * 30;
-    const node: SchemaNode = {
-      id: generateId(type),
-      type,
-      position: { x: 80 + offset, y: 80 + offset },
-    };
-    if (def.channels?.default) {
-      node.channels = Array.from({ length: def.channels.default }, () => ({}));
-    }
-    schema.nodes.push(node);
-    this._selectedNodeId = node.id;
-    this._emitConfig(schema);
+    if (!getDeviceDefinition(type)) return;
+    const id = generateId(type);
+    this._update((schema) => {
+      const count = schema.nodes.length;
+      const node: SchemaNode = {
+        id,
+        type,
+        position: {
+          x: NEW_NODE_GRID.originX + (count % NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepX,
+          y: NEW_NODE_GRID.originY + Math.floor(count / NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepY,
+        },
+      };
+      if (type === MANIFOLD.type) {
+        node.addons = Array.from({ length: MANIFOLD_DEFAULT_LOOPS }, () => ({ type: "loop" as const }));
+      }
+      schema.nodes.push(node);
+    });
+    this._openNode(id);
   }
 
-  private _setNodeName(nodeId: string, name: string | undefined): void {
-    const schema = this._cloneSchema();
-    schema.nodes = schema.nodes.map((n) =>
-      n.id === nodeId ? { ...n, name: name?.trim() || undefined } : n
-    );
-    this._emitConfig(schema);
-  }
-
-  private _setNodeHeater(nodeId: string, value: FormData): void {
-    const heater = compact(value) as NodeStateBinding;
-    const schema = this._cloneSchema();
-    schema.nodes = schema.nodes.map((n) =>
-      n.id === nodeId
-        ? { ...n, heater: Object.keys(heater).length ? heater : undefined }
-        : n
-    );
-    this._emitConfig(schema);
-  }
-
-  private _setChannelCount(nodeId: string, count: number): void {
-    const schema = this._cloneSchema();
-    const node = schema.nodes.find((n) => n.id === nodeId);
-    const spec = node && getDeviceDefinition(node.type)?.channels;
-    if (!node || !spec || count < spec.min || count > spec.max) return;
-
-    const channels = nodeChannels(node, spec).slice(0, count);
-    while (channels.length < count) channels.push({});
-    node.channels = channels;
-
-    const validPorts = new Set(getNodeDefinition(node)?.ports.map((p) => p.id));
-    schema.edges = schema.edges.filter(
-      (e) =>
-        !(e.from.nodeId === nodeId && !validPorts.has(e.from.portId)) &&
-        !(e.to.nodeId === nodeId && !validPorts.has(e.to.portId))
-    );
-    this._emitConfig(schema);
-  }
-
-  private _setChannel(nodeId: string, index: number, value: FormData): void {
-    const schema = this._cloneSchema();
-    const node = schema.nodes.find((n) => n.id === nodeId);
-    const spec = node && getDeviceDefinition(node.type)?.channels;
-    if (!node || !spec) return;
-    const channels = nodeChannels(node, spec);
-    channels[index] = compact(value) as ChannelBinding;
-    node.channels = channels;
-    this._emitConfig(schema);
-  }
-
-  private _deleteSelected(): void {
-    const schema = this._cloneSchema();
-    if (this._selectedEdgeId) {
-      const edgeId = this._selectedEdgeId;
-      schema.edges = schema.edges.filter((e) => e.id !== edgeId);
-      this._selectedEdgeId = undefined;
-      this._emitConfig(schema);
-      return;
-    }
-    if (!this._selectedNodeId) return;
-    const id = this._selectedNodeId;
-    schema.nodes = schema.nodes.filter((n) => n.id !== id);
-    schema.edges = schema.edges.filter(
-      (e) => e.from.nodeId !== id && e.to.nodeId !== id
-    );
+  private _deleteNode(nodeId: string): void {
+    this._update((schema) => {
+      schema.nodes = schema.nodes.filter((n) => n.id !== nodeId);
+      schema.connections = schema.connections.filter(
+        (c) => parsePortRef(c.from)?.nodeId !== nodeId && parsePortRef(c.to)?.nodeId !== nodeId
+      );
+    });
     this._selectedNodeId = undefined;
     this._pendingPort = undefined;
-    this._emitConfig(schema);
+    this._openList();
+  }
+
+  private _remaining(node: SchemaNode, spec: AddonSpec): number {
+    const used = (node.addons ?? []).filter((a) => a.type === spec.type).length;
+    return addonLimit(spec) - used;
+  }
+
+  private _addAddon(nodeId: string, type: AddonType): void {
+    let index = -1;
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      const spec = node && getDeviceDefinition(node.type)?.addons?.find((s) => s.type === type);
+      if (!node || !spec || this._remaining(node, spec) <= 0) return;
+      const used = new Set((node.addons ?? []).filter((a) => a.type === type).map((a) => a.slot));
+      const addon: AddonConfig = { type, slot: spec.slots?.find((slot) => !used.has(slot)) };
+      node.addons = [...(node.addons ?? []), addon];
+      index = node.addons.length - 1;
+    });
+    if (index >= 0 && !ADDON_TYPES[type].entityless) this._openAddon(nodeId, index);
+  }
+
+  private _patchAddon(nodeId: string, index: number, patch: Partial<AddonConfig>): void {
+    this._update((schema) => {
+      const addon = schema.nodes.find((n) => n.id === nodeId)?.addons?.[index];
+      if (addon) Object.assign(addon, patch);
+    });
+  }
+
+  private _removeAddon(nodeId: string, index: number): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      const addon = node?.addons?.[index];
+      if (!node?.addons || !addon) return;
+      if (addon.type === "loop") {
+        const loopNumber = node.addons.slice(0, index + 1).filter((a) => a.type === "loop").length;
+        schema.connections = renumberLoops(schema, nodeId, loopNumber);
+      }
+      node.addons = node.addons.filter((_, i) => i !== index);
+      if (!node.addons.length) node.addons = undefined;
+      schema.connections = pruneNodeConnections(schema, nodeId);
+    });
+    this._openNode(nodeId);
+  }
+
+  private _connect(a: PortRef, b: PortRef): void {
+    this._update((schema) => {
+      const connection = makeConnection(schema, a, b);
+      if (connection && !hasConnection(schema, connection)) schema.connections.push(connection);
+    });
+  }
+
+  private _removeConnections(connections: Connection[]): void {
+    const ids = new Set(connections.map(connectionId));
+    this._update((schema) => {
+      schema.connections = schema.connections.filter((c) => !ids.has(connectionId(c)));
+    });
+  }
+
+  private _deleteSelectedConnection(): void {
+    const id = this._selectedEdgeId;
+    if (!id) return;
+    this._update((schema) => {
+      schema.connections = schema.connections.filter((c) => connectionId(c) !== id);
+    });
+    this._selectedEdgeId = undefined;
   }
 
   private _addOverlay(): void {
-    const schema = this._cloneSchema();
-    const overlay: SchemaOverlay = {
-      id: generateId("ov"),
-      position: { x: 40, y: 40 + schema.overlays.length * 30 },
-      entity_id: "",
-      template: "{{ state }}",
-    };
-    schema.overlays.push(overlay);
-    this._emitConfig(schema);
+    this._update((schema) => {
+      schema.overlays.push({
+        id: generateId("ov"),
+        position: { x: 40, y: 40 + schema.overlays.length * 30 },
+        entity_id: "",
+        template: "{{ state }}",
+      });
+    });
   }
 
   private _removeOverlay(id: string): void {
-    const schema = this._cloneSchema();
-    schema.overlays = schema.overlays.filter((o) => o.id !== id);
-    this._emitConfig(schema);
+    this._update((schema) => {
+      schema.overlays = schema.overlays.filter((o) => o.id !== id);
+    });
   }
 
-  private _updateOverlay(id: string, patch: Partial<SchemaOverlay>): void {
-    const schema = this._cloneSchema();
-    schema.overlays = schema.overlays.map((o) =>
-      o.id === id ? { ...o, ...patch } : o
-    );
-    this._emitConfig(schema);
+  private _patchOverlay(id: string, patch: Partial<SchemaOverlay>): void {
+    this._update((schema) => {
+      const overlay = schema.overlays.find((o) => o.id === id);
+      if (overlay) Object.assign(overlay, patch);
+    });
   }
 
-  private _onLanguageChange(ev: Event): void {
-    const language = (ev.target as HTMLSelectElement).value;
-    const next: HeatingVisualizerConfig = { ...this._config };
-    if (language) {
-      next.language = language;
-    } else {
-      delete next.language;
-    }
-    this._config = next;
-    this._translationEdits = { ...this._translator().getEditableTranslations() };
-    this._emitConfig(this._cloneSchema());
+  private _addRule(overlay: SchemaOverlay): void {
+    this._update((schema) => {
+      const target = schema.overlays.find((o) => o.id === overlay.id);
+      if (target) target.rules = [...(target.rules ?? []), { condition: "state", effect: {} }];
+    });
   }
 
-  private _onTranslationInput(key: string, value: string): void {
-    this._translationEdits = { ...this._translationEdits, [key]: value };
-    const language = this._translator().language;
-    const translations = {
-      ...this._config.translations,
-      [language]: {
-        ...(this._config.translations?.[language] ?? {}),
-        [key]: value,
-      },
-    };
-    this._emitConfig(this._cloneSchema(), { translations });
+  private _updateRule(
+    overlayId: string,
+    index: number,
+    next: (rule: OverlayStateRule) => OverlayStateRule | undefined
+  ): void {
+    this._update((schema) => {
+      const overlay = schema.overlays.find((o) => o.id === overlayId);
+      const rule = overlay?.rules?.[index];
+      if (!overlay?.rules || !rule) return;
+      const updated = next(rule);
+      overlay.rules = updated
+        ? overlay.rules.map((r, i) => (i === index ? updated : r))
+        : overlay.rules.filter((_, i) => i !== index);
+      if (!overlay.rules.length) overlay.rules = undefined;
+    });
   }
+
+  // ------------------------------------------------------------ canvas events
 
   private _onNodeSelect(ev: CustomEvent<{ nodeId?: string }>): void {
-    this._selectedNodeId = ev.detail.nodeId;
+    const { nodeId } = ev.detail;
     this._selectedEdgeId = undefined;
+    if (this._view.kind !== "list" && nodeId) {
+      if (nodeId !== this._view.nodeId) this._openNode(nodeId);
+      return;
+    }
+    this._selectedNodeId = nodeId;
   }
 
   private _onEdgeSelect(ev: CustomEvent<{ edgeId: string }>): void {
     this._selectedEdgeId = ev.detail.edgeId;
-    this._selectedNodeId = undefined;
     this._pendingPort = undefined;
   }
 
   private _onNodeMove(ev: CustomEvent<{ nodeId: string; position: { x: number; y: number } }>): void {
-    const schema = this._cloneSchema();
-    schema.nodes = schema.nodes.map((n) =>
-      n.id === ev.detail.nodeId ? { ...n, position: ev.detail.position } : n
-    );
-    this._emitConfig(schema);
-  }
-
-  private _setNodeState(nodeId: string, value: FormData): void {
-    const state = compact(value) as NodeStateBinding;
-    const schema = this._cloneSchema();
-    schema.nodes = schema.nodes.map((n) =>
-      n.id === nodeId
-        ? { ...n, state: Object.keys(state).length ? state : undefined }
-        : n
-    );
-    this._emitConfig(schema);
-  }
-
-  private _addRule(overlay: SchemaOverlay): void {
-    this._updateRules(overlay.id, (rules) => [
-      ...rules,
-      { condition: "state", entity: overlay.entity_id || undefined, effect: {} },
-    ]);
-  }
-
-  private _updateRules(
-    overlayId: string,
-    update: (rules: OverlayStateRule[]) => OverlayStateRule[]
-  ): void {
-    const overlay = this._config.schema?.overlays.find((o) => o.id === overlayId);
-    if (!overlay) return;
-    const rules = update([...(overlay.rules ?? [])]);
-    this._updateOverlay(overlayId, { rules: rules.length ? rules : undefined });
-  }
-
-  private _onOverlayFormChange(id: string, value: FormData): void {
-    const fields = compact(value);
-    const position = (fields.position ?? {}) as { x?: number; y?: number };
-    this._updateOverlay(id, {
-      entity_id: (fields.entity_id as string | undefined) ?? "",
-      name: fields.name as SchemaOverlay["name"],
-      template: fields.template as string | undefined,
-      position: { x: Number(position.x ?? 0), y: Number(position.y ?? 0) },
-    });
-  }
-
-  private _translator(): Translator {
-    return createTranslator(
-      this._config?.language ?? this._hass?.language,
-      this._config?.translations
-    );
-  }
-
-  // ha-form is lazy-loaded by HA; opening a built-in card editor registers it.
-  private async _loadHaForm(): Promise<void> {
-    try {
-      const helpers = await window.loadCardHelpers?.();
-      const card = helpers?.createCardElement({ type: "button" });
-      const cardClass = card?.constructor as
-        | { getConfigElement?: () => Promise<unknown> }
-        | undefined;
-      await cardClass?.getConfigElement?.();
-      await customElements.whenDefined("ha-form");
-      this._formReady = true;
-    } catch {
-      // Plain inputs remain as fallback.
-    }
+    this._moveNode(ev.detail.nodeId, ev.detail.position);
   }
 
   private _onPortClick(ev: CustomEvent<PortRef>): void {
-    const { nodeId, portId } = ev.detail;
-    const click: PortRef = { nodeId, portId };
-
-    if (!this._pendingPort) {
+    const click: PortRef = { nodeId: ev.detail.nodeId, portId: ev.detail.portId };
+    const pending = this._pendingPort;
+    if (!pending) {
       this._pendingPort = click;
       return;
     }
-
-    if (portRefsEqual(this._pendingPort, click)) {
-      this._pendingPort = undefined;
-      return;
-    }
-
-    const schema = this._cloneSchema();
-    const edge = this._createEdge(this._pendingPort, click, schema.edges);
-    if (edge) {
-      schema.edges.push(edge);
-      this._emitConfig(schema);
-    }
     this._pendingPort = undefined;
+    if (pending.nodeId !== click.nodeId || pending.portId !== click.portId) this._connect(pending, click);
   }
+}
 
-  private _createEdge(
-    a: PortRef,
-    b: PortRef,
-    existing: SchemaEdge[]
-  ): SchemaEdge | undefined {
-    const ordered = this._orderPorts(a, b);
-    if (!ordered) return undefined;
-
-    const duplicate = existing.some(
-      (e) =>
-        portRefsEqual(e.from, ordered.from) && portRefsEqual(e.to, ordered.to)
-    );
-    if (duplicate) return undefined;
-
-    return {
-      id: generateId("edge"),
-      from: ordered.from,
-      to: ordered.to,
-    };
-  }
-
-  private _orderPorts(
-    a: PortRef,
-    b: PortRef
-  ): { from: PortRef; to: PortRef } | undefined {
-    const nodeA = this._config.schema?.nodes.find((n) => n.id === a.nodeId);
-    const nodeB = this._config.schema?.nodes.find((n) => n.id === b.nodeId);
-    if (!nodeA || !nodeB) return undefined;
-
-    const defA = getNodeDefinition(nodeA);
-    const defB = getNodeDefinition(nodeB);
-    if (!defA || !defB) return undefined;
-
-    const portA = defA.ports.find((p) => p.id === a.portId);
-    const portB = defB.ports.find((p) => p.id === b.portId);
-    if (!portA || !portB) return undefined;
-
-    if (portA.kind === "outlet" && portB.kind === "inlet") {
-      return { from: a, to: b };
-    }
-    if (portB.kind === "outlet" && portA.kind === "inlet") {
-      return { from: b, to: a };
-    }
-    return undefined;
-  }
-
-  private _portLabel(t: Translator, ref: PortRef): string {
-    const node = this._config.schema?.nodes.find((n) => n.id === ref.nodeId);
-    if (!node) return ref.portId;
-    const def = getNodeDefinition(node);
-    const port = def?.ports.find((p) => p.id === ref.portId);
-    return port ? t.t(port.labelKey, ...(port.labelArgs ?? [])) : ref.portId;
-  }
-
-  private _cloneSchema(): HeatingSchema {
-    const s = this._config.schema ?? { nodes: [], edges: [], overlays: [] };
-    return {
-      nodes: (s.nodes ?? []).map((n) => ({
-        ...n,
-        position: { ...n.position },
-        state: n.state ? { ...n.state } : undefined,
-        channels: n.channels?.map((c) => ({ ...c })),
-        heater: n.heater ? { ...n.heater } : undefined,
-      })),
-      edges: (s.edges ?? []).map((e) => ({
-        ...e,
-        from: { ...e.from },
-        to: { ...e.to },
-      })),
-      overlays: (s.overlays ?? []).map((o) => ({
-        ...o,
-        position: { ...o.position },
-        rules: o.rules?.map((r) => ({ ...r, effect: { ...r.effect } })),
-      })),
-    };
+declare global {
+  interface HTMLElementTagNameMap {
+    "heating-visualizer-editor": HeatingVisualizerEditor;
   }
 }

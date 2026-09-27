@@ -1,1 +1,1 @@
-export { BUILTIN_TRANSLATIONS, createTranslator, Translator } from "./translations.js";
+export { createTranslator, resolveLanguage, Translator } from "./translations.js";

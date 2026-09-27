@@ -6,11 +6,8 @@ import type {
   LovelaceCardEditor,
   LovelaceGridOptions,
 } from "./types/home-assistant.js";
-import {
-  EMPTY_SCHEMA,
-  normalizeConfig,
-  type HeatingVisualizerConfig,
-} from "./models/schema.js";
+import { EMPTY_SCHEMA, SCHEMA_VERSION, schemaOf, type HeatingVisualizerConfig } from "./models/schema.js";
+import { normalizeConfig } from "./models/migrate.js";
 import { createTranslator } from "./i18n/index.js";
 import { HA_CONTEXT, HassContextConsumer } from "./utils/context.js";
 import "./renderer/schema-canvas.js";
@@ -68,18 +65,16 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
 
   static getStubConfig(): Record<string, unknown> {
     return {
-      schema: EMPTY_SCHEMA,
+      schema_version: SCHEMA_VERSION,
+      ...EMPTY_SCHEMA,
     };
   }
 
   protected render(): TemplateResult {
     if (!this._config) return html``;
 
-    const schema = this._config.schema!;
-    const t = createTranslator(
-      this._config.language ?? this._i18n.value?.language,
-      this._config.translations
-    );
+    const schema = schemaOf(this._config);
+    const t = createTranslator(this._i18n.value?.language);
 
     return html`
       <ha-card>
@@ -87,7 +82,6 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
           ? html`<div class="empty">${t.t("card.empty")}</div>`
           : html`
             <heating-schema-canvas
-              .config="${this._config}"
               .schema="${schema}"
               .editable="${false}"
             ></heating-schema-canvas>

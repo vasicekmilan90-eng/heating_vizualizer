@@ -1,0 +1,275 @@
+{
+  "devices": {
+    "heat_pump": {
+      "name": "Tepelné čerpadlo",
+      "ports": {
+        "cold_in": "Vratka topné vody",
+        "hot_out": "Výstup topné vody"
+      }
+    },
+    "valve_3way": {
+      "name": "Třícestný ventil",
+      "ports": {
+        "in": "Vstup",
+        "out_a": "Výstup A",
+        "out_b": "Výstup B"
+      }
+    },
+    "boiler": {
+      "name": "Bojler",
+      "ports": {
+        "cold_in": "Studená voda – vstup",
+        "hot_out": "Teplá voda – výstup",
+        "coil_in": "Výměník – přívod od zdroje",
+        "coil_out": "Výměník – vratka ke zdroji",
+        "coil2_in": "Druhý výměník – přívod",
+        "coil2_out": "Druhý výměník – vratka"
+      }
+    },
+    "junction": {
+      "name": "Uzel",
+      "ports": {
+        "in": "Vstup",
+        "out_top": "Horní výstup",
+        "out_bottom": "Spodní výstup"
+      }
+    },
+    "circulation_pump": {
+      "name": "Oběhové čerpadlo",
+      "ports": {
+        "in": "Vstup",
+        "out": "Výstup"
+      }
+    },
+    "floor_heating": {
+      "name": "Podlahové topení",
+      "ports": {
+        "in": "Přívod",
+        "out": "Vratka"
+      }
+    },
+    "manifold": {
+      "name": "Rozdělovač podlahového topení",
+      "ports": {
+        "supply_in": "Přívod",
+        "return_out": "Vratka",
+        "loop_out": "Okruh {0} – přívod",
+        "loop_in": "Okruh {0} – vratka"
+      }
+    },
+    "buffer_tank": {
+      "name": "Akumulační nádrž",
+      "ports": {
+        "source_in": "Od zdroje tepla",
+        "source_out": "Zpět ke zdroji tepla",
+        "supply_out": "Do topného systému",
+        "return_in": "Vratka z topného systému",
+        "coil_in": "Výměník – přívod",
+        "coil_out": "Výměník – vratka"
+      }
+    },
+    "mixing_valve": {
+      "name": "Směšovací ventil",
+      "ports": {
+        "hot_in": "Teplá větev",
+        "return_in": "Vratka (bypass)",
+        "mixed_out": "Smíšená voda"
+      }
+    },
+    "electric_heater": {
+      "name": "Průtokový elektrický ohřívač",
+      "ports": {
+        "in": "Vstup",
+        "out": "Výstup"
+      }
+    },
+    "inline": {
+      "ports": {
+        "in": "Vstup",
+        "out": "Výstup"
+      }
+    },
+    "pipe_sensor": {
+      "name": "Čidlo / měřidlo"
+    },
+    "heat_source": {
+      "ports": {
+        "supply_out": "Přívod",
+        "return_in": "Vratka"
+      }
+    },
+    "heating_boiler": {
+      "name": "Kotel"
+    },
+    "solar_collector": {
+      "name": "Solární kolektor",
+      "ports": {
+        "hot_out": "Teplý výstup",
+        "cold_in": "Studený vstup"
+      }
+    },
+    "four_port": {
+      "ports": {
+        "primary_in": "Primár – přívod",
+        "primary_out": "Primár – vratka",
+        "secondary_out": "Sekundár – přívod",
+        "secondary_in": "Sekundár – vratka"
+      }
+    },
+    "hydraulic_separator": {
+      "name": "Hydraulický vyrovnávač"
+    },
+    "plate_heat_exchanger": {
+      "name": "Deskový výměník"
+    },
+    "expansion_vessel": {
+      "name": "Expanzní nádoba",
+      "ports": {
+        "connection": "Připojení"
+      }
+    },
+    "safety_valve": {
+      "name": "Pojistný ventil",
+      "ports": {
+        "in": "Vstup",
+        "discharge": "Výtok"
+      }
+    },
+    "zone_valve": {
+      "name": "Zónový ventil"
+    },
+    "terminal": {
+      "ports": {
+        "in": "Přívod",
+        "out": "Vratka"
+      }
+    },
+    "radiator": {
+      "name": "Radiátor"
+    },
+    "fancoil": {
+      "name": "Fancoil / konvektor"
+    },
+    "outdoor_temperature": {
+      "name": "Venkovní teplota"
+    }
+  },
+  "addons": {
+    "temperature": { "name": "Teplotní čidlo" },
+    "value": { "name": "Hodnota" },
+    "electric_heater": { "name": "Elektrická topná spirála" },
+    "pump": { "name": "Čerpadlo" },
+    "actuator": { "name": "Pohon" },
+    "fan": { "name": "Ventilátor" },
+    "mode": { "name": "Provozní režim" },
+    "setpoint": { "name": "Požadovaná teplota" },
+    "defrost": { "name": "Odmrazování" },
+    "alarm": { "name": "Porucha" },
+    "window": { "name": "Okno" },
+    "heat_exchanger": {
+      "name": "Výměník",
+      "hint": "Přidá do výkresu výměník a jeho připojení."
+    },
+    "loop": { "name": "Okruh" }
+  },
+  "slots": {
+    "top": "nahoře",
+    "upper": "horní část",
+    "middle": "uprostřed",
+    "lower": "dolní část",
+    "bottom": "dole",
+    "supply": "přívod",
+    "return": "vratka",
+    "outdoor": "venkovní",
+    "evaporator": "výparník",
+    "room": "místnost",
+    "floor": "podlaha",
+    "mixed": "smíšená voda",
+    "inlet": "vstup",
+    "outlet": "výstup",
+    "collector": "kolektor",
+    "primary_supply": "primár – přívod",
+    "primary_return": "primár – vratka",
+    "secondary_supply": "sekundár – přívod",
+    "secondary_return": "sekundár – vratka"
+  },
+  "editor": {
+    "schema_tab": "Schéma",
+    "overlay_tab": "Popisky",
+    "device_type": "Typ zařízení",
+    "add_device": "Přidat zařízení",
+    "empty_hint": "Přidejte zařízení a začněte sestavovat schéma.",
+    "devices_title": "Zařízení",
+    "no_entity": "Bez entity",
+    "ports_connected": "připojeno {0}/{1}",
+    "addon_count": "doplňky: {0}",
+    "back": "Zpět",
+    "name": "Název",
+    "name_helper": "Prázdné = název typu zařízení",
+    "entity": "Entita",
+    "active_state": "Aktivní stav",
+    "active_state_helper": "Prázdné = podle hvac_action, jinak on / heat / open",
+    "value_attribute": "Zobrazený atribut",
+    "value_attribute_helper": "Prázdné = stav entity, např. current_temperature",
+    "actuator_entity": "Entita pohonu",
+    "position_attribute": "Atribut polohy (%)",
+    "position_attribute_helper": "Prázdné = current_position nebo stav entity",
+    "valve_attribute": "Atribut polohy ventilu",
+    "valve_attribute_helper": "Výchozí: position",
+    "branch_a": "Hodnota pro větev A",
+    "branch_a_helper": "Výchozí: a",
+    "branch_b": "Hodnota pro větev B",
+    "branch_b_helper": "Výchozí: b",
+    "loop_temperature": "Entita teploty místnosti",
+    "addons_title": "Doplňky",
+    "addons_empty": "Zatím žádné doplňky.",
+    "addon_type": "Typ doplňku",
+    "add_addon": "Přidat doplněk",
+    "remove_addon": "Odebrat doplněk",
+    "remaining": "zbývá {0}",
+    "slot": "Umístění",
+    "addon_name_helper": "Prázdné = typ doplňku a umístění",
+    "connections_title": "Propojení",
+    "not_connected": "Nepřipojeno",
+    "connect_to": "Připojit k",
+    "disconnect": "Odpojit",
+    "connection_pending": "Napojování z {0} — klikněte na kompatibilní port",
+    "delete_connection": "Smazat vybrané propojení",
+    "invalid_connections": "Propojení s neexistujícím nebo nekompatibilním portem: {0}",
+    "remove_invalid": "Odstranit",
+    "position_title": "Poloha",
+    "rotate": "Otočit",
+    "delete_device": "Smazat zařízení",
+    "add_overlay": "Přidat popisek",
+    "overlays_empty": "Zatím žádné popisky.",
+    "overlay_n": "Popisek {0}",
+    "remove_overlay": "Odebrat popisek"
+  },
+  "overlay": {
+    "entity": "Entita",
+    "name": "Název",
+    "name_helper": "Prázdné = název entity",
+    "name_yaml": "Název je nastaven v YAML.",
+    "template": "Šablona zobrazení",
+    "template_helper": "Zástupné symboly: {{ state }}, {{ attr('atribut') }}. Prázdné = formátovaný stav",
+    "rules": "Podmíněná pravidla",
+    "add_rule": "Přidat pravidlo",
+    "remove_rule": "Odebrat pravidlo",
+    "rule": {
+      "condition": "Podmínka",
+      "condition_state": "Stav je roven",
+      "condition_numeric": "Číselná hodnota",
+      "entity": "Entita",
+      "entity_helper": "Prázdné = entita popisku",
+      "state": "Stav",
+      "above": "Nad",
+      "below": "Pod",
+      "color": "Barva textu",
+      "color_helper": "Název barvy Home Assistantu nebo libovolná barva CSS",
+      "hide": "Skrýt popisek"
+    }
+  },
+  "card": {
+    "empty": "Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma."
+  }
+}

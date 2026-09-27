@@ -5,7 +5,8 @@ import type {
   HomeAssistantFormatters,
   HomeAssistantInternationalization,
 } from "../types/home-assistant.js";
-import type { HeatingSchema, SchemaNode } from "../models/schema.js";
+import type { Connection, HeatingSchema, SchemaNode } from "../models/schema.js";
+import { connectionId, parsePortRef } from "../models/schema.js";
 import { getNodeDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
@@ -26,7 +27,6 @@ import {
 } from "../utils/entity.js";
 import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
-import type { HeatingVisualizerConfig } from "../models/schema.js";
 
 const GRID_SIZE = 10;
 
@@ -34,10 +34,9 @@ const GRID_SIZE = 10;
 export class HeatingSchemaCanvas extends LitElement {
   @property({ attribute: false }) public schema: HeatingSchema = {
     nodes: [],
-    edges: [],
+    connections: [],
     overlays: [],
   };
-  @property({ attribute: false }) public config?: HeatingVisualizerConfig;
   @property({ type: Boolean }) public editable = false;
   @property({ attribute: false }) public selectedNodeId?: string;
   @property({ attribute: false }) public selectedEdgeId?: string;
@@ -153,7 +152,7 @@ export class HeatingSchemaCanvas extends LitElement {
 
   protected render(): TemplateResult {
     const t = this._translator();
-    const { nodes, edges, overlays } = this.schema;
+    const { nodes, connections, overlays } = this.schema;
     const bounds = this._dragBounds ?? this._computeBounds(nodes);
 
     return html`
@@ -174,18 +173,15 @@ export class HeatingSchemaCanvas extends LitElement {
             <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" />
           `
           : nothing}
-        ${edges.map((edge) => this._renderEdge(edge))}
+        ${connections.map((connection) => this._renderConnection(connection))}
         ${nodes.map((node) => this._renderNode(node, t))}
-        ${overlays.map((overlay) => this._renderOverlay(overlay, t))}
+        ${overlays.map((overlay) => this._renderOverlay(overlay))}
       </svg>
     `;
   }
 
   private _translator(): Translator {
-    return createTranslator(
-      this.config?.language ?? this._i18n.value?.language,
-      this.config?.translations
-    );
+    return createTranslator(this._i18n.value?.language);
   }
 
   private _computeBounds(nodes: SchemaNode[]): {
@@ -222,20 +218,23 @@ export class HeatingSchemaCanvas extends LitElement {
     };
   }
 
-  private _renderEdge(edge: HeatingSchema["edges"][number]): TemplateResult {
-    const fromNode = this.schema.nodes.find((n) => n.id === edge.from.nodeId);
-    const toNode = this.schema.nodes.find((n) => n.id === edge.to.nodeId);
-    if (!fromNode || !toNode) return html``;
+  private _renderConnection(connection: Connection): TemplateResult {
+    const fromRef = parsePortRef(connection.from);
+    const toRef = parsePortRef(connection.to);
+    const fromNode = this.schema.nodes.find((n) => n.id === fromRef?.nodeId);
+    const toNode = this.schema.nodes.find((n) => n.id === toRef?.nodeId);
+    if (!fromRef || !toRef || !fromNode || !toNode) return html``;
 
-    const from = getAbsolutePort(fromNode, edge.from.portId);
-    const to = getAbsolutePort(toNode, edge.to.portId);
+    const from = getAbsolutePort(fromNode, fromRef.portId);
+    const to = getAbsolutePort(toNode, toRef.portId);
     if (!from || !to) return html``;
 
     const d = buildPipePath(from, to);
-    const selected = this.selectedEdgeId === edge.id;
+    const id = connectionId(connection);
+    const selected = this.selectedEdgeId === id;
     return svg`
       <path class="pipe ${selected ? "selected" : ""}" d="${d}" />
-      ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${edge.id}" d="${d}" />` : nothing}
+      ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${id}" d="${d}" />` : nothing}
     `;
   }
 
@@ -246,18 +245,12 @@ export class HeatingSchemaCanvas extends LitElement {
     const selected = this.selectedNodeId === node.id;
     const states = this._states.value;
     const formatters = this._formatters.value;
-    const visualState = resolveNodeVisualState(states, node.state, formatters);
-    const channelStates = (node.channels ?? []).map((c) => ({
-      ...resolveNodeVisualState(states, c, formatters),
-      label: c.name,
+    const visualState = resolveNodeVisualState(states, node, formatters);
+    const addons = (node.addons ?? []).map((config) => ({
+      config,
+      state: { ...resolveNodeVisualState(states, config, formatters), label: config.name },
     }));
-    const heater = node.heater?.entity_id
-      ? resolveNodeVisualState(states, node.heater, formatters)
-      : undefined;
-    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, {
-      channels: channelStates,
-      heater,
-    });
+    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, { addons });
     if (!deviceSvg) return html``;
 
     const rotation = normalizeRotation(node.rotation);
@@ -280,26 +273,21 @@ export class HeatingSchemaCanvas extends LitElement {
     `;
   }
 
-  private _renderOverlay(
-    overlay: HeatingSchema["overlays"][number],
-    t: Translator
-  ): TemplateResult {
+  private _renderOverlay(overlay: HeatingSchema["overlays"][number]): TemplateResult {
     const states = this._states.value;
     const formatters = this._formatters.value;
     const text = formatOverlayValue(states, formatters, overlay);
     const style = resolveOverlayStyle(states, overlay);
     if (!style.visible) return html``;
 
-    const label = overlay.labelKey
-      ? t.t(overlay.labelKey)
-      : formatOverlayName(states, formatters, overlay);
+    const label = formatOverlayName(states, formatters, overlay);
     const display = `${label}: ${text}`;
     const width = Math.max(80, display.length * 7 + 16);
 
     return svg`
       <g class="overlay-group ${style.className ?? ""}" transform="translate(${overlay.position.x} ${overlay.position.y})">
         <rect class="overlay-bg" x="0" y="0" width="${width}" height="22" rx="4" />
-        <text class="overlay-text" x="8" y="15" fill="${style.color ?? "var(--primary-text-color, #e0e0e0)"}">
+        <text class="overlay-text" x="8" y="15" style="${style.color ? `fill: ${style.color}` : ""}">
           ${display}
         </text>
       </g>

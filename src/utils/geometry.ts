@@ -31,8 +31,8 @@ function rotateVector(v: Point, degrees: number): Point {
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
   return {
-    x: Math.round((v.x * cos - v.y * sin) * 1000) / 1000,
-    y: Math.round((v.x * sin + v.y * cos) * 1000) / 1000,
+    x: Math.round((v.x * cos - v.y * sin) * 1000) / 1000 || 0,
+    y: Math.round((v.x * sin + v.y * cos) * 1000) / 1000 || 0,
   };
 }
 

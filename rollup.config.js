@@ -1,4 +1,5 @@
 import resolve from "@rollup/plugin-node-resolve";
+import json from "@rollup/plugin-json";
 import typescript from "@rollup/plugin-typescript";
 import terser from "@rollup/plugin-terser";
 
@@ -12,6 +13,7 @@ export default {
   },
   plugins: [
     resolve({ browser: true }),
+    json({ preferConst: true }),
     typescript(),
     terser({ format: { comments: false } }),
   ],

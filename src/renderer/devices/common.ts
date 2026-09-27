@@ -1,9 +1,39 @@
 import { svg } from "lit";
-import type { DeviceDefinition, PortDefinition } from "../../models/schema.js";
+import type { AddonType } from "../../models/addons.js";
+import type { AddonConfig, DeviceDefinition, PortDefinition } from "../../models/schema.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 
 export type SvgResult = ReturnType<typeof svg>;
+
+export interface ResolvedAddon {
+  config: AddonConfig;
+  state: NodeVisualState;
+}
+
+/** Node-specific states beyond the main binding. */
+export interface DeviceExtras {
+  addons?: ResolvedAddon[];
+}
+
+export function addonStates(extras: DeviceExtras, type: AddonType): NodeVisualState[] {
+  return (extras.addons ?? []).filter((a) => a.config.type === type).map((a) => a.state);
+}
+
+export function temperatureSlots(extras: DeviceExtras): Map<string, NodeVisualState> {
+  const slots = new Map<string, NodeVisualState>();
+  for (const addon of extras.addons ?? []) {
+    if (addon.config.type === "temperature" && addon.config.slot) slots.set(addon.config.slot, addon.state);
+  }
+  return slots;
+}
+
+/** Combined state of all electric heaters of a device; undefined when none is bound. */
+export function heaterState(extras: DeviceExtras): NodeVisualState | undefined {
+  const heaters = (extras.addons ?? []).filter((a) => a.config.type === "electric_heater" && a.config.entity_id);
+  if (!heaters.length) return undefined;
+  return { active: heaters.some((h) => h.state.active) };
+}
 
 export const SUPPLY_COLOR = "#ef5350";
 export const RETURN_COLOR = "#42a5f5";
@@ -73,4 +103,17 @@ export function renderPortStubs(def: DeviceDefinition, length: number): SvgResul
 /** Value text shown only for numeric states, e.g. a temperature. */
 export function numericValue(state: NodeVisualState): string | undefined {
   return state.numeric !== undefined || state.fromAttribute ? state.value : undefined;
+}
+
+/** Value on a small background so it stays readable over drawings; optional temperature color. */
+export function renderValueLabel(x: number, y: number, state: NodeVisualState, colorByTemperature = false): SvgResult {
+  const text = state.value ?? "—";
+  const width = text.length * 6.5 + 8;
+  const style = colorByTemperature && state.numeric !== undefined ? `fill: ${temperatureColor(state.numeric)}` : "";
+  return svg`
+    <rect x="${x - width / 2}" y="${y - 11}" width="${width}" height="15" rx="3" fill="${CARD_FILL}" opacity="0.85" />
+    <text x="${x}" y="${y}" text-anchor="middle" class="device-value" style="${style}">
+      <title>${state.label ?? ""}</title>${text}
+    </text>
+  `;
 }
