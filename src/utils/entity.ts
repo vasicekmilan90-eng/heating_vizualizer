@@ -58,8 +58,8 @@ export function resolveOverlayStyle(
   }
 
   for (const rule of overlay.rules) {
-    if (matchesRule(states, rule)) {
-      if (rule.effect.color) color = rule.effect.color;
+    if (matchesRule(states, rule, overlay.entity_id)) {
+      if (rule.effect.color) color = computeCssColor(rule.effect.color);
       if (rule.effect.class) className = rule.effect.class;
       if (rule.effect.visible !== undefined) visible = rule.effect.visible;
     }
@@ -68,19 +68,33 @@ export function resolveOverlayStyle(
   return { color, className, visible };
 }
 
-function matchesRule(states: HassEntities, rule: OverlayStateRule): boolean {
-  const entity = states[rule.entity];
+/** Theme color names offered by the HA `ui_color` selector. */
+const THEME_COLORS = new Set([
+  "primary", "accent", "disabled", "red", "pink", "purple", "deep-purple", "indigo",
+  "blue", "light-blue", "cyan", "teal", "green", "light-green", "lime", "yellow",
+  "amber", "orange", "deep-orange", "brown", "light-grey", "grey", "dark-grey",
+  "blue-grey", "black", "white",
+]);
+
+export function computeCssColor(color: string): string {
+  return THEME_COLORS.has(color) ? `var(--${color}-color)` : color;
+}
+
+// Mirrors HA `numeric_state`: every configured bound must hold.
+function matchesRule(states: HassEntities, rule: OverlayStateRule, fallbackEntity: string): boolean {
+  const entity = states[rule.entity || fallbackEntity];
   if (!entity) return false;
 
   if (rule.condition === "state") {
     return rule.state !== undefined && entity.state === rule.state;
   }
 
+  if (rule.above === undefined && rule.below === undefined) return false;
   const value = Number(entity.state);
   if (Number.isNaN(value)) return false;
-  if (rule.below !== undefined && value < rule.below) return true;
-  if (rule.above !== undefined && value > rule.above) return true;
-  return false;
+  if (rule.above !== undefined && !(value > rule.above)) return false;
+  if (rule.below !== undefined && !(value < rule.below)) return false;
+  return true;
 }
 
 export interface NodeVisualState {

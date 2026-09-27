@@ -12,6 +12,8 @@ import {
   type HeatingSchema,
   type HeatingVisualizerConfig,
   type NodeStateBinding,
+  type OverlayConditionType,
+  type OverlayStateRule,
   type PortRef,
   type SchemaEdge,
   type SchemaNode,
@@ -88,6 +90,79 @@ function compact(value: FormData): FormData {
   return Object.fromEntries(
     Object.entries(value).filter(([, v]) => v !== undefined && v !== null && v !== "")
   );
+}
+
+const RULE_LABELS: Record<string, string> = {
+  condition: "overlay.rule.condition",
+  entity: "overlay.rule.entity",
+  state: "overlay.rule.state",
+  above: "overlay.rule.above",
+  below: "overlay.rule.below",
+  color: "overlay.rule.color",
+  hide: "overlay.rule.hide",
+};
+
+const RULE_HELPERS: Record<string, string> = {
+  entity: "overlay.rule.entity_helper",
+};
+
+function ruleSchema(t: Translator): HaFormSchema[] {
+  const whenNumeric = { field: "condition", value: "numeric" };
+  return [
+    {
+      name: "condition",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { value: "state", label: t.t("overlay.rule.condition_state") },
+            { value: "numeric", label: t.t("overlay.rule.condition_numeric") },
+          ],
+        },
+      },
+    },
+    { name: "entity", selector: { entity: {} } },
+    {
+      name: "state",
+      selector: { state: {} },
+      context: { filter_entity: "entity" },
+      visible: { field: "condition", value: "state" },
+    },
+    { name: "above", selector: { number: { mode: "box", step: "any" } }, visible: whenNumeric },
+    { name: "below", selector: { number: { mode: "box", step: "any" } }, visible: whenNumeric },
+    { name: "color", selector: { ui_color: {} } },
+    { name: "hide", selector: { boolean: {} } },
+  ];
+}
+
+function ruleToForm(rule: OverlayStateRule): FormData {
+  return {
+    condition: rule.condition,
+    entity: rule.entity,
+    state: rule.state,
+    above: rule.above,
+    below: rule.below,
+    color: rule.effect.color,
+    hide: rule.effect.visible === false,
+  };
+}
+
+function formToRule(value: FormData, previous: OverlayStateRule): OverlayStateRule {
+  const fields = compact(value);
+  const condition = (fields.condition as OverlayConditionType | undefined) ?? "state";
+  const toNumber = (v: unknown): number | undefined => (v === undefined ? undefined : Number(v));
+  return {
+    condition,
+    entity: fields.entity as string | undefined,
+    state: condition === "state" ? (fields.state as string | undefined) : undefined,
+    above: condition === "numeric" ? toNumber(fields.above) : undefined,
+    below: condition === "numeric" ? toNumber(fields.below) : undefined,
+    effect: {
+      ...previous.effect,
+      color: fields.color as string | undefined,
+      visible: fields.hide ? false : undefined,
+    },
+  };
 }
 
 @customElement("heating-visualizer-editor")
@@ -195,6 +270,42 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       font-size: 0.85em;
       color: var(--primary-color, #03a9f4);
       margin: 0;
+    }
+    .rules {
+      margin-top: 8px;
+      border-top: 1px solid var(--divider-color, #444);
+      padding-top: 8px;
+    }
+    .rules header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9em;
+    }
+    .rule {
+      position: relative;
+      margin-top: 8px;
+      padding: 8px 32px 8px 8px;
+      border-radius: 8px;
+      background: var(--secondary-background-color, rgba(127, 127, 127, 0.08));
+    }
+    .rule .remove-rule {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+    }
+    .rules button {
+      font: inherit;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--divider-color, #555);
+      background: transparent;
+      color: var(--primary-text-color, #e0e0e0);
+      cursor: pointer;
+    }
+    .rules button.danger {
+      border-color: #e57373;
+      color: #e57373;
     }
   `;
 
@@ -388,6 +499,33 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             OVERLAY_LABELS,
             (value) => this._onOverlayFormChange(overlay.id, value)
           )}
+          <div class="rules">
+            <header>
+              <span>${t.t("overlay.rules")}</span>
+              <button type="button" @click="${() => this._addRule(overlay)}">
+                ${t.t("overlay.add_rule")}
+              </button>
+            </header>
+            ${(overlay.rules ?? []).map((rule, ruleIndex) => html`
+              <div class="rule">
+                <button
+                  type="button"
+                  class="danger remove-rule"
+                  @click="${() => this._updateRules(overlay.id, (rules) =>
+                    rules.filter((_, i) => i !== ruleIndex))}"
+                >×</button>
+                ${this._renderForm(
+                  t,
+                  ruleSchema(t),
+                  ruleToForm(rule),
+                  RULE_LABELS,
+                  (value) => this._updateRules(overlay.id, (rules) =>
+                    rules.map((r, i) => (i === ruleIndex ? formToRule(value, r) : r))),
+                  RULE_HELPERS
+                )}
+              </div>
+            `)}
+          </div>
         </div>
       `)}
     `;
@@ -398,14 +536,16 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     schema: HaFormSchema[],
     data: FormData,
     labels: Record<string, string>,
-    onChange: (value: FormData) => void
+    onChange: (value: FormData) => void,
+    helpers: Record<string, string> = {}
   ): TemplateResult {
     const computeLabel = (field: HaFormSchema): string =>
       labels[field.name] ? t.t(labels[field.name]) : field.name.toUpperCase();
-    const computeHelper = (field: HaFormSchema): string | undefined =>
-      NODE_STATE_DEFAULTS[field.name] !== undefined
-        ? t.t("editor.default_value", NODE_STATE_DEFAULTS[field.name])
-        : undefined;
+    const computeHelper = (field: HaFormSchema): string | undefined => {
+      if (helpers[field.name]) return t.t(helpers[field.name]);
+      const fallback = NODE_STATE_DEFAULTS[field.name];
+      return fallback !== undefined ? t.t("editor.default_value", fallback) : undefined;
+    };
 
     if (this._formReady && this._hass) {
       return html`
@@ -441,8 +581,46 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     onChange: (value: FormData) => void
   ): TemplateResult | typeof nothing {
     if ("entity_name" in field.selector) return nothing;
+    if (field.visible && data[field.visible.field] !== field.visible.value) return nothing;
 
     const scope = group ? ((data[group] as FormData | undefined) ?? {}) : data;
+    const emit = (value: unknown): void => {
+      const next = { ...scope, [field.name]: value };
+      onChange(group ? { ...data, [group]: next } : next);
+    };
+
+    if ("boolean" in field.selector) {
+      return html`
+        <div class="field">
+          <label>
+            <input
+              type="checkbox"
+              .checked="${Boolean(scope[field.name])}"
+              @change="${(ev: Event) => emit((ev.target as HTMLInputElement).checked)}"
+            />
+            ${computeLabel(field)}
+          </label>
+        </div>
+      `;
+    }
+
+    const select = field.selector.select as
+      | { options: Array<{ value: string; label: string }> }
+      | undefined;
+    if (select) {
+      return html`
+        <div class="field">
+          <label>${computeLabel(field)}</label>
+          <select
+            .value="${String(scope[field.name] ?? "")}"
+            @change="${(ev: Event) => emit((ev.target as HTMLSelectElement).value)}"
+          >
+            ${select.options.map((o) => html`<option value="${o.value}">${o.label}</option>`)}
+          </select>
+        </div>
+      `;
+    }
+
     const isNumber = "number" in field.selector;
     return html`
       <div class="field">
@@ -452,8 +630,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           .value="${String(scope[field.name] ?? "")}"
           @change="${(ev: Event) => {
             const raw = (ev.target as HTMLInputElement).value;
-            const next = { ...scope, [field.name]: isNumber ? Number(raw) : raw };
-            onChange(group ? { ...data, [group]: next } : next);
+            emit(isNumber && raw !== "" ? Number(raw) : raw);
           }}"
         />
       </div>
@@ -644,6 +821,23 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         : n
     );
     this._emitConfig(schema);
+  }
+
+  private _addRule(overlay: SchemaOverlay): void {
+    this._updateRules(overlay.id, (rules) => [
+      ...rules,
+      { condition: "state", entity: overlay.entity_id || undefined, effect: {} },
+    ]);
+  }
+
+  private _updateRules(
+    overlayId: string,
+    update: (rules: OverlayStateRule[]) => OverlayStateRule[]
+  ): void {
+    const overlay = this._config.schema?.overlays.find((o) => o.id === overlayId);
+    if (!overlay) return;
+    const rules = update([...(overlay.rules ?? [])]);
+    this._updateOverlay(overlayId, { rules: rules.length ? rules : undefined });
   }
 
   private _onOverlayFormChange(id: string, value: FormData): void {

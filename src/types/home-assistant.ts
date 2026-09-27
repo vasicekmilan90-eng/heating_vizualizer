@@ -68,6 +68,8 @@ export interface HaFormSelectorSchema {
   selector: Record<string, unknown>;
   required?: boolean;
   context?: Record<string, string>;
+  /** Conditional visibility, available in ha-form since HA 2026.8. */
+  visible?: { field: string; value: unknown };
 }
 
 export interface HaFormGridSchema {

@@ -49,11 +49,13 @@ export type OverlayConditionType = "state" | "numeric";
 
 export interface OverlayStateRule {
   condition: OverlayConditionType;
-  entity: string;
+  /** Defaults to the overlay entity. */
+  entity?: string;
   state?: string;
   below?: number;
   above?: number;
   effect: {
+    /** HA `ui_color` name (e.g. `red`, `primary`) or any CSS color. */
     color?: string;
     class?: string;
     visible?: boolean;
