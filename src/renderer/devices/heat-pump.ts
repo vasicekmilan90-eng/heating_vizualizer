@@ -252,9 +252,11 @@ function renderCirculationPump(
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
-      <path d="M 32 52 A 14 14 0 0 1 58 38"
-        fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
-      <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
+      <g class="${state.active ? "spinning" : ""}">
+        <path d="M 32 52 A 14 14 0 0 1 58 38"
+          fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
+        <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
+      </g>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -428,6 +430,7 @@ export function renderDeviceByType(
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
+    case "dhw_circulation_pump":
       return renderCirculationPump(def, t, selected, state);
     case "floor_heating":
       return renderFloorHeating(def, t, selected, state);
@@ -443,6 +446,12 @@ export function renderDeviceByType(
       return renderOutdoorUnit(def, t, selected, state, channels);
     case "pipe_sensor":
       return renderInlineSensor(def, t, selected, state, "temperature");
+    case "flow_meter":
+      return renderInlineSensor(def, t, selected, state, "flow");
+    case "pressure_gauge":
+      return renderInlineSensor(def, t, selected, state, "pressure");
+    case "heat_meter":
+      return renderInlineSensor(def, t, selected, state, "energy");
     default:
       return renderExtraDevice(type, def, t, selected, state);
   }

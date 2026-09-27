@@ -337,6 +337,25 @@ function inlineSensor(type: string): DeviceDefinition {
 }
 
 export const PIPE_SENSOR = inlineSensor("pipe_sensor");
+export const FLOW_METER = inlineSensor("flow_meter");
+export const PRESSURE_GAUGE = inlineSensor("pressure_gauge");
+export const HEAT_METER = inlineSensor("heat_meter");
+
+export const DHW_CIRCULATION_PUMP: DeviceDefinition = {
+  ...CIRCULATION_PUMP,
+  type: "dhw_circulation_pump",
+  labelKey: "devices.dhw_circulation_pump.name",
+};
+
+/** Informational element without pipe connections. */
+export const OUTDOOR_TEMPERATURE: DeviceDefinition = {
+  type: "outdoor_temperature",
+  labelKey: "devices.outdoor_temperature.name",
+  width: 100,
+  height: 50,
+  valueDisplay: "only",
+  ports: [],
+};
 
 /** Boiler-like heat source with supply/return on the right side. */
 function heatSource(type: string): DeviceDefinition {
@@ -500,6 +519,7 @@ const ALL_DEVICES: DeviceDefinition[] = [
   MIXING_VALVE,
   ZONE_VALVE,
   CIRCULATION_PUMP,
+  DHW_CIRCULATION_PUMP,
   MANIFOLD,
   FLOOR_HEATING,
   RADIATOR,
@@ -507,6 +527,10 @@ const ALL_DEVICES: DeviceDefinition[] = [
   ELECTRIC_HEATER,
   JUNCTION,
   PIPE_SENSOR,
+  FLOW_METER,
+  PRESSURE_GAUGE,
+  HEAT_METER,
+  OUTDOOR_TEMPERATURE,
 ];
 
 export const DEVICE_TYPES: string[] = ALL_DEVICES.map((d) => d.type);

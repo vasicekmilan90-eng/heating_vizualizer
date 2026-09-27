@@ -275,6 +275,26 @@ function renderFancoil(
   `;
 }
 
+function renderOutdoorTemperature(
+  def: DeviceDefinition,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const stroke = selected ? ACCENT : NEUTRAL_STROKE;
+  return svg`
+    <g class="device device-outdoor-temperature">
+      <rect x="2" y="6" width="${def.width - 4}" height="${def.height - 12}" rx="${(def.height - 12) / 2}"
+        fill="${CARD_FILL}" stroke="${stroke}" stroke-width="${frameWidth(selected)}" />
+      <circle cx="22" cy="${def.height / 2}" r="6" fill="none" stroke="#ffb300" stroke-width="1.5" />
+      <path d="M 22 13 V 16 M 22 34 V 37 M 10 25 H 13 M 31 25 H 34 M 14 17 L 16 19 M 28 31 L 30 33 M 14 33 L 16 31 M 28 19 L 30 17"
+        stroke="#ffb300" stroke-width="1.5" stroke-linecap="round" />
+      <text x="${def.width / 2 + 14}" y="${def.height / 2 + 4}" text-anchor="middle" class="device-value">
+        ${state.value ?? "—"}
+      </text>
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -306,6 +326,8 @@ export function renderExtraDevice(
       return renderRadiator(def, t, selected, state);
     case "fancoil":
       return renderFancoil(def, t, selected, state);
+    case "outdoor_temperature":
+      return renderOutdoorTemperature(def, selected, state);
     default:
       return undefined;
   }
