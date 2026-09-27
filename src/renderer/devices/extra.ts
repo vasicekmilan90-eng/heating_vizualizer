@@ -3,6 +3,7 @@ import type { DeviceDefinition } from "../../models/schema.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
+  ACTIVE_COLOR,
   CARD_FILL,
   HEATER_ACTIVE_COLOR,
   NEUTRAL_STROKE,
@@ -193,6 +194,31 @@ function renderSafetyValve(
   `;
 }
 
+function renderZoneValve(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const stroke = frameStroke(state, selected);
+  const width = frameWidth(selected);
+  const cx = def.width / 2;
+  const cy = 50;
+  return svg`
+    <g class="device device-zone-valve">
+      <line x1="0" y1="${cy}" x2="${cx - 16}" y2="${cy}" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <line x1="${cx + 16}" y1="${cy}" x2="${def.width}" y2="${cy}" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <path d="M ${cx - 16} ${cy - 11} L ${cx} ${cy} L ${cx - 16} ${cy + 11} Z M ${cx + 16} ${cy - 11} L ${cx} ${cy} L ${cx + 16} ${cy + 11} Z"
+        fill="${state.active ? ACTIVE_COLOR : CARD_FILL}" fill-opacity="${state.active ? 0.45 : 1}"
+        stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" />
+      <line x1="${cx}" y1="${cy}" x2="${cx}" y2="30" stroke="${stroke}" stroke-width="2" />
+      <rect x="${cx - 12}" y="10" width="24" height="20" rx="3"
+        fill="${state.active ? ACTIVE_COLOR : CARD_FILL}" stroke="${stroke}" stroke-width="${width}" />
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -218,6 +244,8 @@ export function renderExtraDevice(
       return renderExpansionVessel(def, t, selected, state);
     case "safety_valve":
       return renderSafetyValve(def, t, selected, state);
+    case "zone_valve":
+      return renderZoneValve(def, t, selected, state);
     default:
       return undefined;
   }

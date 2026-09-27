@@ -454,6 +454,17 @@ export const SAFETY_VALVE: DeviceDefinition = {
   ],
 };
 
+export const ZONE_VALVE: DeviceDefinition = {
+  type: "zone_valve",
+  labelKey: "devices.zone_valve.name",
+  width: 80,
+  height: 70,
+  ports: [
+    { id: "in", labelKey: "devices.inline.ports.in", kind: "inlet", position: { x: 0, y: 50 } },
+    { id: "out", labelKey: "devices.inline.ports.out", kind: "outlet", position: { x: 80, y: 50 } },
+  ],
+};
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
   OUTDOOR_UNIT,
@@ -469,6 +480,7 @@ const ALL_DEVICES: DeviceDefinition[] = [
   SAFETY_VALVE,
   VALVE_3WAY,
   MIXING_VALVE,
+  ZONE_VALVE,
   CIRCULATION_PUMP,
   MANIFOLD,
   FLOOR_HEATING,

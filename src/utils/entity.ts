@@ -119,7 +119,7 @@ function isActive(entity: HassEntity, activeState: string | undefined): boolean 
   if (activeState !== undefined) return entity.state === activeState;
   const hvacAction = entity.attributes.hvac_action;
   if (typeof hvacAction === "string") return HEATING_ACTIONS.has(hvacAction);
-  return entity.state === "on" || entity.state === "heat";
+  return entity.state === "on" || entity.state === "heat" || entity.state === "open";
 }
 
 export function resolveNodeVisualState(
