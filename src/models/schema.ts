@@ -96,9 +96,8 @@ export interface SchemaOverlay {
   id: string;
   position: { x: number; y: number };
   entity_id: string;
-  /** Passed to `formatEntityName`; ignored when `labelKey` is set. */
+  /** Passed to `formatEntityName`. */
   name?: EntityNameConfig;
-  labelKey?: string;
   template?: string;
   rules?: OverlayStateRule[];
 }
@@ -109,21 +108,12 @@ export interface HeatingSchema {
   overlays: SchemaOverlay[];
 }
 
-export type TranslationMap = Record<string, string>;
-
-export type TranslationsConfig = Record<string, TranslationMap>;
-
 export interface HeatingVisualizerConfig {
   type: string;
   schema?: HeatingSchema;
-  /** Falls back to the Home Assistant user language when unset. */
-  language?: string;
-  translations?: TranslationsConfig;
   /** Keys managed by the dashboard (grid_options, visibility, view_layout, …). */
   [key: string]: unknown;
 }
-
-export const DEFAULT_LANGUAGE = "en";
 
 export const EMPTY_SCHEMA: HeatingSchema = {
   nodes: [],

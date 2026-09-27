@@ -76,10 +76,7 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
     if (!this._config) return html``;
 
     const schema = this._config.schema!;
-    const t = createTranslator(
-      this._config.language ?? this._i18n.value?.language,
-      this._config.translations
-    );
+    const t = createTranslator(this._i18n.value?.language);
 
     return html`
       <ha-card>

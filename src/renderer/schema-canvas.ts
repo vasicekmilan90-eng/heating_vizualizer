@@ -176,16 +176,13 @@ export class HeatingSchemaCanvas extends LitElement {
           : nothing}
         ${edges.map((edge) => this._renderEdge(edge))}
         ${nodes.map((node) => this._renderNode(node, t))}
-        ${overlays.map((overlay) => this._renderOverlay(overlay, t))}
+        ${overlays.map((overlay) => this._renderOverlay(overlay))}
       </svg>
     `;
   }
 
   private _translator(): Translator {
-    return createTranslator(
-      this.config?.language ?? this._i18n.value?.language,
-      this.config?.translations
-    );
+    return createTranslator(this._i18n.value?.language);
   }
 
   private _computeBounds(nodes: SchemaNode[]): {
@@ -280,19 +277,14 @@ export class HeatingSchemaCanvas extends LitElement {
     `;
   }
 
-  private _renderOverlay(
-    overlay: HeatingSchema["overlays"][number],
-    t: Translator
-  ): TemplateResult {
+  private _renderOverlay(overlay: HeatingSchema["overlays"][number]): TemplateResult {
     const states = this._states.value;
     const formatters = this._formatters.value;
     const text = formatOverlayValue(states, formatters, overlay);
     const style = resolveOverlayStyle(states, overlay);
     if (!style.visible) return html``;
 
-    const label = overlay.labelKey
-      ? t.t(overlay.labelKey)
-      : formatOverlayName(states, formatters, overlay);
+    const label = formatOverlayName(states, formatters, overlay);
     const display = `${label}: ${text}`;
     const width = Math.max(80, display.length * 7 + 16);
 

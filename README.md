@@ -6,7 +6,7 @@ Custom Lovelace card for Home Assistant **2026.9+**. Design heating schemas by c
 - Every device can be bound to a Home Assistant entity (state, value or attribute).
 - Floor heating manifolds, buffer tanks and outdoor units have repeatable sub-elements (loops, sensors, values), each with its own entity.
 - Overlays show any entity value anywhere on the schema, with conditional colors or visibility.
-- Values are formatted with the user's Home Assistant locale; the card follows the Home Assistant language (English and Czech built in, all texts can be overridden).
+- Values are formatted with the user's Home Assistant locale and the card follows the Home Assistant language. Translations live in [`src/translations/`](src/translations) – add a language by adding `<language>.json`.
 - Works in masonry and sections dashboards.
 
 ## Installation
@@ -27,7 +27,6 @@ Add the card from the card picker (**Heating Visualizer**) and build the schema 
 
 - **Schema** tab – add devices, drag them, rotate (↻), click an outlet port and then an inlet port to draw a pipe. Click a pipe or device and use *Delete selected* to remove it. Selecting a device shows its entity bindings.
 - **Overlays** tab – value labels with an entity, optional name, template and conditional rules.
-- **Translations** tab – override any built-in text for the current language.
 
 ### YAML example
 
@@ -71,8 +70,6 @@ schema:
 | `schema.nodes` | Placed devices (`id`, `type`, `position`, optional `name`, `rotation` in 90° steps, `state`, `channels`, `heater`). |
 | `schema.edges` | Pipes: `from` (outlet) and `to` (inlet), each `{ nodeId, portId }`. |
 | `schema.overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`. |
-| `language` | Card language; defaults to the Home Assistant user language. |
-| `translations` | Text overrides per language, e.g. `{ cs: { "devices.boiler.name": "Zásobník TV" } }`. |
 
 ### Entity bindings (`state`, `channels[]`, `heater`)
 

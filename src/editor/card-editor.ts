@@ -20,7 +20,6 @@ import {
   type SchemaEdge,
   type SchemaNode,
   type SchemaOverlay,
-  type TranslationMap,
 } from "../models/schema.js";
 import {
   DEVICE_TYPES,
@@ -33,7 +32,7 @@ import type { Translator } from "../i18n/translations.js";
 import { normalizeRotation, portRefsEqual } from "../utils/geometry.js";
 import "../renderer/schema-canvas.js";
 
-type EditorTab = "schema" | "overlays" | "translations";
+type EditorTab = "schema" | "overlays";
 
 type FormData = Record<string, unknown>;
 
@@ -265,7 +264,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _selectedEdgeId?: string;
   @state() private _pendingPort?: PortRef;
   @state() private _selectedDeviceType = HEAT_PUMP.type;
-  @state() private _translationEdits: TranslationMap = {};
   @state() private _formReady = customElements.get("ha-form") !== undefined;
 
   static styles = css`
@@ -415,7 +413,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   public setConfig(config: HeatingVisualizerConfig): void {
     this._config = normalizeConfig(config);
-    this._translationEdits = { ...this._translator().getEditableTranslations() };
     this.requestUpdate();
   }
 
@@ -437,16 +434,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             class="${this._tab === "overlays" ? "active" : ""}"
             @click="${() => { this._tab = "overlays"; }}"
           >${t.t("editor.overlay_tab")}</button>
-          <button
-            type="button"
-            class="${this._tab === "translations" ? "active" : ""}"
-            @click="${() => { this._tab = "translations"; }}"
-          >${t.t("editor.translations")}</button>
         </div>
 
         ${this._tab === "schema" ? this._renderSchemaTab(t) : nothing}
         ${this._tab === "overlays" ? this._renderOverlaysTab(t) : nothing}
-        ${this._tab === "translations" ? this._renderTranslationsTab(t) : nothing}
       </div>
     `;
   }
@@ -469,15 +460,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               ${t.t(`devices.${deviceType}.name`)}
             </option>
           `)}
-        </select>
-        <select
-          .value="${this._config.language ?? ""}"
-          @change="${this._onLanguageChange}"
-        >
-          <option value="">${t.t("editor.language_auto")}</option>
-          ${t.getAvailableLanguages().map(
-            (lang) => html`<option value="${lang}">${lang}</option>`
-          )}
         </select>
         <button
           type="button"
@@ -794,26 +776,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     `;
   }
 
-  private _renderTranslationsTab(t: Translator): TemplateResult {
-    const entries = Object.entries(this._translationEdits).sort(([a], [b]) =>
-      a.localeCompare(b)
-    );
-
-    return html`
-      <p class="hint">${t.t("editor.language")}: ${t.language}</p>
-      ${entries.map(([key, value]) => html`
-        <div class="translation-item">
-          <header><code>${key}</code></header>
-          <input
-            .value="${value}"
-            @input="${(ev: Event) =>
-              this._onTranslationInput(key, (ev.target as HTMLInputElement).value)}"
-          />
-        </div>
-      `)}
-    `;
-  }
-
   private _emitConfig(schema: HeatingSchema, extra?: Partial<HeatingVisualizerConfig>): void {
     // JSON round-trip drops undefined values, which the dashboard YAML serializer rejects.
     const config = JSON.parse(
@@ -977,32 +939,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     this._emitConfig(schema);
   }
 
-  private _onLanguageChange(ev: Event): void {
-    const language = (ev.target as HTMLSelectElement).value;
-    const next: HeatingVisualizerConfig = { ...this._config };
-    if (language) {
-      next.language = language;
-    } else {
-      delete next.language;
-    }
-    this._config = next;
-    this._translationEdits = { ...this._translator().getEditableTranslations() };
-    this._emitConfig(this._cloneSchema());
-  }
-
-  private _onTranslationInput(key: string, value: string): void {
-    this._translationEdits = { ...this._translationEdits, [key]: value };
-    const language = this._translator().language;
-    const translations = {
-      ...this._config.translations,
-      [language]: {
-        ...(this._config.translations?.[language] ?? {}),
-        [key]: value,
-      },
-    };
-    this._emitConfig(this._cloneSchema(), { translations });
-  }
-
   private _onNodeSelect(ev: CustomEvent<{ nodeId?: string }>): void {
     this._selectedNodeId = ev.detail.nodeId;
     this._selectedEdgeId = undefined;
@@ -1062,10 +998,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   }
 
   private _translator(): Translator {
-    return createTranslator(
-      this._config?.language ?? this._hass?.language,
-      this._config?.translations
-    );
+    return createTranslator(this._hass?.language);
   }
 
   // ha-form is lazy-loaded by HA; opening a built-in card editor registers it.

@@ -1,0 +1,215 @@
+{
+  "devices": {
+    "heat_pump": {
+      "name": "Heat pump",
+      "ports": {
+        "cold_in": "Heating water return",
+        "hot_out": "Heating water out"
+      },
+      "channels": "Displayed values",
+      "channel": "Value {0}"
+    },
+    "valve_3way": {
+      "name": "3-way valve",
+      "ports": {
+        "in": "Inlet",
+        "out_a": "Outlet A",
+        "out_b": "Outlet B"
+      }
+    },
+    "boiler": {
+      "name": "DHW tank",
+      "ports": {
+        "cold_in": "Cold water inlet",
+        "hot_out": "Hot water outlet",
+        "coil_in": "Heat exchanger supply",
+        "coil_out": "Heat exchanger return"
+      },
+      "channels": "Temperature sensors (top, bottom)",
+      "channel": "Sensor {0}"
+    },
+    "junction": {
+      "name": "Junction",
+      "ports": {
+        "in": "Inlet",
+        "out_top": "Top outlet",
+        "out_bottom": "Bottom outlet"
+      }
+    },
+    "circulation_pump": {
+      "name": "Circulation pump",
+      "ports": {
+        "in": "Inlet",
+        "out": "Outlet"
+      }
+    },
+    "floor_heating": {
+      "name": "Floor heating",
+      "ports": {
+        "in": "Supply",
+        "out": "Return"
+      }
+    },
+    "manifold": {
+      "name": "Floor heating manifold",
+      "ports": {
+        "supply_in": "Supply",
+        "return_out": "Return",
+        "loop_out": "Loop {0} supply",
+        "loop_in": "Loop {0} return"
+      },
+      "channels": "Loops (actuators)",
+      "channel": "Loop {0}"
+    },
+    "buffer_tank": {
+      "name": "Buffer tank",
+      "ports": {
+        "source_in": "From heat source",
+        "source_out": "Back to heat source",
+        "supply_out": "To heating system",
+        "return_in": "Return from heating system"
+      },
+      "channels": "Temperature sensors (top → bottom)",
+      "channel": "Sensor {0}"
+    },
+    "mixing_valve": {
+      "name": "Mixing valve",
+      "ports": {
+        "hot_in": "Hot branch",
+        "return_in": "Return (bypass)",
+        "mixed_out": "Mixed water"
+      }
+    },
+    "electric_heater": {
+      "name": "Electric flow heater",
+      "ports": {
+        "in": "Inlet",
+        "out": "Outlet"
+      }
+    },
+    "inline": {
+      "ports": {
+        "in": "Inlet",
+        "out": "Outlet"
+      }
+    },
+    "pipe_sensor": {
+      "name": "Sensor / meter"
+    },
+    "heat_source": {
+      "ports": {
+        "supply_out": "Supply",
+        "return_in": "Return"
+      }
+    },
+    "heating_boiler": {
+      "name": "Heating boiler"
+    },
+    "solar_collector": {
+      "name": "Solar collector",
+      "ports": {
+        "hot_out": "Hot outlet",
+        "cold_in": "Cold inlet"
+      }
+    },
+    "four_port": {
+      "ports": {
+        "primary_in": "Primary supply",
+        "primary_out": "Primary return",
+        "secondary_out": "Secondary supply",
+        "secondary_in": "Secondary return"
+      }
+    },
+    "hydraulic_separator": {
+      "name": "Hydraulic separator"
+    },
+    "plate_heat_exchanger": {
+      "name": "Plate heat exchanger"
+    },
+    "expansion_vessel": {
+      "name": "Expansion vessel",
+      "ports": {
+        "connection": "Connection"
+      }
+    },
+    "safety_valve": {
+      "name": "Safety valve",
+      "ports": {
+        "in": "Inlet",
+        "discharge": "Discharge"
+      }
+    },
+    "zone_valve": {
+      "name": "Zone valve"
+    },
+    "terminal": {
+      "ports": {
+        "in": "Supply",
+        "out": "Return"
+      }
+    },
+    "radiator": {
+      "name": "Radiator"
+    },
+    "fancoil": {
+      "name": "Fan coil / convector"
+    },
+    "outdoor_temperature": {
+      "name": "Outdoor temperature"
+    }
+  },
+  "editor": {
+    "node_name": "Name",
+    "node_name_helper": "Empty = device type name",
+    "heater_title": "Electric heating element",
+    "node_value_entity": "Value entity",
+    "node_value_attribute": "Displayed attribute",
+    "node_value_attribute_helper": "Empty = entity state, e.g. current_temperature",
+    "node_state_position_entity": "Actuator entity",
+    "node_state_position_attribute": "Position attribute (%)",
+    "node_state_position_helper": "Empty = current_position or the entity state",
+    "channel_name": "Name",
+    "title": "Schema editor",
+    "add_device": "Add device",
+    "device_type": "Device type",
+    "add_selected_device": "Add selected device",
+    "add_heat_pump": "Heat pump",
+    "delete_selected": "Delete selected",
+    "rotate_selected": "Rotate",
+    "empty_hint": "Add a device to start building your schema.",
+    "schema_tab": "Schema",
+    "overlay_tab": "Overlays",
+    "overlays_empty": "No overlays yet. Switch to overlay tab to add sensor labels.",
+    "add_overlay": "Add overlay",
+    "connection_pending": "Connecting from {0} — click a compatible port",
+    "node_state_title": "Selected device state binding",
+    "node_state_entity": "State entity",
+    "node_state_active": "Active state",
+    "node_state_mode_attribute": "Valve mode attribute",
+    "node_state_branch_a": "Valve branch A value",
+    "node_state_branch_b": "Valve branch B value",
+    "default_value": "Default: {0}"
+  },
+  "overlay": {
+    "entity": "Entity",
+    "name": "Name",
+    "template": "Display template",
+    "rules": "Conditional rules",
+    "add_rule": "Add rule",
+    "rule": {
+      "condition": "Condition",
+      "condition_state": "State equals",
+      "condition_numeric": "Numeric value",
+      "entity": "Entity",
+      "entity_helper": "Empty = overlay entity",
+      "state": "State",
+      "above": "Above",
+      "below": "Below",
+      "color": "Text color",
+      "hide": "Hide overlay"
+    }
+  },
+  "card": {
+    "empty": "No schema configured. Edit this card to design your heating layout."
+  }
+}
