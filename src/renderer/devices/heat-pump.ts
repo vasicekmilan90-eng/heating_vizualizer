@@ -12,9 +12,52 @@ function renderPorts(def: DeviceDefinition, t: Translator): ReturnType<typeof sv
       fill="var(--card-background-color, #1c1c1c)"
       stroke="${port.kind === "inlet" ? "#4fc3f7" : "#ff8a65"}"
       stroke-width="2"
-    />
-    <title>${t.t(port.labelKey)}</title>
+    ><title>${t.t(port.labelKey, ...(port.labelArgs ?? []))}</title></circle>
   `);
+}
+
+const SUPPLY_COLOR = "#ef5350";
+const RETURN_COLOR = "#42a5f5";
+
+function renderManifold(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState,
+  channels: NodeVisualState[]
+): ReturnType<typeof svg> {
+  const stroke = state.active
+    ? "#4caf50"
+    : selected
+      ? "var(--primary-color, #03a9f4)"
+      : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  const barWidth = def.width - 8;
+  const loops = def.ports.filter((p) => p.id.startsWith("loop_") && p.kind === "outlet");
+
+  return svg`
+    <g class="device device-manifold">
+      <rect x="2" y="18" width="${def.width - 4}" height="94" rx="6"
+        fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-dasharray="4 3" />
+      <rect x="4" y="22" width="${barWidth}" height="16" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${SUPPLY_COLOR}" stroke-width="2" />
+      <rect x="4" y="92" width="${barWidth}" height="16" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${RETURN_COLOR}" stroke-width="2" />
+      ${loops.map((port, i) => {
+        const x = port.position.x;
+        const active = channels[i]?.active ?? false;
+        return svg`
+          <line x1="${x}" y1="0" x2="${x}" y2="22" stroke="${SUPPLY_COLOR}" stroke-width="2" />
+          <rect class="actuator ${active ? "active" : ""}" x="${x - 7}" y="6" width="14" height="11" rx="2"
+            fill="${active ? "#4caf50" : "var(--card-background-color, #1c1c1c)"}"
+            stroke="${active ? "#4caf50" : "var(--divider-color, #888)"}" stroke-width="1.5" />
+          <line x1="${x}" y1="108" x2="${x}" y2="${def.height}" stroke="${RETURN_COLOR}" stroke-width="2" />
+          <text x="${x}" y="69" text-anchor="middle" class="device-label">${i + 1}</text>
+        `;
+      })}
+      ${renderPorts(def, t)}
+    </g>
+  `;
 }
 
 export function renderHeatPump(
@@ -184,7 +227,8 @@ export function renderDeviceByType(
   def: DeviceDefinition,
   t: Translator,
   selected: boolean,
-  state: NodeVisualState
+  state: NodeVisualState,
+  channels: NodeVisualState[] = []
 ): ReturnType<typeof svg> | undefined {
   switch (type) {
     case "heat_pump":
@@ -199,6 +243,8 @@ export function renderDeviceByType(
       return renderCirculationPump(def, t, selected, state);
     case "floor_heating":
       return renderFloorHeating(def, t, selected, state);
+    case "manifold":
+      return renderManifold(def, t, selected, state, channels);
     default:
       return undefined;
   }

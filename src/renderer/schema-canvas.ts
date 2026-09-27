@@ -6,7 +6,7 @@ import type {
   HomeAssistantInternationalization,
 } from "../types/home-assistant.js";
 import type { HeatingSchema, SchemaNode } from "../models/schema.js";
-import { getDeviceDefinition } from "../models/device-registry.js";
+import { getNodeDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
 import {
@@ -183,7 +183,7 @@ export class HeatingSchemaCanvas extends LitElement {
     let maxY = -Infinity;
 
     for (const node of nodes) {
-      const def = getDeviceDefinition(node.type);
+      const def = getNodeDefinition(node);
       if (!def) continue;
       const rect = getNodeBounds(node, def);
       minX = Math.min(minX, rect.x);
@@ -219,12 +219,14 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _renderNode(node: SchemaNode, t: Translator): TemplateResult {
-    const def = getDeviceDefinition(node.type);
+    const def = getNodeDefinition(node);
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const visualState = resolveNodeVisualState(this._states.value, node.state);
-    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState);
+    const states = this._states.value;
+    const visualState = resolveNodeVisualState(states, node.state);
+    const channelStates = (node.channels ?? []).map((c) => resolveNodeVisualState(states, c));
+    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, channelStates);
     if (!deviceSvg) return html``;
 
     const rotation = normalizeRotation(node.rotation);

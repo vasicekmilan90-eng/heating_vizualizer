@@ -5,9 +5,20 @@ export type PortKind = "inlet" | "outlet";
 export interface PortDefinition {
   id: string;
   labelKey: string;
+  /** Placeholder values for `labelKey`, e.g. the loop number. */
+  labelArgs?: string[];
   kind: PortKind;
   /** Offset from node origin in device-local coordinates */
   position: { x: number; y: number };
+}
+
+/** Repeated sub-elements of a device, e.g. manifold loops with their actuators. */
+export interface ChannelSpec {
+  titleKey: string;
+  itemKey: string;
+  min: number;
+  max: number;
+  default: number;
 }
 
 export interface DeviceDefinition {
@@ -16,6 +27,9 @@ export interface DeviceDefinition {
   width: number;
   height: number;
   ports: PortDefinition[];
+  channels?: ChannelSpec;
+  /** Builds the node-specific geometry, e.g. from the channel count. */
+  resolve?: (node: SchemaNode) => DeviceDefinition;
 }
 
 export interface SchemaNode {
@@ -24,6 +38,11 @@ export interface SchemaNode {
   position: { x: number; y: number };
   rotation?: number;
   state?: NodeStateBinding;
+  channels?: ChannelBinding[];
+}
+
+export interface ChannelBinding extends NodeStateBinding {
+  name?: string;
 }
 
 export interface NodeStateBinding {

@@ -11,6 +11,8 @@ import {
   normalizeConfig,
   type HeatingSchema,
   type HeatingVisualizerConfig,
+  type ChannelBinding,
+  type ChannelSpec,
   type NodeStateBinding,
   type OverlayConditionType,
   type OverlayStateRule,
@@ -23,6 +25,7 @@ import {
 import {
   DEVICE_TYPES,
   getDeviceDefinition,
+  getNodeDefinition,
   HEAT_PUMP,
 } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
@@ -49,6 +52,25 @@ const NODE_STATE_DEFAULTS: Record<string, string> = {
   branch_a_value: "a",
   branch_b_value: "b",
 };
+
+const CHANNEL_LABELS: Record<string, string> = {
+  ...NODE_STATE_LABELS,
+  name: "editor.channel_name",
+};
+
+const CHANNEL_SCHEMA: HaFormSchema[] = [
+  { name: "name", selector: { text: {} } },
+  { name: "entity_id", selector: { entity: {} } },
+  { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
+];
+
+/** Channels padded to the count the device is drawn with. */
+function nodeChannels(node: SchemaNode, spec: ChannelSpec): ChannelBinding[] {
+  const channels = (node.channels ?? []).map((c) => ({ ...c }));
+  const count = channels.length || spec.default;
+  while (channels.length < count) channels.push({});
+  return channels;
+}
 
 const OVERLAY_LABELS: Record<string, string> = {
   entity_id: "overlay.entity",
@@ -455,9 +477,48 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               NODE_STATE_LABELS,
               (value) => this._setNodeState(selectedNode.id, value)
             )}
+            ${this._renderChannels(t, selectedNode)}
           </div>
         `
         : nothing}
+    `;
+  }
+
+  private _renderChannels(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
+    const spec = getDeviceDefinition(node.type)?.channels;
+    if (!spec) return nothing;
+    const channels = nodeChannels(node, spec);
+
+    return html`
+      <div class="rules">
+        <header>
+          <span>${t.t(spec.titleKey)} (${channels.length})</span>
+          <span>
+            <button
+              type="button"
+              ?disabled="${channels.length <= spec.min}"
+              @click="${() => this._setChannelCount(node.id, channels.length - 1)}"
+            >−</button>
+            <button
+              type="button"
+              ?disabled="${channels.length >= spec.max}"
+              @click="${() => this._setChannelCount(node.id, channels.length + 1)}"
+            >+</button>
+          </span>
+        </header>
+        ${channels.map((channel, index) => html`
+          <div class="rule">
+            <strong>${channel.name || t.t(spec.itemKey, String(index + 1))}</strong>
+            ${this._renderForm(
+              t,
+              CHANNEL_SCHEMA,
+              { ...channel },
+              CHANNEL_LABELS,
+              (value) => this._setChannel(node.id, index, value)
+            )}
+          </div>
+        `)}
+      </div>
     `;
   }
 
@@ -707,7 +768,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   }
 
   private _addDevice(type: string): void {
-    if (!getDeviceDefinition(type)) return;
+    const def = getDeviceDefinition(type);
+    if (!def) return;
 
     const schema = this._cloneSchema();
     const offset = schema.nodes.length * 30;
@@ -716,8 +778,41 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       type,
       position: { x: 80 + offset, y: 80 + offset },
     };
+    if (def.channels) {
+      node.channels = Array.from({ length: def.channels.default }, () => ({}));
+    }
     schema.nodes.push(node);
     this._selectedNodeId = node.id;
+    this._emitConfig(schema);
+  }
+
+  private _setChannelCount(nodeId: string, count: number): void {
+    const schema = this._cloneSchema();
+    const node = schema.nodes.find((n) => n.id === nodeId);
+    const spec = node && getDeviceDefinition(node.type)?.channels;
+    if (!node || !spec || count < spec.min || count > spec.max) return;
+
+    const channels = nodeChannels(node, spec).slice(0, count);
+    while (channels.length < count) channels.push({});
+    node.channels = channels;
+
+    const validPorts = new Set(getNodeDefinition(node)?.ports.map((p) => p.id));
+    schema.edges = schema.edges.filter(
+      (e) =>
+        !(e.from.nodeId === nodeId && !validPorts.has(e.from.portId)) &&
+        !(e.to.nodeId === nodeId && !validPorts.has(e.to.portId))
+    );
+    this._emitConfig(schema);
+  }
+
+  private _setChannel(nodeId: string, index: number, value: FormData): void {
+    const schema = this._cloneSchema();
+    const node = schema.nodes.find((n) => n.id === nodeId);
+    const spec = node && getDeviceDefinition(node.type)?.channels;
+    if (!node || !spec) return;
+    const channels = nodeChannels(node, spec);
+    channels[index] = compact(value) as ChannelBinding;
+    node.channels = channels;
     this._emitConfig(schema);
   }
 
@@ -926,8 +1021,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     const nodeB = this._config.schema?.nodes.find((n) => n.id === b.nodeId);
     if (!nodeA || !nodeB) return undefined;
 
-    const defA = getDeviceDefinition(nodeA.type);
-    const defB = getDeviceDefinition(nodeB.type);
+    const defA = getNodeDefinition(nodeA);
+    const defB = getNodeDefinition(nodeB);
     if (!defA || !defB) return undefined;
 
     const portA = defA.ports.find((p) => p.id === a.portId);
@@ -946,9 +1041,9 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   private _portLabel(t: Translator, ref: PortRef): string {
     const node = this._config.schema?.nodes.find((n) => n.id === ref.nodeId);
     if (!node) return ref.portId;
-    const def = getDeviceDefinition(node.type);
+    const def = getNodeDefinition(node);
     const port = def?.ports.find((p) => p.id === ref.portId);
-    return port ? t.t(port.labelKey) : ref.portId;
+    return port ? t.t(port.labelKey, ...(port.labelArgs ?? [])) : ref.portId;
   }
 
   private _cloneSchema(): HeatingSchema {
@@ -958,6 +1053,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         ...n,
         position: { ...n.position },
         state: n.state ? { ...n.state } : undefined,
+        channels: n.channels?.map((c) => ({ ...c })),
       })),
       edges: (s.edges ?? []).map((e) => ({
         ...e,

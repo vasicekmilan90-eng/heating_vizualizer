@@ -1,4 +1,4 @@
-import type { DeviceDefinition } from "./schema.js";
+import type { DeviceDefinition, PortDefinition, SchemaNode } from "./schema.js";
 
 export const HEAT_PUMP: DeviceDefinition = {
   type: "heat_pump",
@@ -138,6 +138,69 @@ export const FLOOR_HEATING: DeviceDefinition = {
   ],
 };
 
+export const MANIFOLD_LOOP_SPACING = 36;
+export const MANIFOLD_LOOP_START = 50;
+const MANIFOLD_HEIGHT = 130;
+const MANIFOLD_DEFAULT_LOOPS = 4;
+
+function manifoldDefinition(loops: number): DeviceDefinition {
+  const loopPorts: PortDefinition[] = [];
+  for (let i = 0; i < loops; i++) {
+    const x = MANIFOLD_LOOP_START + i * MANIFOLD_LOOP_SPACING;
+    const number = String(i + 1);
+    loopPorts.push(
+      {
+        id: `loop_${number}_out`,
+        labelKey: "devices.manifold.ports.loop_out",
+        labelArgs: [number],
+        kind: "outlet",
+        position: { x, y: 0 },
+      },
+      {
+        id: `loop_${number}_in`,
+        labelKey: "devices.manifold.ports.loop_in",
+        labelArgs: [number],
+        kind: "inlet",
+        position: { x, y: MANIFOLD_HEIGHT },
+      }
+    );
+  }
+  return {
+    ...MANIFOLD,
+    width: MANIFOLD_LOOP_START + loops * MANIFOLD_LOOP_SPACING - 10,
+    ports: [...MANIFOLD.ports, ...loopPorts],
+  };
+}
+
+export const MANIFOLD: DeviceDefinition = {
+  type: "manifold",
+  labelKey: "devices.manifold.name",
+  width: 184,
+  height: MANIFOLD_HEIGHT,
+  ports: [
+    {
+      id: "supply_in",
+      labelKey: "devices.manifold.ports.supply_in",
+      kind: "inlet",
+      position: { x: 0, y: 30 },
+    },
+    {
+      id: "return_out",
+      labelKey: "devices.manifold.ports.return_out",
+      kind: "outlet",
+      position: { x: 0, y: 100 },
+    },
+  ],
+  channels: {
+    titleKey: "devices.manifold.channels",
+    itemKey: "devices.manifold.channel",
+    min: 1,
+    max: 12,
+    default: MANIFOLD_DEFAULT_LOOPS,
+  },
+  resolve: (node) => manifoldDefinition(node.channels?.length || MANIFOLD_DEFAULT_LOOPS),
+};
+
 export const DEVICE_TYPES: string[] = [
   HEAT_PUMP.type,
   VALVE_3WAY.type,
@@ -145,6 +208,7 @@ export const DEVICE_TYPES: string[] = [
   JUNCTION.type,
   CIRCULATION_PUMP.type,
   FLOOR_HEATING.type,
+  MANIFOLD.type,
 ];
 
 const REGISTRY = new Map<string, DeviceDefinition>([
@@ -154,10 +218,17 @@ const REGISTRY = new Map<string, DeviceDefinition>([
   [JUNCTION.type, JUNCTION],
   [CIRCULATION_PUMP.type, CIRCULATION_PUMP],
   [FLOOR_HEATING.type, FLOOR_HEATING],
+  [MANIFOLD.type, MANIFOLD],
 ]);
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {
   return REGISTRY.get(type);
+}
+
+/** Definition with node-specific geometry (channel count etc.). */
+export function getNodeDefinition(node: SchemaNode): DeviceDefinition | undefined {
+  const def = REGISTRY.get(node.type);
+  return def?.resolve ? def.resolve(node) : def;
 }
 
 export function getRegisteredDeviceTypes(): string[] {

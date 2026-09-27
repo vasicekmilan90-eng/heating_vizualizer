@@ -1,5 +1,5 @@
 import type { DeviceDefinition, PortDefinition, PortRef, SchemaNode } from "../models/schema.js";
-import { getDeviceDefinition } from "../models/device-registry.js";
+import { getNodeDefinition } from "../models/device-registry.js";
 
 export interface Point {
   x: number;
@@ -49,7 +49,7 @@ function portDirection(def: DeviceDefinition, port: PortDefinition): Point {
 }
 
 export function getAbsolutePort(node: SchemaNode, portId: string): AbsolutePort | undefined {
-  const def = getDeviceDefinition(node.type);
+  const def = getNodeDefinition(node);
   if (!def) return undefined;
 
   const port = def.ports.find((p) => p.id === portId);
