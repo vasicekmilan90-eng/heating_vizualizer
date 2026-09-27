@@ -115,9 +115,13 @@ export interface HeatingSchema {
   overlays: SchemaOverlay[];
 }
 
+export type PipeStyle = "orthogonal" | "curved";
+
 export interface HeatingVisualizerConfig extends Partial<HeatingSchema> {
   type: string;
   schema_version?: number;
+  /** Defaults to `orthogonal`. */
+  pipe_style?: PipeStyle;
   /** Keys managed by the dashboard (grid_options, visibility, view_layout, …). */
   [key: string]: unknown;
 }

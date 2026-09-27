@@ -5,12 +5,13 @@ import type {
   HomeAssistantFormatters,
   HomeAssistantInternationalization,
 } from "../types/home-assistant.js";
-import type { Connection, HeatingSchema, SchemaNode } from "../models/schema.js";
+import type { Connection, HeatingSchema, PipeStyle, SchemaNode } from "../models/schema.js";
 import { connectionId, parsePortRef } from "../models/schema.js";
 import { getNodeDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
 import {
+  buildOrthogonalPipePath,
   buildPipePath,
   getAbsolutePort,
   getNodeBounds,
@@ -49,6 +50,7 @@ export class HeatingSchemaCanvas extends LitElement {
   @property({ type: Boolean }) public editable = false;
   /** Dragging devices and connecting ports; off by default so scrolling on touch screens cannot move anything. */
   @property({ type: Boolean }) public drawing = false;
+  @property({ attribute: false }) public pipeStyle: PipeStyle = "orthogonal";
   @property({ attribute: false }) public selectedNodeId?: string;
   @property({ attribute: false }) public selectedEdgeId?: string;
   @property({ attribute: false }) public selectedPort?: { nodeId: string; portId: string };
@@ -255,7 +257,7 @@ export class HeatingSchemaCanvas extends LitElement {
     const to = getAbsolutePort(toNode, toRef.portId);
     if (!from || !to) return html``;
 
-    const d = buildPipePath(from, to);
+    const d = this.pipeStyle === "curved" ? buildPipePath(from, to) : buildOrthogonalPipePath(from, to);
     const id = connectionId(connection);
     const selected = this.selectedEdgeId === id;
     return svg`

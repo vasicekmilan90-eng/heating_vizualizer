@@ -83,6 +83,7 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
           : html`
             <heating-schema-canvas
               .schema="${schema}"
+              .pipeStyle="${this._config.pipe_style ?? "orthogonal"}"
               .editable="${false}"
             ></heating-schema-canvas>
           `}

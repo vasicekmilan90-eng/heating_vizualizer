@@ -38,6 +38,7 @@ import {
   type HeatingSchema,
   type HeatingVisualizerConfig,
   type OverlayStateRule,
+  type PipeStyle,
   type PortRef,
   type SchemaNode,
   type SchemaOverlay,
@@ -134,6 +135,7 @@ function addonFields(type: AddonType): BindingField[] {
 
 const NEW_NODE_GRID = { columns: 4, stepX: 200, stepY: 180, originX: 40, originY: 40 };
 const NUDGE_STEP = 10;
+const PIPE_STYLES: PipeStyle[] = ["orthogonal", "curved"];
 
 /** Domains offered first when a device is added from an entity. */
 const DEVICE_ENTITY_DOMAINS = ["climate", "water_heater", "valve", "fan", "switch", "sensor", "binary_sensor"];
@@ -453,6 +455,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         .schema="${schema}"
         .editable="${true}"
         .drawing="${this._drawing}"
+        .pipeStyle="${this._pipeStyle()}"
         .selectedNodeId="${this._selectedNodeId}"
         .selectedEdgeId="${this._selectedEdgeId}"
         .selectedPort="${this._pendingPort}"
@@ -517,6 +520,16 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             ${this._layoutUndo
               ? html`<button type="button" @click="${this._undoLayout}">${t.t("editor.undo_layout")}</button>`
               : nothing}
+            <select
+              aria-label="${t.t("editor.pipe_style")}"
+              @change="${(ev: Event) => this._setPipeStyle((ev.target as HTMLSelectElement).value as PipeStyle)}"
+            >
+              ${PIPE_STYLES.map(
+                (style) => html`<option value="${style}" ?selected="${style === this._pipeStyle()}">
+                  ${t.t(`editor.pipe_style_${style}`)}
+                </option>`
+              )}
+            </select>
           </div>`
         : nothing}
       ${this._renderAddFromEntity(t)}
@@ -933,7 +946,11 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       <div class="toolbar">
         <button type="button" class="primary" @click="${this._addOverlay}">${t.t("editor.add_overlay")}</button>
       </div>
-      <heating-schema-canvas .schema="${schema}" .editable="${false}"></heating-schema-canvas>
+      <heating-schema-canvas
+        .schema="${schema}"
+        .pipeStyle="${this._pipeStyle()}"
+        .editable="${false}"
+      ></heating-schema-canvas>
       ${schema.overlays.length ? nothing : html`<p class="hint">${t.t("editor.overlays_empty")}</p>`}
       ${schema.overlays.map((overlay, index) => this._renderOverlay(t, overlay, index))}
     `;
@@ -1132,12 +1149,26 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     this._layoutUndo = undefined;
     const schema = structuredClone(schemaOf(this._config));
     mutate(schema);
+    this._emit({ ...this._config, ...schema });
+  }
+
+  private _emit(next: HeatingVisualizerConfig): void {
     // JSON round-trip drops undefined values, which the dashboard YAML serializer rejects.
     const config = JSON.parse(
-      JSON.stringify({ ...this._config, ...schema, schema_version: SCHEMA_VERSION })
+      JSON.stringify({ ...next, schema_version: SCHEMA_VERSION })
     ) as HeatingVisualizerConfig;
     this._config = config;
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
+
+  private _pipeStyle(): PipeStyle {
+    return this._config?.pipe_style ?? "orthogonal";
+  }
+
+  private _setPipeStyle(style: PipeStyle): void {
+    if (!this._config) return;
+    // The default is left out of the YAML.
+    this._emit({ ...this._config, pipe_style: style === "orthogonal" ? undefined : style });
   }
 
   private _patchNode(nodeId: string, patch: Partial<SchemaNode>): void {

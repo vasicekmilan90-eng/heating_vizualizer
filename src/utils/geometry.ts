@@ -93,6 +93,76 @@ export function buildPipePath(from: AbsolutePort, to: AbsolutePort): string {
   return `M ${from.x} ${from.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${to.x} ${to.y}`;
 }
 
+const PIPE_STUB = 20;
+const PIPE_CORNER_RADIUS = 8;
+
+const ahead = (value: number, origin: number, direction: number): boolean => (value - origin) * direction >= 0;
+
+/** Bend points between the two stub ends; each stub end continues away from its device. */
+function orthogonalRoute(a: Point, da: Point, b: Point, db: Point): Point[] {
+  const horizontalA = da.x !== 0;
+  const horizontalB = db.x !== 0;
+
+  if (horizontalA && horizontalB) {
+    const mx = (a.x + b.x) / 2;
+    if (ahead(mx, a.x, da.x) && ahead(mx, b.x, db.x)) return [{ x: mx, y: a.y }, { x: mx, y: b.y }];
+    const my = (a.y + b.y) / 2;
+    return [{ x: a.x, y: my }, { x: b.x, y: my }];
+  }
+  if (!horizontalA && !horizontalB) {
+    const my = (a.y + b.y) / 2;
+    if (ahead(my, a.y, da.y) && ahead(my, b.y, db.y)) return [{ x: a.x, y: my }, { x: b.x, y: my }];
+    const mx = (a.x + b.x) / 2;
+    return [{ x: mx, y: a.y }, { x: mx, y: b.y }];
+  }
+  if (horizontalA) {
+    const corner = { x: b.x, y: a.y };
+    return ahead(corner.x, a.x, da.x) && ahead(corner.y, b.y, db.y) ? [corner] : [{ x: a.x, y: b.y }];
+  }
+  const corner = { x: a.x, y: b.y };
+  return ahead(corner.y, a.y, da.y) && ahead(corner.x, b.x, db.x) ? [corner] : [{ x: b.x, y: a.y }];
+}
+
+/** Drops repeated and collinear points so only real bends remain. */
+function simplify(points: Point[]): Point[] {
+  const unique = points.filter((p, i) => i === 0 || p.x !== points[i - 1].x || p.y !== points[i - 1].y);
+  return unique.filter((p, i) => {
+    if (i === 0 || i === unique.length - 1) return true;
+    const prev = unique[i - 1];
+    const next = unique[i + 1];
+    return (prev.x - p.x) * (next.y - p.y) !== (prev.y - p.y) * (next.x - p.x);
+  });
+}
+
+export function orthogonalPoints(from: AbsolutePort, to: AbsolutePort): Point[] {
+  const a = { x: from.x + from.direction.x * PIPE_STUB, y: from.y + from.direction.y * PIPE_STUB };
+  const b = { x: to.x + to.direction.x * PIPE_STUB, y: to.y + to.direction.y * PIPE_STUB };
+  return simplify([
+    { x: from.x, y: from.y },
+    a,
+    ...orthogonalRoute(a, from.direction, b, to.direction),
+    b,
+    { x: to.x, y: to.y },
+  ]);
+}
+
+/** Pipe drawn with horizontal and vertical segments and rounded bends. */
+export function buildOrthogonalPipePath(from: AbsolutePort, to: AbsolutePort): string {
+  const points = orthogonalPoints(from, to);
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const [prev, p, next] = [points[i - 1], points[i], points[i + 1]];
+    const inLength = Math.hypot(p.x - prev.x, p.y - prev.y);
+    const outLength = Math.hypot(next.x - p.x, next.y - p.y);
+    const r = Math.min(PIPE_CORNER_RADIUS, inLength / 2, outLength / 2);
+    const start = { x: p.x - ((p.x - prev.x) / inLength) * r, y: p.y - ((p.y - prev.y) / inLength) * r };
+    const end = { x: p.x + ((next.x - p.x) / outLength) * r, y: p.y + ((next.y - p.y) / outLength) * r };
+    d += ` L ${start.x} ${start.y} Q ${p.x} ${p.y} ${end.x} ${end.y}`;
+  }
+  const last = points[points.length - 1];
+  return `${d} L ${last.x} ${last.y}`;
+}
+
 export function portRefsEqual(a: PortRef, b: PortRef): boolean {
   return a.nodeId === b.nodeId && a.portId === b.portId;
 }
