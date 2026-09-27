@@ -32,7 +32,7 @@ Add the card from the card picker (**Heating Visualizer**).
 
 **Device detail** (click a device row)
 
-- Name, main entity and its state options.
+- Name, *Home Assistant device* (where the entities come from, e.g. the heat pump integration) and the optional *state entity*. The state entity makes the device green/animated while running and opens on tap; devices without an entity of their own (a DHW tank whose sensors belong to the heat pump) leave it empty and show activity through their pumps, fans and heaters.
 - *Add-ons* – only the types the device supports, with the number still available. *Suggested add-ons* lists other entities of the same Home Assistant device with a guessed type and position.
 - *Connections* per port – remove with ×, add with *Connect to…* (only compatible ports are offered).
 - *Actions*, position (X/Y, arrows, rotate) and *Delete device*.
@@ -89,7 +89,7 @@ overlays:
 
 | Option | Description |
 | --- | --- |
-| `nodes` | Devices: `id`, `type`, `position`, optional `name`, `rotation` (90° steps), entity binding, `addons`, actions. |
+| `nodes` | Devices: `id`, `type`, `position`, optional `name`, `device_id` (Home Assistant device), `rotation` (90° steps), entity binding, `addons`, actions. |
 | `connections` | Pipes from an outlet to an inlet, written as `node_id.port_id`. |
 | `overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`, actions. |
 | `pipe_style` | `orthogonal` (default) or `curved`. |
@@ -120,7 +120,7 @@ Each add-on has a `type`, optional `slot` (position on the drawing), `name` and 
 | `heat_exchanger` | no entity – adds a heat exchanger and its ports |
 | `loop` | manifold loop with actuator; each loop adds `loop_<n>_out` / `loop_<n>_in` ports |
 
-Tank and DHW tank sensors, their heaters, heat pump values and manifold loops are drawn inside the device; other add-ons appear as badges below it. Tapping a badge opens more info of its entity.
+Tank and DHW tank sensors (colored water), their immersion heaters, heat pump values, fan, defrost and backup heaters, and manifold loops are drawn inside the device; other add-ons appear as badges below it. Tapping a badge opens more info of its entity.
 
 ### Devices
 

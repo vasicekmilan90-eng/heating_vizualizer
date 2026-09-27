@@ -13,11 +13,12 @@ describe("add-on badges", () => {
     const addons = [
       addon("temperature"),
       addon("defrost"),
+      addon("pump", "on"),
       addon("alarm", "off", false),
       { config: { type: "heat_exchanger" as const }, state: { active: false } },
     ];
-    expect(badgeAddons("heat_pump", addons).map((a) => a.config.type)).toEqual(["defrost"]);
-    expect(badgeAddons("radiator", addons).map((a) => a.config.type)).toEqual(["temperature", "defrost"]);
+    expect(badgeAddons("heat_pump", addons).map((a) => a.config.type)).toEqual(["pump"]);
+    expect(badgeAddons("radiator", addons).map((a) => a.config.type)).toEqual(["temperature", "defrost", "pump"]);
   });
 
   it("wraps badges into rows within the device width", () => {

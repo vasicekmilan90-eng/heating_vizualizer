@@ -8,9 +8,12 @@ import {
   RETURN_COLOR,
   SUPPLY_COLOR,
   addonStates,
-  heaterState,
+  heaterStates,
+  isAddonActive,
   renderHeaterCoil,
+  renderHeatingRod,
   renderPorts,
+  renderTemperatureBands,
   renderValueLabel,
   temperatureColor,
   temperatureSlots,
@@ -24,7 +27,7 @@ function renderBufferTank(
   selected: boolean,
   state: NodeVisualState,
   slots: Map<string, NodeVisualState>,
-  heater?: NodeVisualState
+  heaters: NodeVisualState[]
 ): ReturnType<typeof svg> {
   const stroke = state.active
     ? "#4caf50"
@@ -47,21 +50,14 @@ function renderBufferTank(
       `)}
       <rect x="14" y="10" width="72" height="${def.height - 14}" rx="10"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
-      ${sensors.map((sensor, i) => {
-        const y0 = i === 0 ? top : (sensors[i - 1].y + sensor.y) / 2;
-        const y1 = i === sensors.length - 1 ? bottom : (sensor.y + sensors[i + 1].y) / 2;
-        const color = temperatureColor(sensor.state.numeric);
-        return svg`
-          <rect x="17" y="${y0}" width="66" height="${y1 - y0}" fill="${color}" opacity="0.3" />
-          <circle cx="18" cy="${sensor.y}" r="3" fill="${color}" />
-        `;
-      })}
+      ${renderTemperatureBands(17, 66, top, bottom, sensors)}
+      ${sensors.map((sensor) => svg`<circle cx="18" cy="${sensor.y}" r="3" fill="${temperatureColor(sensor.state.numeric)}" />`)}
       ${hasCoil
         ? svg`<path d="M 14 80 L 46 88 L 18 96 L 46 104 L 18 112 L 14 118" fill="none"
             stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.8" />`
         : svg``}
+      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(86, i === 0 ? bottom - 22 : (top + bottom) / 2, 30, heater))}
       ${sensors.map((sensor) => renderValueLabel(56, sensor.y + 4, sensor.state))}
-      ${heater ? renderHeaterCoil(28, bottom - 8, 44, heater) : svg``}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -141,7 +137,7 @@ function renderBoiler(
   t: Translator,
   selected: boolean,
   state: NodeVisualState,
-  heater: NodeVisualState | undefined,
+  heaters: NodeVisualState[],
   slots: Map<string, NodeVisualState>
 ): ReturnType<typeof svg> {
   const stroke = state.active
@@ -160,6 +156,9 @@ function renderBoiler(
     [BOILER_TEMPERATURE_SLOTS[1]]: 78,
     [BOILER_TEMPERATURE_SLOTS[2]]: def.height - 26,
   };
+  const sensors = BOILER_TEMPERATURE_SLOTS.map((slot) => ({ y: sensorY[slot], state: slots.get(slot) }))
+    .filter((s): s is { y: number; state: NodeVisualState } => s.state !== undefined);
+  const heaterY = [def.height - 44, 56];
   return svg`
     <g class="device device-boiler">
       <path d="M 88 30 H ${def.width} M 88 ${coldY} H ${def.width}" stroke="var(--divider-color, #888)" stroke-width="2" />
@@ -168,15 +167,13 @@ function renderBoiler(
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
+      ${renderTemperatureBands(15, 70, 20, def.height - 20, sensors)}
       <path d="${coil}" fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.8" />
       ${hasCoil2
         ? svg`<path d="${coil2}" fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.6" />`
         : svg``}
-      ${BOILER_TEMPERATURE_SLOTS.map((slot) => {
-        const sensor = slots.get(slot);
-        return sensor ? renderValueLabel(50, sensorY[slot], sensor, true) : svg``;
-      })}
-      ${heater ? renderHeaterCoil(30, def.height - 14, 40, heater) : svg``}
+      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(88, heaterY[i], 22, heater))}
+      ${sensors.map((sensor) => renderValueLabel(46, sensor.y, sensor.state, true))}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -322,7 +319,7 @@ function renderOutdoorUnit(
   t: Translator,
   selected: boolean,
   state: NodeVisualState,
-  channels: NodeVisualState[]
+  extras: DeviceExtras
 ): ReturnType<typeof svg> {
   const stroke = state.active
     ? "#4caf50"
@@ -333,23 +330,43 @@ function renderOutdoorUnit(
   const cx = 58;
   const cy = 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";
+  const defrost = isAddonActive(extras, "defrost");
+  const fanActive = (state.active || isAddonActive(extras, "fan")) && !defrost;
+  const fanColor = defrost ? "#4fc3f7" : "var(--primary-color, #03a9f4)";
+  const heaters = heaterStates(extras);
+  const rows = (extras.addons ?? []).filter(
+    (a) => a.config.entity_id && (a.config.type === "temperature" || a.config.type === "value")
+  );
 
   return svg`
     <g class="device device-outdoor-unit">
       <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
-      <circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="var(--divider-color, #888)" stroke-width="1.5" />
-      <g class="fan ${state.active ? "spinning" : ""}">
+      <circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
+      <g class="fan ${fanActive ? "spinning" : ""}">
         ${[0, 90, 180, 270].map((angle) => svg`
           <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
-            fill="var(--primary-color, #03a9f4)" opacity="0.75" />
+            fill="${fanColor}" opacity="0.75" />
         `)}
-        <circle cx="${cx}" cy="${cy}" r="5" fill="var(--primary-color, #03a9f4)" />
+        <circle cx="${cx}" cy="${cy}" r="5" fill="${fanColor}" />
       </g>
-      ${channels.slice(0, 6).map((channel, i) => svg`
-        <text x="104" y="${30 + i * 15}" class="device-value">
-          <title>${channel.label ?? ""}</title>${channel.value ?? "—"}
-        </text>
+      ${defrost
+        ? svg`<path class="defrost" d="M ${cx} ${cy - 44} v 14 M ${cx - 6} ${cy - 40} l 12 6 M ${cx - 6} ${cy - 34} l 12 -6"
+            stroke="${fanColor}" stroke-width="2" stroke-linecap="round" />`
+        : svg``}
+      ${rows.slice(0, 6).map((row, i) => {
+        const color = row.config.type === "temperature" ? temperatureColor(row.state.numeric) : "";
+        const label = row.config.name ?? (row.config.slot ? t.t(`slots.${row.config.slot}`) : "");
+        return svg`
+          <text x="104" y="${30 + i * 15}" class="device-value" style="${color ? `fill: ${color}` : ""}">
+            <title>${label}</title>${row.state.value ?? "—"}
+          </text>
+        `;
+      })}
+      ${heaters.slice(0, 3).map((heater, i) => svg`
+        <g class="heating-rod ${heater.active ? "active" : ""}">
+          ${renderHeaterCoil(24 + i * 34, def.height - 18, 26, heater)}
+        </g>
       `)}
       ${renderPorts(def, t)}
     </g>
@@ -426,14 +443,11 @@ export function renderDeviceByType(
 ): ReturnType<typeof svg> | undefined {
   switch (type) {
     case "heat_pump":
-      return renderOutdoorUnit(def, t, selected, state, [
-        ...addonStates(extras, "temperature"),
-        ...addonStates(extras, "value"),
-      ]);
+      return renderOutdoorUnit(def, t, selected, state, extras);
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
     case "boiler":
-      return renderBoiler(def, t, selected, state, heaterState(extras), temperatureSlots(extras));
+      return renderBoiler(def, t, selected, state, heaterStates(extras), temperatureSlots(extras));
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
@@ -443,7 +457,7 @@ export function renderDeviceByType(
     case "manifold":
       return renderManifold(def, t, selected, state, addonStates(extras, "loop"));
     case "buffer_tank":
-      return renderBufferTank(def, t, selected, state, temperatureSlots(extras), heaterState(extras));
+      return renderBufferTank(def, t, selected, state, temperatureSlots(extras), heaterStates(extras));
     case "mixing_valve":
       return renderMixingValve(def, t, selected, state);
     case "electric_heater":

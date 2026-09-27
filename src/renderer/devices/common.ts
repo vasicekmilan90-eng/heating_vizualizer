@@ -32,9 +32,54 @@ export function temperatureSlots(extras: DeviceExtras): Map<string, NodeVisualSt
 
 /** Combined state of all electric heaters of a device; undefined when none is bound. */
 export function heaterState(extras: DeviceExtras): NodeVisualState | undefined {
-  const heaters = (extras.addons ?? []).filter((a) => a.config.type === "electric_heater" && a.config.entity_id);
+  const heaters = heaterStates(extras);
   if (!heaters.length) return undefined;
-  return { active: heaters.some((h) => h.state.active) };
+  return { active: heaters.some((h) => h.active) };
+}
+
+export function heaterStates(extras: DeviceExtras): NodeVisualState[] {
+  return (extras.addons ?? [])
+    .filter((a) => a.config.type === "electric_heater" && a.config.entity_id)
+    .map((a) => a.state);
+}
+
+export function isAddonActive(extras: DeviceExtras, type: AddonType): boolean {
+  return addonStates(extras, type).some((s) => s.active);
+}
+
+/** Add-ons that show a device is working when it has no state entity of its own. */
+const ACTIVITY_ADDONS: AddonType[] = ["pump", "fan", "electric_heater", "loop"];
+
+export function activeFromAddons(addons: ResolvedAddon[]): boolean {
+  return addons.some((a) => a.config.entity_id && ACTIVITY_ADDONS.includes(a.config.type) && a.state.active);
+}
+
+/** Immersion heater entering through the right wall at `wallX`, glowing while active. */
+export function renderHeatingRod(wallX: number, y: number, length: number, heater: NodeVisualState): SvgResult {
+  const color = heater.active ? HEATER_ACTIVE_COLOR : NEUTRAL_STROKE;
+  return svg`
+    <g class="heating-rod ${heater.active ? "active" : ""}">
+      <title>${heater.label ?? ""}</title>
+      <rect x="${wallX - 4}" y="${y - 6}" width="8" height="12" rx="2" fill="${CARD_FILL}" stroke="${color}" stroke-width="1.5" />
+      ${renderHeaterCoil(wallX - 4 - length, y + 4, length, heater)}
+    </g>
+  `;
+}
+
+/** Horizontal bands colored by the nearest sensor, from `top` to `bottom` of a tank. */
+export function renderTemperatureBands(
+  x: number,
+  width: number,
+  top: number,
+  bottom: number,
+  sensors: { y: number; state: NodeVisualState }[]
+): SvgResult[] {
+  return sensors.map((sensor, i) => {
+    const y0 = i === 0 ? top : (sensors[i - 1].y + sensor.y) / 2;
+    const y1 = i === sensors.length - 1 ? bottom : (sensor.y + sensors[i + 1].y) / 2;
+    return svg`<rect class="water" x="${x}" y="${y0}" width="${width}" height="${y1 - y0}"
+      fill="${temperatureColor(sensor.state.numeric)}" opacity="0.3" />`;
+  });
 }
 
 export const SUPPLY_COLOR = "#ef5350";

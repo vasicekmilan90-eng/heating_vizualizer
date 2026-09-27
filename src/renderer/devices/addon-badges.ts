@@ -15,7 +15,7 @@ import {
 
 /** Add-ons a device drawing shows by itself; all others are drawn as badges. */
 const DRAWN_BY_DEVICE: Record<string, AddonType[]> = {
-  heat_pump: ["temperature", "value"],
+  heat_pump: ["temperature", "value", "electric_heater", "fan", "defrost"],
   boiler: ["temperature", "electric_heater"],
   buffer_tank: ["temperature", "electric_heater"],
   manifold: ["loop"],

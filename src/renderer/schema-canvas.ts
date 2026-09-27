@@ -31,6 +31,7 @@ import { actionTarget, canTap, hasAction, type ActionHandlerConfig, type ActionK
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
 import type { ResolvedAddon } from "./devices/common.js";
+import { activeFromAddons } from "./devices/common.js";
 import { nodeDescription } from "./a11y.js";
 
 const BADGE_OFFSET = 6;
@@ -172,6 +173,9 @@ export class HeatingSchemaCanvas extends LitElement {
     }
     .addon-value {
       font-size: var(--ha-font-size-xs, 11px);
+    }
+    .heating-rod.active {
+      filter: drop-shadow(0 0 3px #ff7043);
     }
     .overlay-bg {
       fill: var(--card-background-color, #1c1c1c);
@@ -334,8 +338,9 @@ export class HeatingSchemaCanvas extends LitElement {
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const visualState = resolveNodeVisualState(this._states.value, node, this._formatters.value);
     const addons = this._resolveAddons(node);
+    const visualState = resolveNodeVisualState(this._states.value, node, this._formatters.value);
+    if (!node.entity_id) visualState.active = activeFromAddons(addons);
     const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, { addons });
     if (!deviceSvg) return html``;
 

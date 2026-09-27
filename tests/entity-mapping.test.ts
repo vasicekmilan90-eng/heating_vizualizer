@@ -65,4 +65,30 @@ describe("suggestAddons", () => {
     expect(suggestAddons(hass, node).map((a) => a.entity_id)).not.toContain("binary_sensor.hp_defrost");
     expect(suggestAddons(hass, { id: "x", type: "heat_pump", position: { x: 0, y: 0 } })).toEqual([]);
   });
+
+  it("splits one HA device between the heat pump and its DHW tank", () => {
+    const shared = [
+      entity("sensor.midea_outdoor_temperature", "5", { device_class: "temperature" }),
+      entity("sensor.midea_dhw_tank_temperature", "48", { device_class: "temperature" }),
+      entity("switch.midea_dhw_backup_heater", "off"),
+    ];
+    const sharedHass = {
+      states: Object.fromEntries(shared.map((s) => [s.entity_id, s])),
+      entities: Object.fromEntries(shared.map((s) => [s.entity_id, { entity_id: s.entity_id, device_id: "midea" }])),
+      devices: { midea: { id: "midea", name: "Midea heat pump" } },
+    } as unknown as HomeAssistant;
+    const at = { x: 0, y: 0 };
+
+    const pump = suggestAddons(sharedHass, { id: "hp", type: "heat_pump", position: at, device_id: "midea" });
+    expect(pump.map((a) => a.entity_id)).toEqual(["sensor.midea_outdoor_temperature"]);
+
+    const tank = suggestAddons(sharedHass, { id: "dhw", type: "boiler", position: at, device_id: "midea" });
+    expect(tank).toEqual([
+      { type: "temperature", entity_id: "sensor.midea_dhw_tank_temperature", slot: "top" },
+      { type: "electric_heater", entity_id: "switch.midea_dhw_backup_heater" },
+    ]);
+
+    const taken = new Set(["sensor.midea_dhw_tank_temperature"]);
+    expect(suggestAddons(sharedHass, { id: "dhw", type: "boiler", position: at, device_id: "midea" }, taken)).toHaveLength(1);
+  });
 });

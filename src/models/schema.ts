@@ -64,6 +64,8 @@ export interface SchemaNode extends NodeStateBinding, ActionBinding {
   type: string;
   /** Custom label; defaults to the translated device type name. */
   name?: string;
+  /** Home Assistant device the entities of this device come from (e.g. the heat pump integration). */
+  device_id?: string;
   position: { x: number; y: number };
   rotation?: number;
   addons?: AddonConfig[];

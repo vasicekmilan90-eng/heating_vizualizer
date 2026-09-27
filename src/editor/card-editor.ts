@@ -52,6 +52,7 @@ import {
   attributeOptions,
   describeEntity,
   deviceName,
+  deviceOptions,
   entityOptions,
   stateOptions,
   type EntityPreference,
@@ -84,6 +85,8 @@ interface BindingField {
 }
 
 const ENTITY: BindingField = { key: "entity_id", label: "editor.entity" };
+const STATE_ENTITY: BindingField = { key: "entity_id", label: "editor.state_entity", helper: "editor.state_entity_helper" };
+const VALUE_ENTITY: BindingField = { key: "entity_id", label: "editor.value_entity" };
 const ACTIVE_STATE: BindingField = { key: "active_state", label: "editor.active_state", helper: "editor.active_state_helper" };
 const VALUE_ATTRIBUTE: BindingField = {
   key: "value_attribute",
@@ -99,8 +102,8 @@ const POSITION_ATTRIBUTE: BindingField = {
 /** Fields of the device's main entity, matching `resolveNodeVisualState`. */
 function nodeFields(type: string): BindingField[] {
   const valueDisplay = getDeviceDefinition(type)?.valueDisplay;
-  if (valueDisplay === "only") return [ENTITY, VALUE_ATTRIBUTE];
-  if (valueDisplay === "with_state") return [ENTITY, ACTIVE_STATE, VALUE_ATTRIBUTE];
+  if (valueDisplay === "only") return [VALUE_ENTITY, VALUE_ATTRIBUTE];
+  if (valueDisplay === "with_state") return [STATE_ENTITY, ACTIVE_STATE, VALUE_ATTRIBUTE];
   if (type === "mixing_valve") return [{ ...ENTITY, label: "editor.actuator_entity" }, POSITION_ATTRIBUTE];
   if (type === "valve_3way") {
     return [
@@ -111,7 +114,7 @@ function nodeFields(type: string): BindingField[] {
       { key: "branch_b_value", label: "editor.branch_b", helper: "editor.branch_b_helper" },
     ];
   }
-  return [ENTITY, ACTIVE_STATE];
+  return [STATE_ENTITY, ACTIVE_STATE];
 }
 
 function addonFields(type: AddonType): BindingField[] {
@@ -664,7 +667,18 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           .value="${node.name}"
           @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { name: asText(ev) })}"
         ></hv-field>
-        ${this._renderBinding(t, binding, nodeFields(node.type), {}, (patch) => this._patchNode(node.id, patch))}
+        <hv-field
+          kind="combo"
+          strict
+          .label="${t.t("editor.ha_device")}"
+          .helper="${t.t("editor.ha_device_helper")}"
+          .options="${deviceOptions(this._hass)}"
+          .value="${node.device_id}"
+          @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { device_id: asText(ev) })}"
+        ></hv-field>
+        ${this._renderBinding(t, binding, nodeFields(node.type), { deviceId: node.device_id }, (patch) =>
+          this._patchNode(node.id, patch)
+        )}
       </section>
 
       ${this._renderAddons(t, node)}
@@ -853,7 +867,13 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   /** Other entities of the same HA device, offered as add-ons. */
   private _renderSuggestions(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
-    const suggestions = suggestAddons(this._hass, node);
+    const schema = this._config ? schemaOf(this._config) : undefined;
+    const taken = new Set(
+      (schema?.nodes ?? []).flatMap((n) => [n.entity_id, ...(n.addons ?? []).map((a) => a.entity_id)]).filter(
+        (id): id is string => Boolean(id)
+      )
+    );
+    const suggestions = suggestAddons(this._hass, node, taken);
     if (!suggestions.length) return nothing;
     const label = (addon: AddonConfig): string =>
       addon.slot
@@ -907,6 +927,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     const preference: EntityPreference = {
       domains: definition.domains,
       deviceClasses: definition.deviceClasses,
+      deviceId: node.device_id,
       relatedTo: node.entity_id,
     };
 
@@ -1271,6 +1292,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         type,
         name: deviceName(this._hass, entityId),
         entity_id: entityId,
+        device_id: entityId ? (this._hass?.entities?.[entityId]?.device_id ?? undefined) : undefined,
         position: {
           x: NEW_NODE_GRID.originX + (count % NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepX,
           y: NEW_NODE_GRID.originY + Math.floor(count / NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepY,
