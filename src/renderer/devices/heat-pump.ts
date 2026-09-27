@@ -100,37 +100,6 @@ function renderManifold(
   `;
 }
 
-export function renderHeatPump(
-  def: DeviceDefinition,
-  t: Translator,
-  selected: boolean,
-  state: NodeVisualState
-): ReturnType<typeof svg> {
-  const stroke = state.active
-    ? "#4caf50"
-    : selected
-      ? "var(--primary-color, #03a9f4)"
-      : "var(--divider-color, #888)";
-  const strokeWidth = selected ? 2.5 : 1.5;
-
-  return svg`
-    <g class="device device-heat-pump">
-      <rect
-        x="10" y="15" width="100" height="70" rx="8"
-        fill="var(--card-background-color, #1c1c1c)"
-        stroke="${stroke}" stroke-width="${strokeWidth}"
-      />
-      <circle cx="60" cy="50" r="22"
-        fill="none" stroke="${stroke}" stroke-width="${strokeWidth}"
-      />
-      <path d="M 48 50 L 72 50 M 60 38 L 60 62"
-        stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round"
-      />
-      ${renderPorts(def, t)}
-    </g>
-  `;
-}
-
 function renderValve3Way(
   def: DeviceDefinition,
   t: Translator,
@@ -361,7 +330,21 @@ function renderOutdoorUnit(
   `;
 }
 
-export type InlineSensorIcon = "temperature" | "flow" | "pressure" | "energy";
+type InlineSensorIcon = "temperature" | "flow" | "pressure" | "energy" | "generic";
+
+const DEVICE_CLASS_ICONS: Record<string, InlineSensorIcon> = {
+  temperature: "temperature",
+  pressure: "pressure",
+  volume_flow_rate: "flow",
+  energy: "energy",
+  power: "energy",
+};
+
+function sensorIcon(state: NodeVisualState): InlineSensorIcon {
+  const byClass = state.deviceClass ? DEVICE_CLASS_ICONS[state.deviceClass] : undefined;
+  if (byClass) return byClass;
+  return state.unit?.includes("°") ? "temperature" : "generic";
+}
 
 function inlineSensorIcon(icon: InlineSensorIcon, cx: number, cy: number): string {
   switch (icon) {
@@ -373,6 +356,8 @@ function inlineSensorIcon(icon: InlineSensorIcon, cx: number, cy: number): strin
       return `M ${cx - 6} ${cy + 3} A 6 6 0 1 1 ${cx + 6} ${cy + 3} M ${cx} ${cy + 1} L ${cx + 4} ${cy - 4}`;
     case "energy":
       return `M ${cx + 1} ${cy - 7} L ${cx - 4} ${cy + 1} L ${cx} ${cy + 1} L ${cx - 1} ${cy + 7} L ${cx + 4} ${cy - 1} L ${cx} ${cy - 1} Z`;
+    case "generic":
+      return `M ${cx - 3} ${cy} A 3 3 0 1 0 ${cx + 3} ${cy} A 3 3 0 1 0 ${cx - 3} ${cy} Z`;
   }
 }
 
@@ -380,24 +365,24 @@ function renderInlineSensor(
   def: DeviceDefinition,
   t: Translator,
   selected: boolean,
-  state: NodeVisualState,
-  icon: InlineSensorIcon
+  state: NodeVisualState
 ): ReturnType<typeof svg> {
+  const icon = sensorIcon(state);
   const cx = def.width / 2;
   const cy = def.height - 14;
-  const isTemperature = icon === "temperature" && (state.unit?.includes("°") ?? false);
   const color = selected
     ? "var(--primary-color, #03a9f4)"
-    : isTemperature
+    : icon === "temperature"
       ? temperatureColor(state.numeric)
       : "var(--primary-color, #03a9f4)";
+  const filled = icon === "energy" || icon === "generic";
 
   return svg`
     <g class="device device-inline-sensor">
       <line x1="0" y1="${cy}" x2="${def.width}" y2="${cy}" stroke="var(--divider-color, #888)" stroke-width="3" />
       <circle cx="${cx}" cy="${cy}" r="11" fill="var(--card-background-color, #1c1c1c)"
         stroke="${color}" stroke-width="${selected ? 2.5 : 2}" />
-      <path d="${inlineSensorIcon(icon, cx, cy)}" fill="${icon === "energy" ? color : "none"}"
+      <path d="${inlineSensorIcon(icon, cx, cy)}" fill="${filled ? color : "none"}"
         stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       <text x="${cx}" y="${cy - 17}" text-anchor="middle" class="device-value">${state.value ?? "—"}</text>
       ${renderPorts(def, t)}
@@ -422,7 +407,7 @@ export function renderDeviceByType(
   const channels = extras.channels ?? [];
   switch (type) {
     case "heat_pump":
-      return renderHeatPump(def, t, selected, state);
+      return renderOutdoorUnit(def, t, selected, state, channels);
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
     case "boiler":
@@ -430,7 +415,6 @@ export function renderDeviceByType(
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
-    case "dhw_circulation_pump":
       return renderCirculationPump(def, t, selected, state);
     case "floor_heating":
       return renderFloorHeating(def, t, selected, state);
@@ -442,16 +426,8 @@ export function renderDeviceByType(
       return renderMixingValve(def, t, selected, state);
     case "electric_heater":
       return renderElectricHeater(def, t, selected, state);
-    case "outdoor_unit":
-      return renderOutdoorUnit(def, t, selected, state, channels);
     case "pipe_sensor":
-      return renderInlineSensor(def, t, selected, state, "temperature");
-    case "flow_meter":
-      return renderInlineSensor(def, t, selected, state, "flow");
-    case "pressure_gauge":
-      return renderInlineSensor(def, t, selected, state, "pressure");
-    case "heat_meter":
-      return renderInlineSensor(def, t, selected, state, "energy");
+      return renderInlineSensor(def, t, selected, state);
     default:
       return renderExtraDevice(type, def, t, selected, state);
   }

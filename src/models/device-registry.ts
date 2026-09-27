@@ -1,26 +1,5 @@
 import type { DeviceDefinition, PortDefinition, SchemaNode } from "./schema.js";
 
-export const HEAT_PUMP: DeviceDefinition = {
-  type: "heat_pump",
-  labelKey: "devices.heat_pump.name",
-  width: 120,
-  height: 100,
-  ports: [
-    {
-      id: "cold_in",
-      labelKey: "devices.heat_pump.ports.cold_in",
-      kind: "inlet",
-      position: { x: 0, y: 70 },
-    },
-    {
-      id: "hot_out",
-      labelKey: "devices.heat_pump.ports.hot_out",
-      kind: "outlet",
-      position: { x: 120, y: 30 },
-    },
-  ],
-};
-
 export const VALVE_3WAY: DeviceDefinition = {
   type: "valve_3way",
   labelKey: "devices.valve_3way.name",
@@ -293,29 +272,29 @@ export const ELECTRIC_HEATER: DeviceDefinition = {
   ],
 };
 
-export const OUTDOOR_UNIT: DeviceDefinition = {
-  type: "outdoor_unit",
-  labelKey: "devices.outdoor_unit.name",
+export const HEAT_PUMP: DeviceDefinition = {
+  type: "heat_pump",
+  labelKey: "devices.heat_pump.name",
   width: 170,
   height: 120,
   ports: [
     {
       id: "hot_out",
-      labelKey: "devices.outdoor_unit.ports.hot_out",
+      labelKey: "devices.heat_pump.ports.hot_out",
       kind: "outlet",
       position: { x: 170, y: 40 },
     },
     {
       id: "cold_in",
-      labelKey: "devices.outdoor_unit.ports.cold_in",
+      labelKey: "devices.heat_pump.ports.cold_in",
       kind: "inlet",
       position: { x: 170, y: 90 },
     },
   ],
   channels: {
     kind: "sensor",
-    titleKey: "devices.outdoor_unit.channels",
-    itemKey: "devices.outdoor_unit.channel",
+    titleKey: "devices.heat_pump.channels",
+    itemKey: "devices.heat_pump.channel",
     min: 0,
     max: 4,
     default: 0,
@@ -336,16 +315,8 @@ function inlineSensor(type: string): DeviceDefinition {
   };
 }
 
+/** Temperature, pressure, flow or energy – the icon follows the entity's device class. */
 export const PIPE_SENSOR = inlineSensor("pipe_sensor");
-export const FLOW_METER = inlineSensor("flow_meter");
-export const PRESSURE_GAUGE = inlineSensor("pressure_gauge");
-export const HEAT_METER = inlineSensor("heat_meter");
-
-export const DHW_CIRCULATION_PUMP: DeviceDefinition = {
-  ...CIRCULATION_PUMP,
-  type: "dhw_circulation_pump",
-  labelKey: "devices.dhw_circulation_pump.name",
-};
 
 /** Informational element without pipe connections. */
 export const OUTDOOR_TEMPERATURE: DeviceDefinition = {
@@ -382,9 +353,8 @@ function heatSource(type: string): DeviceDefinition {
   };
 }
 
-export const GAS_BOILER = heatSource("gas_boiler");
-export const ELECTRIC_BOILER = heatSource("electric_boiler");
-export const SOLID_FUEL_BOILER = heatSource("solid_fuel_boiler");
+// Fuel type is intentionally not modelled: Home Assistant cannot observe it.
+export const HEATING_BOILER = heatSource("heating_boiler");
 
 export const SOLAR_COLLECTOR: DeviceDefinition = {
   type: "solar_collector",
@@ -504,10 +474,7 @@ export const FANCOIL = terminalUnit("fancoil");
 
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
-  OUTDOOR_UNIT,
-  GAS_BOILER,
-  ELECTRIC_BOILER,
-  SOLID_FUEL_BOILER,
+  HEATING_BOILER,
   SOLAR_COLLECTOR,
   BOILER,
   BUFFER_TANK,
@@ -519,7 +486,6 @@ const ALL_DEVICES: DeviceDefinition[] = [
   MIXING_VALVE,
   ZONE_VALVE,
   CIRCULATION_PUMP,
-  DHW_CIRCULATION_PUMP,
   MANIFOLD,
   FLOOR_HEATING,
   RADIATOR,
@@ -527,9 +493,6 @@ const ALL_DEVICES: DeviceDefinition[] = [
   ELECTRIC_HEATER,
   JUNCTION,
   PIPE_SENSOR,
-  FLOW_METER,
-  PRESSURE_GAUGE,
-  HEAT_METER,
   OUTDOOR_TEMPERATURE,
 ];
 

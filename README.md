@@ -68,7 +68,7 @@ schema:
 
 | Option | Description |
 | --- | --- |
-| `schema.nodes` | Placed devices (`id`, `type`, `position`, optional `rotation` in 90° steps, `state`, `channels`, `heater`). |
+| `schema.nodes` | Placed devices (`id`, `type`, `position`, optional `name`, `rotation` in 90° steps, `state`, `channels`, `heater`). |
 | `schema.edges` | Pipes: `from` (outlet) and `to` (inlet), each `{ nodeId, portId }`. |
 | `schema.overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`. |
 | `language` | Card language; defaults to the Home Assistant user language. |
@@ -94,9 +94,8 @@ schema:
 
 | Type | Ports | Extras |
 | --- | --- | --- |
-| `heat_pump` | `cold_in`, `hot_out` | |
-| `outdoor_unit` | `hot_out`, `cold_in` | spinning fan, 0–4 value channels |
-| `gas_boiler`, `electric_boiler`, `solid_fuel_boiler` | `supply_out`, `return_in` | value |
+| `heat_pump` | `hot_out`, `cold_in` | spinning fan, 0–4 value channels |
+| `heating_boiler` | `supply_out`, `return_in` | value |
 | `solar_collector` | `hot_out`, `cold_in` | value |
 | `boiler` (DHW tank) | `cold_in`, `hot_out` | electric heater |
 | `buffer_tank` | `source_in`, `source_out`, `supply_out`, `return_in` | 1–5 temperature sensors, electric heater |
@@ -106,14 +105,16 @@ schema:
 | `valve_3way` | `in`, `out_a`, `out_b` | active branch |
 | `mixing_valve` | `hot_in`, `return_in`, `mixed_out` | opening in % |
 | `zone_valve` | `in`, `out` | |
-| `circulation_pump`, `dhw_circulation_pump` | `in`, `out` | spinning impeller |
+| `circulation_pump` | `in`, `out` | spinning impeller |
 | `manifold` | `supply_in`, `return_out`, `loop_<n>_out`, `loop_<n>_in` | 1–12 loops with actuators |
 | `floor_heating` | `in`, `out` | |
 | `radiator`, `fancoil` | `in`, `out` | value |
 | `electric_heater` | `in`, `out` | |
 | `junction` | `in`, `out_top`, `out_bottom` | |
-| `pipe_sensor`, `flow_meter`, `pressure_gauge`, `heat_meter` | `in`, `out` | value |
+| `pipe_sensor` | `in`, `out` | value; icon follows the entity `device_class` (temperature, pressure, flow, energy/power) |
 | `outdoor_temperature` | – | value |
+
+Devices only model what Home Assistant can observe – e.g. a boiler has no fuel type. Use the node `name` to tell devices of the same type apart ("DHW circulation", "Floor heating pump").
 
 ## Development
 

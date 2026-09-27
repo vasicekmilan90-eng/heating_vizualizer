@@ -108,6 +108,8 @@ export interface NodeVisualState {
   /** User-defined channel name, used as tooltip. */
   label?: string;
   unit?: string;
+  /** HA `device_class` of the bound entity, e.g. `temperature`. */
+  deviceClass?: string;
   /** Value comes from `value_attribute` rather than the entity state. */
   fromAttribute?: boolean;
 }
@@ -172,6 +174,7 @@ export function resolveNodeVisualState(
     position: resolvePosition(entity, binding.mode_attribute),
     unit,
     fromAttribute,
+    deviceClass: entity.attributes.device_class as string | undefined,
   };
 }
 
