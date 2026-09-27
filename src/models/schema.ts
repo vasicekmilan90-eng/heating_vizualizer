@@ -131,9 +131,23 @@ export const EMPTY_SCHEMA: HeatingSchema = {
   overlays: [],
 };
 
+/** Device types merged in 0.3.1; port ids are identical, so pipes keep working. */
+const LEGACY_TYPES: Record<string, string> = {
+  outdoor_unit: "heat_pump",
+  gas_boiler: "heating_boiler",
+  electric_boiler: "heating_boiler",
+  solid_fuel_boiler: "heating_boiler",
+  flow_meter: "pipe_sensor",
+  pressure_gauge: "pipe_sensor",
+  heat_meter: "pipe_sensor",
+  dhw_circulation_pump: "circulation_pump",
+};
+
 export function normalizeSchema(schema?: Partial<HeatingSchema>): HeatingSchema {
   return {
-    nodes: [...(schema?.nodes ?? [])],
+    nodes: (schema?.nodes ?? []).map((node) =>
+      LEGACY_TYPES[node.type] ? { ...node, type: LEGACY_TYPES[node.type] } : node
+    ),
     edges: [...(schema?.edges ?? [])],
     overlays: [...(schema?.overlays ?? [])],
   };
