@@ -133,6 +133,7 @@ function addonFields(type: AddonType): BindingField[] {
 }
 
 const NEW_NODE_GRID = { columns: 4, stepX: 200, stepY: 180, originX: 40, originY: 40 };
+const NUDGE_STEP = 10;
 
 /** Domains offered first when a device is added from an entity. */
 const DEVICE_ENTITY_DOMAINS = ["climate", "water_heater", "valve", "fan", "switch", "sensor", "binary_sensor"];
@@ -184,6 +185,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _templateId = SCHEMA_TEMPLATES[0].id;
   /** Positions before the last automatic layout; cleared by any other change. */
   @state() private _layoutUndo?: Record<string, { x: number; y: number }>;
+  @state() private _drawing = false;
 
   public set hass(hass: HomeAssistant | undefined) {
     this._hass = hass;
@@ -436,9 +438,21 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _renderCanvas(t: Translator, schema: HeatingSchema): TemplateResult {
     return html`
+      <div class="toolbar">
+        <button
+          type="button"
+          class="${this._drawing ? "primary" : ""}"
+          aria-pressed="${this._drawing}"
+          @click="${this._toggleDrawing}"
+        >✎ ${t.t("editor.drawing_mode")}</button>
+        <span class="hint" style="flex: 1">
+          ${t.t(this._drawing ? "editor.drawing_hint" : "editor.select_hint")}
+        </span>
+      </div>
       <heating-schema-canvas
         .schema="${schema}"
         .editable="${true}"
+        .drawing="${this._drawing}"
         .selectedNodeId="${this._selectedNodeId}"
         .selectedEdgeId="${this._selectedEdgeId}"
         .selectedPort="${this._pendingPort}"
@@ -649,6 +663,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           ></hv-field>
         </div>
         <div class="toolbar">
+          <button type="button" class="icon" aria-label="${t.t("editor.move_left")}" @click="${() => this._nudge(node, -1, 0)}">←</button>
+          <button type="button" class="icon" aria-label="${t.t("editor.move_up")}" @click="${() => this._nudge(node, 0, -1)}">↑</button>
+          <button type="button" class="icon" aria-label="${t.t("editor.move_down")}" @click="${() => this._nudge(node, 0, 1)}">↓</button>
+          <button type="button" class="icon" aria-label="${t.t("editor.move_right")}" @click="${() => this._nudge(node, 1, 0)}">→</button>
           <button type="button" @click="${() => this._rotateNode(node.id)}">↻ ${t.t("editor.rotate")}</button>
           <button type="button" class="danger" @click="${() => this._deleteNode(node.id)}">
             ${t.t("editor.delete_device")}
@@ -1134,6 +1152,15 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       const node = schema.nodes.find((n) => n.id === nodeId);
       if (node) node.position = { x: position.x ?? node.position.x, y: position.y ?? node.position.y };
     });
+  }
+
+  private _nudge(node: SchemaNode, dx: number, dy: number): void {
+    this._moveNode(node.id, { x: node.position.x + dx * NUDGE_STEP, y: node.position.y + dy * NUDGE_STEP });
+  }
+
+  private _toggleDrawing(): void {
+    this._drawing = !this._drawing;
+    this._pendingPort = undefined;
   }
 
   private _rotateNode(nodeId: string): void {
