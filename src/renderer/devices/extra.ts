@@ -143,6 +143,56 @@ function renderPlateHeatExchanger(
   `;
 }
 
+function renderExpansionVessel(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const cx = def.width / 2;
+  const top = 8;
+  const bottom = 86;
+  const membrane = (top + bottom) / 2;
+  const value = numericValue(state);
+  return svg`
+    <g class="device device-expansion-vessel">
+      <line x1="${cx}" y1="${bottom}" x2="${cx}" y2="${def.height}" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <rect x="13" y="${membrane}" width="${def.width - 26}" height="${bottom - membrane - 8}" fill="${RETURN_COLOR}" opacity="0.2" />
+      <rect x="12" y="${top}" width="${def.width - 24}" height="${bottom - top}" rx="${(def.width - 24) / 2}"
+        fill="none" stroke="${frameStroke(state, selected)}" stroke-width="${frameWidth(selected)}" />
+      <path d="M 13 ${membrane} Q ${cx} ${membrane + 8} ${def.width - 13} ${membrane}"
+        fill="none" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" stroke-dasharray="3 2" />
+      ${value ? svg`<text x="${cx}" y="${membrane - 10}" text-anchor="middle" class="device-value">${value}</text>` : svg``}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
+function renderSafetyValve(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const stroke = frameStroke(state, selected, SUPPLY_COLOR);
+  const width = frameWidth(selected);
+  const cx = 30;
+  const cy = 56;
+  return svg`
+    <g class="device device-safety-valve">
+      <line x1="${cx}" y1="${cy + 14}" x2="${cx}" y2="${def.height}" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <line x1="${cx + 14}" y1="${cy}" x2="${def.width}" y2="${cy}" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <path d="M ${cx - 12} ${cy + 14} L ${cx + 12} ${cy + 14} L ${cx} ${cy} Z M ${cx + 14} ${cy - 12} L ${cx + 14} ${cy + 12} L ${cx} ${cy} Z"
+        fill="${state.active ? SUPPLY_COLOR : CARD_FILL}" fill-opacity="${state.active ? 0.5 : 1}"
+        stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" />
+      <path d="M ${cx} ${cy} L ${cx} ${cy - 8} L ${cx - 7} ${cy - 12} L ${cx + 7} ${cy - 18} L ${cx - 7} ${cy - 24}
+        L ${cx + 7} ${cy - 30} L ${cx - 7} ${cy - 36} L ${cx} ${cy - 40}"
+        fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" />
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -164,6 +214,10 @@ export function renderExtraDevice(
       return renderHydraulicSeparator(def, t, selected, state);
     case "plate_heat_exchanger":
       return renderPlateHeatExchanger(def, t, selected, state);
+    case "expansion_vessel":
+      return renderExpansionVessel(def, t, selected, state);
+    case "safety_valve":
+      return renderSafetyValve(def, t, selected, state);
     default:
       return undefined;
   }

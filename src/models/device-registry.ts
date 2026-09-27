@@ -417,6 +417,43 @@ export const HYDRAULIC_SEPARATOR: DeviceDefinition = {
 };
 export const PLATE_HEAT_EXCHANGER = fourPort("plate_heat_exchanger", 100, 120);
 
+export const EXPANSION_VESSEL: DeviceDefinition = {
+  type: "expansion_vessel",
+  labelKey: "devices.expansion_vessel.name",
+  width: 70,
+  height: 110,
+  valueDisplay: "only",
+  ports: [
+    {
+      id: "connection",
+      labelKey: "devices.expansion_vessel.ports.connection",
+      kind: "inlet",
+      position: { x: 35, y: 110 },
+    },
+  ],
+};
+
+export const SAFETY_VALVE: DeviceDefinition = {
+  type: "safety_valve",
+  labelKey: "devices.safety_valve.name",
+  width: 70,
+  height: 90,
+  ports: [
+    {
+      id: "in",
+      labelKey: "devices.safety_valve.ports.in",
+      kind: "inlet",
+      position: { x: 30, y: 90 },
+    },
+    {
+      id: "discharge",
+      labelKey: "devices.safety_valve.ports.discharge",
+      kind: "outlet",
+      position: { x: 70, y: 56 },
+    },
+  ],
+};
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
   OUTDOOR_UNIT,
@@ -428,6 +465,8 @@ const ALL_DEVICES: DeviceDefinition[] = [
   BUFFER_TANK,
   HYDRAULIC_SEPARATOR,
   PLATE_HEAT_EXCHANGER,
+  EXPANSION_VESSEL,
+  SAFETY_VALVE,
   VALVE_3WAY,
   MIXING_VALVE,
   CIRCULATION_PUMP,
