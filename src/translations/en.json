@@ -308,5 +308,9 @@
   },
   "card": {
     "empty": "No schema configured. Edit this card to design your heating layout."
+  },
+  "a11y": {
+    "schema": "Heating schema",
+    "active": "running"
   }
 }

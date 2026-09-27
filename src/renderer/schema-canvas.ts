@@ -31,6 +31,7 @@ import { actionTarget, canTap, hasAction, type ActionHandlerConfig, type ActionK
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
 import type { ResolvedAddon } from "./devices/common.js";
+import { nodeDescription } from "./a11y.js";
 
 const BADGE_OFFSET = 6;
 const BADGE_MIN_WIDTH = 120;
@@ -153,6 +154,13 @@ export class HeatingSchemaCanvas extends LitElement {
       outline: 2px solid var(--primary-color, #03a9f4);
       outline-offset: 2px;
     }
+    .actionable:focus {
+      outline: none;
+    }
+    .actionable:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: 4px;
+    }
     .overlay-group {
       pointer-events: none;
     }
@@ -215,6 +223,8 @@ export class HeatingSchemaCanvas extends LitElement {
     return html`
       <svg
         viewBox="${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}"
+        role="group"
+        aria-label="${t.t("a11y.schema")}"
         tabindex="${this.editable ? "0" : nothing}"
         @keydown="${this._onKeyDown}"
         @pointerdown="${this._onCanvasPointerDown}"
@@ -230,7 +240,7 @@ export class HeatingSchemaCanvas extends LitElement {
                 <circle class="grid-dot" cx="0" cy="0" r="1" />
               </pattern>
             </defs>
-            <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" />
+            <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" aria-hidden="true" />
           `
           : nothing}
         ${connections.map((connection) => this._renderConnection(connection))}
@@ -294,7 +304,7 @@ export class HeatingSchemaCanvas extends LitElement {
     const id = connectionId(connection);
     const selected = this.selectedEdgeId === id;
     return svg`
-      <path class="pipe ${selected ? "selected" : ""}" d="${d}" />
+      <path class="pipe ${selected ? "selected" : ""}" d="${d}" aria-hidden="true" />
       ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${id}" d="${d}" />` : nothing}
     `;
   }
@@ -333,18 +343,23 @@ export class HeatingSchemaCanvas extends LitElement {
     const rect = getNodeBounds(node, def);
     const labelY = rect.y - node.position.y - 4;
     const badges = badgeAddons(node.type, addons);
+    const name = node.name || t.t(def.labelKey);
+    const actionable = this._isActionable({ nodeId: node.id });
 
     return svg`
       <g
-        class="node ${this._dragNodeId === node.id ? "dragging" : ""} ${this._isActionable({ nodeId: node.id }) ? "actionable" : ""}"
+        class="node ${this._dragNodeId === node.id ? "dragging" : ""} ${actionable ? "actionable" : ""}"
         data-node-id="${node.id}"
+        role="${actionable ? "button" : "img"}"
+        tabindex="${actionable ? "0" : nothing}"
+        aria-label="${nodeDescription(name, visualState, Boolean(node.entity_id), addons, t)}"
         transform="translate(${node.position.x} ${node.position.y})"
       >
         <g transform="rotate(${rotation} ${def.width / 2} ${def.height / 2})">
           ${deviceSvg}
         </g>
         <text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">
-          ${node.name || t.t(def.labelKey)}
+          ${name}
         </text>
         ${badges.length
           ? renderAddonBadges(
@@ -369,11 +384,15 @@ export class HeatingSchemaCanvas extends LitElement {
     const label = formatOverlayName(states, formatters, overlay);
     const display = `${label}: ${text}`;
     const width = Math.max(80, display.length * 7 + 16);
+    const actionable = this._isActionable({ overlayId: overlay.id });
 
     return svg`
       <g
-        class="overlay-group ${style.className ?? ""} ${this._isActionable({ overlayId: overlay.id }) ? "actionable" : ""}"
+        class="overlay-group ${style.className ?? ""} ${actionable ? "actionable" : ""}"
         data-overlay-id="${overlay.id}"
+        role="${actionable ? "button" : "img"}"
+        tabindex="${actionable ? "0" : nothing}"
+        aria-label="${display}"
         transform="translate(${overlay.position.x} ${overlay.position.y})"
       >
         <rect class="overlay-bg" x="0" y="0" width="${width}" height="22" rx="4" />
@@ -443,6 +462,10 @@ export class HeatingSchemaCanvas extends LitElement {
 
   /** Arrow keys move the selected device by one grid step, with Shift by five. */
   private _onKeyDown(ev: KeyboardEvent): void {
+    if (!this.editable) {
+      this._onActionKey(ev);
+      return;
+    }
     const direction = ARROW_KEYS[ev.key];
     const node = this.schema.nodes.find((n) => n.id === this.selectedNodeId);
     if (!this.editable || !direction || !node) return;
@@ -461,6 +484,19 @@ export class HeatingSchemaCanvas extends LitElement {
         composed: true,
       })
     );
+  }
+
+  /** Enter or Space on a focused device or overlay acts like a tap. */
+  private _onActionKey(ev: KeyboardEvent): void {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const el = ev.target as Element | null;
+    const nodeId = el?.getAttribute?.("data-node-id") ?? undefined;
+    const overlayId = el?.getAttribute?.("data-overlay-id") ?? undefined;
+    if (!nodeId && !overlayId) return;
+    const config = actionTarget(this.schema, { nodeId, overlayId });
+    if (!config || !canTap(config)) return;
+    ev.preventDefault();
+    this._fireAction(config, "tap");
   }
 
   private _toLocal(ev: PointerEvent): Point | undefined {

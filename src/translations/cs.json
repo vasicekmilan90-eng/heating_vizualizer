@@ -308,5 +308,9 @@
   },
   "card": {
     "empty": "Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma."
+  },
+  "a11y": {
+    "schema": "Schéma vytápění",
+    "active": "v provozu"
   }
 }
