@@ -34,7 +34,8 @@ function renderBufferTank(
   t: Translator,
   selected: boolean,
   state: NodeVisualState,
-  channels: NodeVisualState[]
+  channels: NodeVisualState[],
+  heater?: NodeVisualState
 ): ReturnType<typeof svg> {
   const stroke = state.active
     ? "#4caf50"
@@ -69,6 +70,7 @@ function renderBufferTank(
           </text>
         `;
       })}
+      ${heater ? renderHeaterCoil(28, bottom - 8, 44, heater) : svg``}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -178,7 +180,8 @@ function renderBoiler(
   def: DeviceDefinition,
   t: Translator,
   selected: boolean,
-  state: NodeVisualState
+  state: NodeVisualState,
+  heater: NodeVisualState | undefined
 ): ReturnType<typeof svg> {
   const stroke = state.active
     ? "#4caf50"
@@ -195,6 +198,51 @@ function renderBoiler(
       />
       <path d="M 30 35 L 60 35 M 30 55 L 60 55 M 30 75 L 60 75"
         stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
+      ${heater ? renderHeaterCoil(24, 100, 42, heater) : svg``}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
+const HEATER_ACTIVE_COLOR = "#ff7043";
+
+/** Zig-zag heating element; glows when the bound entity is active. */
+function renderHeaterCoil(
+  x: number,
+  y: number,
+  width: number,
+  heater: NodeVisualState
+): ReturnType<typeof svg> {
+  const steps = 6;
+  const step = width / steps;
+  let d = `M ${x} ${y}`;
+  for (let i = 1; i <= steps; i++) {
+    d += ` L ${x + i * step} ${y + (i % 2 === 0 ? 0 : -8)}`;
+  }
+  const color = heater.active ? HEATER_ACTIVE_COLOR : "var(--divider-color, #888)";
+  return svg`
+    <path class="heater ${heater.active ? "active" : ""}" d="${d}" fill="none"
+      stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+  `;
+}
+
+function renderElectricHeater(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): ReturnType<typeof svg> {
+  const stroke = state.active
+    ? HEATER_ACTIVE_COLOR
+    : selected
+      ? "var(--primary-color, #03a9f4)"
+      : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  return svg`
+    <g class="device device-electric-heater">
+      <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="8"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      ${renderHeaterCoil(24, def.height / 2 + 4, def.width - 48, state)}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -311,21 +359,28 @@ function renderMixingValve(
   `;
 }
 
+/** Node-specific states beyond the main binding. */
+export interface DeviceExtras {
+  channels?: NodeVisualState[];
+  heater?: NodeVisualState;
+}
+
 export function renderDeviceByType(
   type: string,
   def: DeviceDefinition,
   t: Translator,
   selected: boolean,
   state: NodeVisualState,
-  channels: NodeVisualState[] = []
+  extras: DeviceExtras = {}
 ): ReturnType<typeof svg> | undefined {
+  const channels = extras.channels ?? [];
   switch (type) {
     case "heat_pump":
       return renderHeatPump(def, t, selected, state);
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
     case "boiler":
-      return renderBoiler(def, t, selected, state);
+      return renderBoiler(def, t, selected, state, extras.heater);
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
@@ -335,9 +390,11 @@ export function renderDeviceByType(
     case "manifold":
       return renderManifold(def, t, selected, state, channels);
     case "buffer_tank":
-      return renderBufferTank(def, t, selected, state, channels);
+      return renderBufferTank(def, t, selected, state, channels, extras.heater);
     case "mixing_valve":
       return renderMixingValve(def, t, selected, state);
+    case "electric_heater":
+      return renderElectricHeater(def, t, selected, state);
     default:
       return undefined;
   }

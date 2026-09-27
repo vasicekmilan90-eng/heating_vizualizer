@@ -53,6 +53,7 @@ export const BOILER: DeviceDefinition = {
   labelKey: "devices.boiler.name",
   width: 90,
   height: 140,
+  heater: true,
   ports: [
     {
       id: "cold_in",
@@ -207,6 +208,7 @@ export const BUFFER_TANK: DeviceDefinition = {
   labelKey: "devices.buffer_tank.name",
   width: 100,
   height: 186,
+  heater: true,
   ports: [
     {
       id: "source_in",
@@ -270,6 +272,27 @@ export const MIXING_VALVE: DeviceDefinition = {
   ],
 };
 
+export const ELECTRIC_HEATER: DeviceDefinition = {
+  type: "electric_heater",
+  labelKey: "devices.electric_heater.name",
+  width: 120,
+  height: 60,
+  ports: [
+    {
+      id: "in",
+      labelKey: "devices.electric_heater.ports.in",
+      kind: "inlet",
+      position: { x: 0, y: 30 },
+    },
+    {
+      id: "out",
+      labelKey: "devices.electric_heater.ports.out",
+      kind: "outlet",
+      position: { x: 120, y: 30 },
+    },
+  ],
+};
+
 export const DEVICE_TYPES: string[] = [
   HEAT_PUMP.type,
   VALVE_3WAY.type,
@@ -280,6 +303,7 @@ export const DEVICE_TYPES: string[] = [
   MANIFOLD.type,
   BUFFER_TANK.type,
   MIXING_VALVE.type,
+  ELECTRIC_HEATER.type,
 ];
 
 const REGISTRY = new Map<string, DeviceDefinition>([
@@ -292,6 +316,7 @@ const REGISTRY = new Map<string, DeviceDefinition>([
   [MANIFOLD.type, MANIFOLD],
   [BUFFER_TANK.type, BUFFER_TANK],
   [MIXING_VALVE.type, MIXING_VALVE],
+  [ELECTRIC_HEATER.type, ELECTRIC_HEATER],
 ]);
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {

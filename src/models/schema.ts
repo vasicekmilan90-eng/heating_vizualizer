@@ -30,6 +30,8 @@ export interface DeviceDefinition {
   height: number;
   ports: PortDefinition[];
   channels?: ChannelSpec;
+  /** Device can contain an electric heating element with its own entity. */
+  heater?: boolean;
   /** Builds the node-specific geometry, e.g. from the channel count. */
   resolve?: (node: SchemaNode) => DeviceDefinition;
 }
@@ -41,6 +43,7 @@ export interface SchemaNode {
   rotation?: number;
   state?: NodeStateBinding;
   channels?: ChannelBinding[];
+  heater?: NodeStateBinding;
 }
 
 export interface ChannelBinding extends NodeStateBinding {

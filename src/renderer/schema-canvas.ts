@@ -235,7 +235,13 @@ export class HeatingSchemaCanvas extends LitElement {
     const channelStates = (node.channels ?? []).map((c) =>
       resolveNodeVisualState(states, c, formatters)
     );
-    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, channelStates);
+    const heater = node.heater?.entity_id
+      ? resolveNodeVisualState(states, node.heater, formatters)
+      : undefined;
+    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, {
+      channels: channelStates,
+      heater,
+    });
     if (!deviceSvg) return html``;
 
     const rotation = normalizeRotation(node.rotation);

@@ -79,6 +79,11 @@ const SENSOR_CHANNEL_SCHEMA: HaFormSchema[] = [
   { name: "entity_id", selector: { entity: {} } },
 ];
 
+const HEATER_SCHEMA: HaFormSchema[] = [
+  { name: "entity_id", selector: { entity: {} } },
+  { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
+];
+
 /** Channels padded to the count the device is drawn with. */
 function nodeChannels(node: SchemaNode, spec: ChannelSpec): ChannelBinding[] {
   const channels = (node.channels ?? []).map((c) => ({ ...c }));
@@ -500,6 +505,20 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               selectedNode.type === "mixing_valve" ? MIXING_VALVE_HELPERS : {}
             )}
             ${this._renderChannels(t, selectedNode)}
+            ${getDeviceDefinition(selectedNode.type)?.heater
+              ? html`
+                <div class="rules">
+                  <header><span>${t.t("editor.heater_title")}</span></header>
+                  ${this._renderForm(
+                    t,
+                    HEATER_SCHEMA,
+                    { ...(selectedNode.heater ?? {}) },
+                    NODE_STATE_LABELS,
+                    (value) => this._setNodeHeater(selectedNode.id, value)
+                  )}
+                </div>
+              `
+              : nothing}
           </div>
         `
         : nothing}
@@ -808,6 +827,17 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     this._emitConfig(schema);
   }
 
+  private _setNodeHeater(nodeId: string, value: FormData): void {
+    const heater = compact(value) as NodeStateBinding;
+    const schema = this._cloneSchema();
+    schema.nodes = schema.nodes.map((n) =>
+      n.id === nodeId
+        ? { ...n, heater: Object.keys(heater).length ? heater : undefined }
+        : n
+    );
+    this._emitConfig(schema);
+  }
+
   private _setChannelCount(nodeId: string, count: number): void {
     const schema = this._cloneSchema();
     const node = schema.nodes.find((n) => n.id === nodeId);
@@ -1076,6 +1106,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         position: { ...n.position },
         state: n.state ? { ...n.state } : undefined,
         channels: n.channels?.map((c) => ({ ...c })),
+        heater: n.heater ? { ...n.heater } : undefined,
       })),
       edges: (s.edges ?? []).map((e) => ({
         ...e,
