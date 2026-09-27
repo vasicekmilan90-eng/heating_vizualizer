@@ -1,4 +1,4 @@
-import { css, html, LitElement, svg, TemplateResult } from "lit";
+import { css, html, LitElement, nothing, svg, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type {
   HassEntities,
@@ -30,6 +30,7 @@ export class HeatingSchemaCanvas extends LitElement {
   @property({ attribute: false }) public config?: HeatingVisualizerConfig;
   @property({ type: Boolean }) public editable = false;
   @property({ attribute: false }) public selectedNodeId?: string;
+  @property({ attribute: false }) public selectedEdgeId?: string;
   @property({ attribute: false }) public selectedPort?: { nodeId: string; portId: string };
 
   static styles = css`
@@ -50,6 +51,17 @@ export class HeatingSchemaCanvas extends LitElement {
       stroke: #78909c;
       stroke-width: 4;
       stroke-linecap: round;
+    }
+    .pipe.selected {
+      stroke: var(--primary-color, #03a9f4);
+      stroke-width: 6;
+    }
+    .pipe-hit {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 16;
+      pointer-events: stroke;
+      cursor: pointer;
     }
     .device-label {
       fill: var(--primary-text-color, #e0e0e0);
@@ -172,7 +184,12 @@ export class HeatingSchemaCanvas extends LitElement {
     const to = getAbsolutePort(toNode, edge.to.portId);
     if (!from || !to) return html``;
 
-    return svg`<path class="pipe" d="${buildPipePath(from, to)}" />`;
+    const d = buildPipePath(from, to);
+    const selected = this.selectedEdgeId === edge.id;
+    return svg`
+      <path class="pipe ${selected ? "selected" : ""}" d="${d}" />
+      ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${edge.id}" d="${d}" />` : nothing}
+    `;
   }
 
   private _renderNode(node: SchemaNode, t: Translator): TemplateResult {
@@ -234,6 +251,18 @@ export class HeatingSchemaCanvas extends LitElement {
     if (!this.editable) return;
 
     const target = ev.target as SVGElement | null;
+    const edgeId = target?.getAttribute?.("data-edge-id");
+    if (edgeId) {
+      this.dispatchEvent(
+        new CustomEvent("edge-select", {
+          detail: { edgeId },
+          bubbles: true,
+          composed: true,
+        })
+      );
+      return;
+    }
+
     const nodeEl = target?.closest?.("[data-node-id]") as SVGGraphicsElement | null;
     if (!nodeEl) {
       this._dispatchSelect(undefined);

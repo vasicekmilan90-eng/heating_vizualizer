@@ -97,6 +97,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _config!: HeatingVisualizerConfig;
   @state() private _tab: EditorTab = "schema";
   @state() private _selectedNodeId?: string;
+  @state() private _selectedEdgeId?: string;
   @state() private _pendingPort?: PortRef;
   @state() private _selectedDeviceType = HEAT_PUMP.type;
   @state() private _translationEdits: TranslationMap = {};
@@ -296,6 +297,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             <button type="button" @click="${(ev: Event) => this._onRotateSelectedClick(ev)}">
               ↻ ${t.t("editor.rotate_selected")}
             </button>
+          `
+          : nothing}
+        ${this._selectedNodeId || this._selectedEdgeId
+          ? html`
             <button type="button" class="danger" @click="${(ev: Event) => this._onDeleteSelectedClick(ev)}">
               ${t.t("editor.delete_selected")}
             </button>
@@ -318,7 +323,9 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         .schema="${schema}"
         .editable="${true}"
         .selectedNodeId="${this._selectedNodeId}"
+        .selectedEdgeId="${this._selectedEdgeId}"
         @node-select="${this._onNodeSelect}"
+        @edge-select="${this._onEdgeSelect}"
         @node-move="${this._onNodeMove}"
         @port-click="${this._onPortClick}"
       ></heating-schema-canvas>
@@ -538,9 +545,16 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   }
 
   private _deleteSelected(): void {
+    const schema = this._cloneSchema();
+    if (this._selectedEdgeId) {
+      const edgeId = this._selectedEdgeId;
+      schema.edges = schema.edges.filter((e) => e.id !== edgeId);
+      this._selectedEdgeId = undefined;
+      this._emitConfig(schema);
+      return;
+    }
     if (!this._selectedNodeId) return;
     const id = this._selectedNodeId;
-    const schema = this._cloneSchema();
     schema.nodes = schema.nodes.filter((n) => n.id !== id);
     schema.edges = schema.edges.filter(
       (e) => e.from.nodeId !== id && e.to.nodeId !== id
@@ -604,6 +618,13 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _onNodeSelect(ev: CustomEvent<{ nodeId?: string }>): void {
     this._selectedNodeId = ev.detail.nodeId;
+    this._selectedEdgeId = undefined;
+  }
+
+  private _onEdgeSelect(ev: CustomEvent<{ edgeId: string }>): void {
+    this._selectedEdgeId = ev.detail.edgeId;
+    this._selectedNodeId = undefined;
+    this._pendingPort = undefined;
   }
 
   private _onNodeMove(ev: CustomEvent<{ nodeId: string; position: { x: number; y: number } }>): void {
