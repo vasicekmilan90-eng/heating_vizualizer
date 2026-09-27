@@ -108,6 +108,18 @@ export interface NodeVisualState {
   /** User-defined channel name, used as tooltip. */
   label?: string;
   unit?: string;
+  /** Value comes from `value_attribute` rather than the entity state. */
+  fromAttribute?: boolean;
+}
+
+/** `hvac_action` values of climate / water_heater entities that mean "heating now". */
+const HEATING_ACTIONS = new Set(["heating", "preheating"]);
+
+function isActive(entity: HassEntity, activeState: string | undefined): boolean {
+  if (activeState !== undefined) return entity.state === activeState;
+  const hvacAction = entity.attributes.hvac_action;
+  if (typeof hvacAction === "string") return HEATING_ACTIONS.has(hvacAction);
+  return entity.state === "on" || entity.state === "heat";
 }
 
 export function resolveNodeVisualState(
@@ -124,14 +136,24 @@ export function resolveNodeVisualState(
     return { active: false };
   }
 
-  const numeric = Number(entity.state);
+  const attribute = binding.value_attribute;
+  const attrValue = attribute !== undefined ? entity.attributes[attribute] : undefined;
+  const fromAttribute = attrValue !== undefined;
+  const rawValue = fromAttribute ? attrValue : entity.state;
+  const numeric = Number(rawValue);
   const unit = entity.attributes.unit_of_measurement as string | undefined;
-  const value = formatters
-    ? formatters.formatEntityState(entity)
-    : unit ? `${entity.state} ${unit}` : entity.state;
+  let value: string;
+  if (attribute !== undefined && fromAttribute) {
+    value = formatters
+      ? formatters.formatEntityAttributeValue(entity, attribute)
+      : String(attrValue);
+  } else {
+    value = formatters
+      ? formatters.formatEntityState(entity)
+      : unit ? `${entity.state} ${unit}` : entity.state;
+  }
 
-  const activeState = binding.active_state ?? "on";
-  const active = entity.state === activeState || (activeState === "on" && entity.state === "heat");
+  const active = isActive(entity, binding.active_state);
 
   const modeAttribute = binding.mode_attribute ?? "position";
   const modeValue = String(entity.attributes[modeAttribute] ?? entity.state ?? "");
@@ -146,9 +168,10 @@ export function resolveNodeVisualState(
     active,
     valveBranch,
     value,
-    numeric: entity.state.trim() !== "" && Number.isFinite(numeric) ? numeric : undefined,
+    numeric: String(rawValue ?? "").trim() !== "" && Number.isFinite(numeric) ? numeric : undefined,
     position: resolvePosition(entity, binding.mode_attribute),
     unit,
+    fromAttribute,
   };
 }
 

@@ -332,40 +332,62 @@ function inlineSensor(type: string): DeviceDefinition {
       { id: "in", labelKey: "devices.inline.ports.in", kind: "inlet", position: { x: 0, y: 30 } },
       { id: "out", labelKey: "devices.inline.ports.out", kind: "outlet", position: { x: 80, y: 30 } },
     ],
+    valueDisplay: "only",
   };
 }
 
 export const PIPE_SENSOR = inlineSensor("pipe_sensor");
 
-export const DEVICE_TYPES: string[] = [
-  HEAT_PUMP.type,
-  VALVE_3WAY.type,
-  BOILER.type,
-  JUNCTION.type,
-  CIRCULATION_PUMP.type,
-  FLOOR_HEATING.type,
-  MANIFOLD.type,
-  BUFFER_TANK.type,
-  MIXING_VALVE.type,
-  ELECTRIC_HEATER.type,
-  OUTDOOR_UNIT.type,
-  PIPE_SENSOR.type,
+/** Boiler-like heat source with supply/return on the right side. */
+function heatSource(type: string): DeviceDefinition {
+  return {
+    type,
+    labelKey: `devices.${type}.name`,
+    width: 100,
+    height: 130,
+    valueDisplay: "with_state",
+    ports: [
+      {
+        id: "supply_out",
+        labelKey: "devices.heat_source.ports.supply_out",
+        kind: "outlet",
+        position: { x: 100, y: 35 },
+      },
+      {
+        id: "return_in",
+        labelKey: "devices.heat_source.ports.return_in",
+        kind: "inlet",
+        position: { x: 100, y: 105 },
+      },
+    ],
+  };
+}
+
+export const GAS_BOILER = heatSource("gas_boiler");
+export const ELECTRIC_BOILER = heatSource("electric_boiler");
+export const SOLID_FUEL_BOILER = heatSource("solid_fuel_boiler");
+
+const ALL_DEVICES: DeviceDefinition[] = [
+  HEAT_PUMP,
+  OUTDOOR_UNIT,
+  GAS_BOILER,
+  ELECTRIC_BOILER,
+  SOLID_FUEL_BOILER,
+  BOILER,
+  BUFFER_TANK,
+  VALVE_3WAY,
+  MIXING_VALVE,
+  CIRCULATION_PUMP,
+  MANIFOLD,
+  FLOOR_HEATING,
+  ELECTRIC_HEATER,
+  JUNCTION,
+  PIPE_SENSOR,
 ];
 
-const REGISTRY = new Map<string, DeviceDefinition>([
-  [HEAT_PUMP.type, HEAT_PUMP],
-  [VALVE_3WAY.type, VALVE_3WAY],
-  [BOILER.type, BOILER],
-  [JUNCTION.type, JUNCTION],
-  [CIRCULATION_PUMP.type, CIRCULATION_PUMP],
-  [FLOOR_HEATING.type, FLOOR_HEATING],
-  [MANIFOLD.type, MANIFOLD],
-  [BUFFER_TANK.type, BUFFER_TANK],
-  [MIXING_VALVE.type, MIXING_VALVE],
-  [ELECTRIC_HEATER.type, ELECTRIC_HEATER],
-  [OUTDOOR_UNIT.type, OUTDOOR_UNIT],
-  [PIPE_SENSOR.type, PIPE_SENSOR],
-]);
+export const DEVICE_TYPES: string[] = ALL_DEVICES.map((d) => d.type);
+
+const REGISTRY = new Map<string, DeviceDefinition>(ALL_DEVICES.map((d) => [d.type, d]));
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {
   return REGISTRY.get(type);

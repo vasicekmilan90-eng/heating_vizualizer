@@ -32,6 +32,8 @@ export interface DeviceDefinition {
   channels?: ChannelSpec;
   /** Device can contain an electric heating element with its own entity. */
   heater?: boolean;
+  /** Device shows its entity value: `only` = value display, `with_state` = value plus on/off. */
+  valueDisplay?: "only" | "with_state";
   /** Builds the node-specific geometry, e.g. from the channel count. */
   resolve?: (node: SchemaNode) => DeviceDefinition;
 }
@@ -53,6 +55,8 @@ export interface ChannelBinding extends NodeStateBinding {
 export interface NodeStateBinding {
   entity_id?: string;
   active_state?: string;
+  /** Attribute displayed instead of the state, e.g. `current_temperature`. */
+  value_attribute?: string;
   mode_attribute?: string;
   branch_a_value?: string;
   branch_b_value?: string;

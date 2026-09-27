@@ -1,33 +1,16 @@
 import { svg } from "lit";
-import type { DeviceDefinition, PortDefinition } from "../../models/schema.js";
+import type { DeviceDefinition } from "../../models/schema.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
-
-function renderPorts(def: DeviceDefinition, t: Translator): ReturnType<typeof svg>[] {
-  return def.ports.map((port: PortDefinition) => svg`
-    <circle
-      class="port port-${port.kind}"
-      data-port-id="${port.id}"
-      cx="${port.position.x}" cy="${port.position.y}" r="5"
-      fill="var(--card-background-color, #1c1c1c)"
-      stroke="${port.kind === "inlet" ? "#4fc3f7" : "#ff8a65"}"
-      stroke-width="2"
-    ><title>${t.t(port.labelKey, ...(port.labelArgs ?? []))}</title></circle>
-  `);
-}
-
-const SUPPLY_COLOR = "#ef5350";
-const RETURN_COLOR = "#42a5f5";
-
-/** Temperatures mapped onto the blue → red scale. */
-const TEMP_COLD = 20;
-const TEMP_HOT = 60;
-
-function temperatureColor(value: number | undefined): string {
-  if (value === undefined) return "var(--divider-color, #888)";
-  const f = Math.min(1, Math.max(0, (value - TEMP_COLD) / (TEMP_HOT - TEMP_COLD)));
-  return `hsl(${Math.round(220 * (1 - f))}, 75%, 50%)`;
-}
+import {
+  HEATER_ACTIVE_COLOR,
+  RETURN_COLOR,
+  SUPPLY_COLOR,
+  renderHeaterCoil,
+  renderPorts,
+  temperatureColor,
+} from "./common.js";
+import { renderExtraDevice } from "./extra.js";
 
 function renderBufferTank(
   def: DeviceDefinition,
@@ -201,28 +184,6 @@ function renderBoiler(
       ${heater ? renderHeaterCoil(24, 100, 42, heater) : svg``}
       ${renderPorts(def, t)}
     </g>
-  `;
-}
-
-const HEATER_ACTIVE_COLOR = "#ff7043";
-
-/** Zig-zag heating element; glows when the bound entity is active. */
-function renderHeaterCoil(
-  x: number,
-  y: number,
-  width: number,
-  heater: NodeVisualState
-): ReturnType<typeof svg> {
-  const steps = 6;
-  const step = width / steps;
-  let d = `M ${x} ${y}`;
-  for (let i = 1; i <= steps; i++) {
-    d += ` L ${x + i * step} ${y + (i % 2 === 0 ? 0 : -8)}`;
-  }
-  const color = heater.active ? HEATER_ACTIVE_COLOR : "var(--divider-color, #888)";
-  return svg`
-    <path class="heater ${heater.active ? "active" : ""}" d="${d}" fill="none"
-      stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
   `;
 }
 
@@ -483,6 +444,6 @@ export function renderDeviceByType(
     case "pipe_sensor":
       return renderInlineSensor(def, t, selected, state, "temperature");
     default:
-      return undefined;
+      return renderExtraDevice(type, def, t, selected, state);
   }
 }
