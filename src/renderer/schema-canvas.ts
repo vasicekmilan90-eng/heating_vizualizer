@@ -27,12 +27,27 @@ import {
   resolveOverlayStyle,
 } from "../utils/entity.js";
 import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
+import { actionTarget, canTap, hasAction, type ActionHandlerConfig, type ActionKind } from "../utils/actions.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
 import type { ResolvedAddon } from "./devices/common.js";
 
 const BADGE_OFFSET = 6;
 const BADGE_MIN_WIDTH = 120;
+
+// Same timings as the Home Assistant action handler.
+const HOLD_MS = 500;
+const DOUBLE_TAP_MS = 250;
+const MOVE_TOLERANCE = 10;
+
+interface Press {
+  key: string;
+  config: ActionHandlerConfig;
+  x: number;
+  y: number;
+  timer?: number;
+  held: boolean;
+}
 
 const GRID_SIZE = 10;
 const NUDGE_STEP = GRID_SIZE;
@@ -141,6 +156,12 @@ export class HeatingSchemaCanvas extends LitElement {
     .overlay-group {
       pointer-events: none;
     }
+    :host(:not([editable])) .actionable {
+      cursor: pointer;
+    }
+    :host(:not([editable])) .overlay-group.actionable {
+      pointer-events: auto;
+    }
     .addon-value {
       font-size: var(--ha-font-size-xs, 11px);
     }
@@ -161,6 +182,8 @@ export class HeatingSchemaCanvas extends LitElement {
   `;
 
   private _dragNodeId?: string;
+  private _press?: Press;
+  private _pendingTap?: { key: string; timer: number };
   private _dragOffset?: Point;
   // Frozen while dragging so the coordinate system does not shift under the pointer.
   private _dragBounds?: Rect;
@@ -197,7 +220,8 @@ export class HeatingSchemaCanvas extends LitElement {
         @pointerdown="${this._onCanvasPointerDown}"
         @pointermove="${this._onCanvasPointerMove}"
         @pointerup="${this._onCanvasPointerUp}"
-        @pointerleave="${this._onCanvasPointerUp}"
+        @pointerleave="${this._onCanvasPointerLeave}"
+        @pointercancel="${this._onCanvasPointerLeave}"
       >
         ${this.editable && this.drawing
           ? svg`
@@ -278,10 +302,17 @@ export class HeatingSchemaCanvas extends LitElement {
   private _resolveAddons(node: SchemaNode): ResolvedAddon[] {
     const states = this._states.value;
     const formatters = this._formatters.value;
-    return (node.addons ?? []).map((config) => ({
+    return (node.addons ?? []).map((config, index) => ({
       config,
+      index,
       state: { ...resolveNodeVisualState(states, config, formatters), label: config.name },
     }));
+  }
+
+  private _isActionable(target: Parameters<typeof actionTarget>[1]): boolean {
+    if (this.editable) return false;
+    const config = actionTarget(this.schema, target);
+    return config !== undefined && (canTap(config) || hasAction(config.hold_action) || hasAction(config.double_tap_action));
   }
 
   private _badgeWidth(rect: Rect): number {
@@ -305,7 +336,7 @@ export class HeatingSchemaCanvas extends LitElement {
 
     return svg`
       <g
-        class="node ${this._dragNodeId === node.id ? "dragging" : ""}"
+        class="node ${this._dragNodeId === node.id ? "dragging" : ""} ${this._isActionable({ nodeId: node.id }) ? "actionable" : ""}"
         data-node-id="${node.id}"
         transform="translate(${node.position.x} ${node.position.y})"
       >
@@ -340,7 +371,11 @@ export class HeatingSchemaCanvas extends LitElement {
     const width = Math.max(80, display.length * 7 + 16);
 
     return svg`
-      <g class="overlay-group ${style.className ?? ""}" transform="translate(${overlay.position.x} ${overlay.position.y})">
+      <g
+        class="overlay-group ${style.className ?? ""} ${this._isActionable({ overlayId: overlay.id }) ? "actionable" : ""}"
+        data-overlay-id="${overlay.id}"
+        transform="translate(${overlay.position.x} ${overlay.position.y})"
+      >
         <rect class="overlay-bg" x="0" y="0" width="${width}" height="22" rx="4" />
         <text class="overlay-text" x="8" y="15" style="${style.color ? `fill: ${style.color}` : ""}">
           ${display}
@@ -350,7 +385,10 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _onCanvasPointerDown(ev: PointerEvent): void {
-    if (!this.editable) return;
+    if (!this.editable) {
+      this._startPress(ev);
+      return;
+    }
 
     const target = ev.target as SVGElement | null;
     const edgeId = target?.getAttribute?.("data-edge-id");
@@ -436,6 +474,8 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _onCanvasPointerMove(ev: PointerEvent): void {
+    const press = this._press;
+    if (press && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > MOVE_TOLERANCE) this._cancelPress();
     if (!this.editable || !this._dragNodeId) return;
 
     const node = this.schema.nodes.find((n) => n.id === this._dragNodeId);
@@ -459,6 +499,10 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _onCanvasPointerUp(ev: PointerEvent): void {
+    if (this._press) {
+      this._endPress();
+      return;
+    }
     if (this._dragNodeId) {
       const nodeEl = this.renderRoot.querySelector(
         `[data-node-id="${this._dragNodeId}"]`
@@ -469,6 +513,75 @@ export class HeatingSchemaCanvas extends LitElement {
       this._dragBounds = undefined;
       this.requestUpdate();
     }
+  }
+
+  private _onCanvasPointerLeave(ev: PointerEvent): void {
+    this._cancelPress();
+    this._onCanvasPointerUp(ev);
+  }
+
+  private _startPress(ev: PointerEvent): void {
+    const el = ev.target as Element | null;
+    const nodeId = el?.closest?.("[data-node-id]")?.getAttribute("data-node-id") ?? undefined;
+    const overlayId = el?.closest?.("[data-overlay-id]")?.getAttribute("data-overlay-id") ?? undefined;
+    const addon = el?.closest?.("[data-addon-index]")?.getAttribute("data-addon-index") ?? undefined;
+    const config = actionTarget(this.schema, {
+      nodeId,
+      overlayId,
+      addonIndex: addon === undefined || addon === "" ? undefined : Number(addon),
+    });
+    if (!config) return;
+
+    const press: Press = { key: `${overlayId ?? nodeId}/${addon ?? ""}`, config, x: ev.clientX, y: ev.clientY, held: false };
+    if (hasAction(config.hold_action)) {
+      press.timer = window.setTimeout(() => {
+        press.held = true;
+        this._fireAction(config, "hold");
+      }, HOLD_MS);
+    }
+    this._press = press;
+  }
+
+  private _cancelPress(): void {
+    window.clearTimeout(this._press?.timer);
+    this._press = undefined;
+  }
+
+  private _endPress(): void {
+    const press = this._press;
+    this._cancelPress();
+    if (!press || press.held) return;
+    const { config, key } = press;
+
+    if (!hasAction(config.double_tap_action)) {
+      if (canTap(config)) this._fireAction(config, "tap");
+      return;
+    }
+    if (this._pendingTap?.key === key) {
+      window.clearTimeout(this._pendingTap.timer);
+      this._pendingTap = undefined;
+      this._fireAction(config, "double_tap");
+      return;
+    }
+    window.clearTimeout(this._pendingTap?.timer);
+    this._pendingTap = {
+      key,
+      timer: window.setTimeout(() => {
+        this._pendingTap = undefined;
+        if (canTap(config)) this._fireAction(config, "tap");
+      }, DOUBLE_TAP_MS),
+    };
+  }
+
+  private _fireAction(config: ActionHandlerConfig, action: ActionKind): void {
+    this.dispatchEvent(new CustomEvent("hass-action", { detail: { config, action }, bubbles: true, composed: true }));
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._cancelPress();
+    window.clearTimeout(this._pendingTap?.timer);
+    this._pendingTap = undefined;
   }
 
   private _dispatchSelect(nodeId: string | undefined): void {

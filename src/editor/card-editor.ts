@@ -33,6 +33,8 @@ import {
   parsePortRef,
   SCHEMA_VERSION,
   schemaOf,
+  type ActionBinding,
+  type ActionConfig,
   type AddonConfig,
   type Connection,
   type HeatingSchema,
@@ -136,6 +138,16 @@ function addonFields(type: AddonType): BindingField[] {
 const NEW_NODE_GRID = { columns: 4, stepX: 200, stepY: 180, originX: 40, originY: 40 };
 const NUDGE_STEP = 10;
 const PIPE_STYLES: PipeStyle[] = ["orthogonal", "curved"];
+
+/** Actions offered in the editor; other actions (e.g. perform-action) stay editable in YAML. */
+const EDITOR_ACTIONS = ["more-info", "toggle", "navigate", "none"];
+const ACTION_KEYS: (keyof ActionBinding)[] = ["tap_action", "hold_action", "double_tap_action"];
+
+function actionPatch(key: keyof ActionBinding, action: ActionConfig | undefined): ActionBinding {
+  const patch: ActionBinding = {};
+  patch[key] = action;
+  return patch;
+}
 
 /** Domains offered first when a device is added from an entity. */
 const DEVICE_ENTITY_DOMAINS = ["climate", "water_heater", "valve", "fan", "switch", "sensor", "binary_sensor"];
@@ -658,6 +670,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       ${this._renderAddons(t, node)}
       ${this._renderSuggestions(t, node)}
       ${this._renderConnections(t, schema, node)}
+      ${this._renderActions(t, node, (patch) => this._patchNode(node.id, patch))}
 
       <section class="card">
         <h3>${t.t("editor.position_title")}</h3>
@@ -736,6 +749,52 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       default:
         return { kind: "combo", options: stateOptions(hass, binding.entity_id), helper };
     }
+  }
+
+  private _renderActions(
+    t: Translator,
+    binding: ActionBinding,
+    onChange: (patch: ActionBinding) => void
+  ): TemplateResult {
+    return html`
+      <section class="card">
+        <h3>${t.t("editor.actions_title")}</h3>
+        ${ACTION_KEYS.map((key) => {
+          const current = binding[key];
+          const values = current && !EDITOR_ACTIONS.includes(current.action)
+            ? [...EDITOR_ACTIONS, current.action]
+            : EDITOR_ACTIONS;
+          const options: FieldOption[] = [
+            { value: "", label: t.t(key === "tap_action" ? "editor.action_default_tap" : "editor.action_default") },
+            ...values.map((value) => ({
+              value,
+              label: EDITOR_ACTIONS.includes(value) ? t.t(`editor.action_${value.replace("-", "_")}`) : value,
+            })),
+          ];
+          return html`
+            <hv-field
+              kind="select"
+              .label="${t.t(`editor.${key}`)}"
+              .options="${options}"
+              .value="${current?.action ?? ""}"
+              @hv-change="${(ev: FieldEvent) => {
+                const action = asText(ev);
+                onChange(actionPatch(key, action ? { action } : undefined));
+              }}"
+            ></hv-field>
+            ${current?.action === "navigate"
+              ? html`<hv-field
+                  .label="${t.t("editor.navigation_path")}"
+                  placeholder="/lovelace/heating"
+                  .value="${typeof current.navigation_path === "string" ? current.navigation_path : undefined}"
+                  @hv-change="${(ev: FieldEvent) =>
+                    onChange(actionPatch(key, { ...current, navigation_path: asText(ev) }))}"
+                ></hv-field>`
+              : nothing}
+          `;
+        })}
+      </section>
+    `;
   }
 
   private _renderAddons(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {
@@ -1012,6 +1071,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           <button type="button" @click="${() => this._addRule(overlay)}">${t.t("overlay.add_rule")}</button>
         </div>
         ${(overlay.rules ?? []).map((rule, ruleIndex) => this._renderRule(t, overlay, rule, ruleIndex))}
+        ${this._renderActions(t, overlay, (value) => patch(value))}
       </section>
     `;
   }

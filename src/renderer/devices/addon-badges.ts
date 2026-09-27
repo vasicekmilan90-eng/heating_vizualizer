@@ -139,7 +139,10 @@ export function renderAddonBadges(
         const cy = y + BADGE_HEIGHT / 2;
         const filled = addon.config.type === "pump" || addon.config.type === "alarm";
         return svg`
-          <g class="addon-badge addon-${addon.config.type} ${addon.state.active ? "active" : ""}">
+          <g
+            class="addon-badge addon-${addon.config.type} ${addon.state.active ? "active" : ""}"
+            data-addon-index="${addon.index ?? ""}"
+          >
             <title>${addonLabel(addon, t)}: ${addon.state.value ?? "—"}</title>
             <rect x="${x}" y="${y}" width="${width}" height="${BADGE_HEIGHT}" rx="${BADGE_HEIGHT / 2}"
               fill="${CARD_FILL}" stroke="${color}" stroke-width="1" />

@@ -47,7 +47,19 @@ export interface AddonConfig extends NodeStateBinding {
   temperature_entity_id?: string;
 }
 
-export interface SchemaNode extends NodeStateBinding {
+/** Home Assistant action (`more-info`, `toggle`, `navigate`, …), handed to the frontend unchanged. */
+export interface ActionConfig {
+  action: string;
+  [key: string]: unknown;
+}
+
+export interface ActionBinding {
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
+  double_tap_action?: ActionConfig;
+}
+
+export interface SchemaNode extends NodeStateBinding, ActionBinding {
   id: string;
   type: string;
   /** Custom label; defaults to the translated device type name. */
@@ -99,7 +111,7 @@ export interface OverlayStateRule {
   };
 }
 
-export interface SchemaOverlay {
+export interface SchemaOverlay extends ActionBinding {
   id: string;
   position: { x: number; y: number };
   entity_id: string;
