@@ -212,6 +212,8 @@
     "add_all": "Add all",
     "template": "Template",
     "insert_template": "Insert template",
+    "auto_layout": "Arrange automatically",
+    "undo_layout": "Undo arrangement",
     "empty_hint": "Add a device to start building your schema.",
     "devices_title": "Devices",
     "no_entity": "No entity",

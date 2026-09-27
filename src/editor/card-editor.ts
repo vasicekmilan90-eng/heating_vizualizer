@@ -25,6 +25,7 @@ import {
 import { normalizeConfig } from "../models/migrate.js";
 import { guessDeviceType, suggestAddons } from "../models/entity-mapping.js";
 import { instantiateTemplate, SCHEMA_TEMPLATES } from "../models/templates.js";
+import { autoLayout } from "../models/layout.js";
 import {
   connectionId,
   formatPortRef,
@@ -181,6 +182,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _entityToAdd?: string;
   @state() private _entityDeviceType?: string;
   @state() private _templateId = SCHEMA_TEMPLATES[0].id;
+  /** Positions before the last automatic layout; cleared by any other change. */
+  @state() private _layoutUndo?: Record<string, { x: number; y: number }>;
 
   public set hass(hass: HomeAssistant | undefined) {
     this._hass = hass;
@@ -494,6 +497,14 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         </select>
         <button type="button" @click="${this._insertTemplate}">${t.t("editor.insert_template")}</button>
       </div>
+      ${schema.nodes.length > 1
+        ? html`<div class="toolbar">
+            <button type="button" @click="${this._autoLayout}">${t.t("editor.auto_layout")}</button>
+            ${this._layoutUndo
+              ? html`<button type="button" @click="${this._undoLayout}">${t.t("editor.undo_layout")}</button>`
+              : nothing}
+          </div>`
+        : nothing}
       ${this._renderAddFromEntity(t)}
 
       ${this._renderCanvas(t, schema)}
@@ -1100,6 +1111,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   /** Applies a change to a copy of the schema and emits the new config. */
   private _update(mutate: (schema: HeatingSchema) => void): void {
     if (!this._config) return;
+    this._layoutUndo = undefined;
     const schema = structuredClone(schemaOf(this._config));
     mutate(schema);
     // JSON round-trip drops undefined values, which the dashboard YAML serializer rejects.
@@ -1154,6 +1166,23 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     this._entityToAdd = undefined;
     this._entityDeviceType = undefined;
     this._openNode(id);
+  }
+
+  private _autoLayout(): void {
+    if (!this._config) return;
+    const previous = Object.fromEntries(schemaOf(this._config).nodes.map((n) => [n.id, { ...n.position }]));
+    this._update((schema) => {
+      schema.nodes = autoLayout(schema);
+    });
+    this._layoutUndo = previous;
+  }
+
+  private _undoLayout(): void {
+    const previous = this._layoutUndo;
+    if (!previous) return;
+    this._update((schema) => {
+      for (const node of schema.nodes) node.position = previous[node.id] ?? node.position;
+    });
   }
 
   private _insertTemplate(): void {

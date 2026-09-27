@@ -212,6 +212,8 @@
     "add_all": "Přidat vše",
     "template": "Šablona",
     "insert_template": "Vložit šablonu",
+    "auto_layout": "Rozmístit automaticky",
+    "undo_layout": "Vrátit rozmístění",
     "empty_hint": "Přidejte zařízení a začněte sestavovat schéma.",
     "devices_title": "Zařízení",
     "no_entity": "Bez entity",
