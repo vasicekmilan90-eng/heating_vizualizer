@@ -94,6 +94,8 @@ const SENSOR_CHANNEL_SCHEMA: HaFormSchema[] = [
   { name: "entity_id", selector: { entity: {} } },
 ];
 
+const NODE_NAME_SCHEMA: HaFormSchema[] = [{ name: "name", selector: { text: {} } }];
+
 const HEATER_SCHEMA: HaFormSchema[] = [
   { name: "entity_id", selector: { entity: {} } },
   { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
@@ -536,6 +538,14 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               <span>${t.t("editor.node_state_title")}</span>
               <span>${t.t(`devices.${selectedNode.type}.name`)}</span>
             </header>
+            ${this._renderForm(
+              t,
+              NODE_NAME_SCHEMA,
+              { name: selectedNode.name },
+              { name: "editor.node_name" },
+              (value) => this._setNodeName(selectedNode.id, value.name as string | undefined),
+              { name: "editor.node_name_helper" }
+            )}
             ${this._renderNodeStateForm(t, selectedNode)}
             ${this._renderChannels(t, selectedNode)}
             ${getDeviceDefinition(selectedNode.type)?.heater
@@ -869,6 +879,14 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     }
     schema.nodes.push(node);
     this._selectedNodeId = node.id;
+    this._emitConfig(schema);
+  }
+
+  private _setNodeName(nodeId: string, name: string | undefined): void {
+    const schema = this._cloneSchema();
+    schema.nodes = schema.nodes.map((n) =>
+      n.id === nodeId ? { ...n, name: name?.trim() || undefined } : n
+    );
     this._emitConfig(schema);
   }
 

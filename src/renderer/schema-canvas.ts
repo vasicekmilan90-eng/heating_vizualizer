@@ -274,7 +274,7 @@ export class HeatingSchemaCanvas extends LitElement {
           ${deviceSvg}
         </g>
         <text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">
-          ${t.t(def.labelKey)}
+          ${node.name || t.t(def.labelKey)}
         </text>
       </g>
     `;

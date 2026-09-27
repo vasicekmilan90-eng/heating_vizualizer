@@ -41,6 +41,8 @@ export interface DeviceDefinition {
 export interface SchemaNode {
   id: string;
   type: string;
+  /** Custom label; defaults to the translated device type name. */
+  name?: string;
   position: { x: number; y: number };
   rotation?: number;
   state?: NodeStateBinding;
