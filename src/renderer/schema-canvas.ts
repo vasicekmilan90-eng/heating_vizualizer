@@ -76,6 +76,21 @@ export class HeatingSchemaCanvas extends LitElement {
     .grid-dot {
       fill: var(--divider-color, #555);
     }
+    .spinning {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: spin 1.6s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .spinning {
+        animation: none;
+      }
+    }
     .device-label {
       fill: var(--primary-text-color, #e0e0e0);
       font-size: var(--ha-font-size-xs, 11px);
@@ -232,9 +247,10 @@ export class HeatingSchemaCanvas extends LitElement {
     const states = this._states.value;
     const formatters = this._formatters.value;
     const visualState = resolveNodeVisualState(states, node.state, formatters);
-    const channelStates = (node.channels ?? []).map((c) =>
-      resolveNodeVisualState(states, c, formatters)
-    );
+    const channelStates = (node.channels ?? []).map((c) => ({
+      ...resolveNodeVisualState(states, c, formatters),
+      label: c.name,
+    }));
     const heater = node.heater?.entity_id
       ? resolveNodeVisualState(states, node.heater, formatters)
       : undefined;

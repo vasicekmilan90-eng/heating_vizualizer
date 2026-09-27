@@ -293,6 +293,35 @@ export const ELECTRIC_HEATER: DeviceDefinition = {
   ],
 };
 
+export const OUTDOOR_UNIT: DeviceDefinition = {
+  type: "outdoor_unit",
+  labelKey: "devices.outdoor_unit.name",
+  width: 170,
+  height: 120,
+  ports: [
+    {
+      id: "hot_out",
+      labelKey: "devices.outdoor_unit.ports.hot_out",
+      kind: "outlet",
+      position: { x: 170, y: 40 },
+    },
+    {
+      id: "cold_in",
+      labelKey: "devices.outdoor_unit.ports.cold_in",
+      kind: "inlet",
+      position: { x: 170, y: 90 },
+    },
+  ],
+  channels: {
+    kind: "sensor",
+    titleKey: "devices.outdoor_unit.channels",
+    itemKey: "devices.outdoor_unit.channel",
+    min: 0,
+    max: 4,
+    default: 0,
+  },
+};
+
 export const DEVICE_TYPES: string[] = [
   HEAT_PUMP.type,
   VALVE_3WAY.type,
@@ -304,6 +333,7 @@ export const DEVICE_TYPES: string[] = [
   BUFFER_TANK.type,
   MIXING_VALVE.type,
   ELECTRIC_HEATER.type,
+  OUTDOOR_UNIT.type,
 ];
 
 const REGISTRY = new Map<string, DeviceDefinition>([
@@ -317,6 +347,7 @@ const REGISTRY = new Map<string, DeviceDefinition>([
   [BUFFER_TANK.type, BUFFER_TANK],
   [MIXING_VALVE.type, MIXING_VALVE],
   [ELECTRIC_HEATER.type, ELECTRIC_HEATER],
+  [OUTDOOR_UNIT.type, OUTDOOR_UNIT],
 ]);
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {

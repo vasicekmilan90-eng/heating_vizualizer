@@ -359,6 +359,45 @@ function renderMixingValve(
   `;
 }
 
+function renderOutdoorUnit(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState,
+  channels: NodeVisualState[]
+): ReturnType<typeof svg> {
+  const stroke = state.active
+    ? "#4caf50"
+    : selected
+      ? "var(--primary-color, #03a9f4)"
+      : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  const cx = 58;
+  const cy = 60;
+  const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";
+
+  return svg`
+    <g class="device device-outdoor-unit">
+      <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      <circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="var(--divider-color, #888)" stroke-width="1.5" />
+      <g class="fan ${state.active ? "spinning" : ""}">
+        ${[0, 90, 180, 270].map((angle) => svg`
+          <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
+            fill="var(--primary-color, #03a9f4)" opacity="0.75" />
+        `)}
+        <circle cx="${cx}" cy="${cy}" r="5" fill="var(--primary-color, #03a9f4)" />
+      </g>
+      ${channels.map((channel, i) => svg`
+        <text x="104" y="${36 + i * 18}" class="device-value">
+          <title>${channel.label ?? ""}</title>${channel.value ?? "—"}
+        </text>
+      `)}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Node-specific states beyond the main binding. */
 export interface DeviceExtras {
   channels?: NodeVisualState[];
@@ -395,6 +434,8 @@ export function renderDeviceByType(
       return renderMixingValve(def, t, selected, state);
     case "electric_heater":
       return renderElectricHeater(def, t, selected, state);
+    case "outdoor_unit":
+      return renderOutdoorUnit(def, t, selected, state, channels);
     default:
       return undefined;
   }

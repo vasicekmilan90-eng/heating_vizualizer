@@ -105,6 +105,8 @@ export interface NodeVisualState {
   numeric?: number;
   /** Actuator opening 0–100 %. */
   position?: number;
+  /** User-defined channel name, used as tooltip. */
+  label?: string;
 }
 
 export function resolveNodeVisualState(

@@ -819,7 +819,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       type,
       position: { x: 80 + offset, y: 80 + offset },
     };
-    if (def.channels) {
+    if (def.channels?.default) {
       node.channels = Array.from({ length: def.channels.default }, () => ({}));
     }
     schema.nodes.push(node);
