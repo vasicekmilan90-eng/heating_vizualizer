@@ -3,6 +3,7 @@ import type { DeviceDefinition } from "../../models/schema.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
+  ACCENT,
   ACTIVE_COLOR,
   CARD_FILL,
   HEATER_ACTIVE_COLOR,
@@ -219,6 +220,61 @@ function renderZoneValve(
   `;
 }
 
+function renderRadiator(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const value = numericValue(state);
+  const fins: SvgResult[] = [];
+  for (let x = 26; x <= def.width - 24; x += 10) {
+    fins.push(svg`<line x1="${x}" y1="22" x2="${x}" y2="58" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />`);
+  }
+  return svg`
+    <g class="device device-radiator">
+      <path d="M 0 66 L 16 66 L 16 62 M ${def.width - 16} 62 L ${def.width - 16} 66 L ${def.width} 66"
+        fill="none" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <rect x="16" y="16" width="${def.width - 32}" height="46" rx="4"
+        fill="${state.active ? HEATER_ACTIVE_COLOR : CARD_FILL}" fill-opacity="${state.active ? 0.2 : 1}"
+        stroke="${frameStroke(state, selected, HEATER_ACTIVE_COLOR)}" stroke-width="${frameWidth(selected)}" />
+      ${fins}
+      <rect x="4" y="26" width="10" height="18" rx="3" fill="${CARD_FILL}" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
+      ${value ? svg`<text x="${def.width / 2}" y="10" text-anchor="middle" class="device-value">${value}</text>` : svg``}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
+function renderFancoil(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const value = numericValue(state);
+  const cx = 46;
+  const cy = 38;
+  const blade = "M 0 0 C 4 -7, 13 -9, 17 -4 C 12 -1, 5 0, 0 0 Z";
+  return svg`
+    <g class="device device-fancoil">
+      <path d="M 0 66 L 16 66 M ${def.width - 16} 66 L ${def.width} 66" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <rect x="16" y="12" width="${def.width - 32}" height="54" rx="6"
+        fill="${CARD_FILL}" stroke="${frameStroke(state, selected)}" stroke-width="${frameWidth(selected)}" />
+      <circle cx="${cx}" cy="${cy}" r="20" fill="none" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
+      <g class="fan ${state.active ? "spinning" : ""}">
+        ${[0, 90, 180, 270].map((angle) => svg`
+          <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})" fill="${ACCENT}" opacity="0.75" />
+        `)}
+        <circle cx="${cx}" cy="${cy}" r="3.5" fill="${ACCENT}" />
+      </g>
+      <path d="M 76 50 L 104 50 M 76 56 L 104 56" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
+      ${value ? svg`<text x="90" y="36" text-anchor="middle" class="device-value">${value}</text>` : svg``}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -246,6 +302,10 @@ export function renderExtraDevice(
       return renderSafetyValve(def, t, selected, state);
     case "zone_valve":
       return renderZoneValve(def, t, selected, state);
+    case "radiator":
+      return renderRadiator(def, t, selected, state);
+    case "fancoil":
+      return renderFancoil(def, t, selected, state);
     default:
       return undefined;
   }

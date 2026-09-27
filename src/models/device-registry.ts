@@ -465,6 +465,24 @@ export const ZONE_VALVE: DeviceDefinition = {
   ],
 };
 
+/** Room terminal unit with supply/return at the bottom corners. */
+function terminalUnit(type: string): DeviceDefinition {
+  return {
+    type,
+    labelKey: `devices.${type}.name`,
+    width: 130,
+    height: 80,
+    valueDisplay: "with_state",
+    ports: [
+      { id: "in", labelKey: "devices.terminal.ports.in", kind: "inlet", position: { x: 0, y: 66 } },
+      { id: "out", labelKey: "devices.terminal.ports.out", kind: "outlet", position: { x: 130, y: 66 } },
+    ],
+  };
+}
+
+export const RADIATOR = terminalUnit("radiator");
+export const FANCOIL = terminalUnit("fancoil");
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
   OUTDOOR_UNIT,
@@ -484,6 +502,8 @@ const ALL_DEVICES: DeviceDefinition[] = [
   CIRCULATION_PUMP,
   MANIFOLD,
   FLOOR_HEATING,
+  RADIATOR,
+  FANCOIL,
   ELECTRIC_HEATER,
   JUNCTION,
   PIPE_SENSOR,
