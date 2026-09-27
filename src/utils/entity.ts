@@ -107,6 +107,7 @@ export interface NodeVisualState {
   position?: number;
   /** User-defined channel name, used as tooltip. */
   label?: string;
+  unit?: string;
 }
 
 export function resolveNodeVisualState(
@@ -147,6 +148,7 @@ export function resolveNodeVisualState(
     value,
     numeric: entity.state.trim() !== "" && Number.isFinite(numeric) ? numeric : undefined,
     position: resolvePosition(entity, binding.mode_attribute),
+    unit,
   };
 }
 

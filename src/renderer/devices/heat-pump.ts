@@ -398,6 +398,50 @@ function renderOutdoorUnit(
   `;
 }
 
+export type InlineSensorIcon = "temperature" | "flow" | "pressure" | "energy";
+
+function inlineSensorIcon(icon: InlineSensorIcon, cx: number, cy: number): string {
+  switch (icon) {
+    case "temperature":
+      return `M ${cx - 1.5} ${cy + 2} V ${cy - 6} A 1.5 1.5 0 0 1 ${cx + 1.5} ${cy - 6} V ${cy + 2} M ${cx - 3} ${cy + 4.5} A 3 3 0 1 0 ${cx + 3} ${cy + 4.5} A 3 3 0 1 0 ${cx - 3} ${cy + 4.5}`;
+    case "flow":
+      return `M ${cx - 6} ${cy} L ${cx + 5} ${cy} M ${cx + 1} ${cy - 4} L ${cx + 5} ${cy} L ${cx + 1} ${cy + 4}`;
+    case "pressure":
+      return `M ${cx - 6} ${cy + 3} A 6 6 0 1 1 ${cx + 6} ${cy + 3} M ${cx} ${cy + 1} L ${cx + 4} ${cy - 4}`;
+    case "energy":
+      return `M ${cx + 1} ${cy - 7} L ${cx - 4} ${cy + 1} L ${cx} ${cy + 1} L ${cx - 1} ${cy + 7} L ${cx + 4} ${cy - 1} L ${cx} ${cy - 1} Z`;
+  }
+}
+
+function renderInlineSensor(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState,
+  icon: InlineSensorIcon
+): ReturnType<typeof svg> {
+  const cx = def.width / 2;
+  const cy = def.height - 14;
+  const isTemperature = icon === "temperature" && (state.unit?.includes("°") ?? false);
+  const color = selected
+    ? "var(--primary-color, #03a9f4)"
+    : isTemperature
+      ? temperatureColor(state.numeric)
+      : "var(--primary-color, #03a9f4)";
+
+  return svg`
+    <g class="device device-inline-sensor">
+      <line x1="0" y1="${cy}" x2="${def.width}" y2="${cy}" stroke="var(--divider-color, #888)" stroke-width="3" />
+      <circle cx="${cx}" cy="${cy}" r="11" fill="var(--card-background-color, #1c1c1c)"
+        stroke="${color}" stroke-width="${selected ? 2.5 : 2}" />
+      <path d="${inlineSensorIcon(icon, cx, cy)}" fill="${icon === "energy" ? color : "none"}"
+        stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <text x="${cx}" y="${cy - 17}" text-anchor="middle" class="device-value">${state.value ?? "—"}</text>
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Node-specific states beyond the main binding. */
 export interface DeviceExtras {
   channels?: NodeVisualState[];
@@ -436,6 +480,8 @@ export function renderDeviceByType(
       return renderElectricHeater(def, t, selected, state);
     case "outdoor_unit":
       return renderOutdoorUnit(def, t, selected, state, channels);
+    case "pipe_sensor":
+      return renderInlineSensor(def, t, selected, state, "temperature");
     default:
       return undefined;
   }

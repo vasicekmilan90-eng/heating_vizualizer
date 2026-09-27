@@ -53,6 +53,13 @@ const NODE_STATE_DEFAULTS: Record<string, string> = {
   branch_b_value: "b",
 };
 
+/** Devices that only display the value of their entity. */
+const VALUE_ONLY_TYPES = new Set(["pipe_sensor"]);
+
+const VALUE_LABELS: Record<string, string> = {
+  entity_id: "editor.node_value_entity",
+};
+
 const MIXING_VALVE_LABELS: Record<string, string> = {
   ...NODE_STATE_LABELS,
   entity_id: "editor.node_state_position_entity",
@@ -113,6 +120,9 @@ const OVERLAY_SCHEMA: HaFormSchema[] = [
 ];
 
 function nodeStateSchema(nodeType: string): HaFormSchema[] {
+  if (VALUE_ONLY_TYPES.has(nodeType)) {
+    return [{ name: "entity_id", selector: { entity: {} } }];
+  }
   if (nodeType === "mixing_valve") {
     return [
       { name: "entity_id", selector: { entity: {} } },
@@ -500,7 +510,11 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               t,
               nodeStateSchema(selectedNode.type),
               { ...(selectedNode.state ?? {}) },
-              selectedNode.type === "mixing_valve" ? MIXING_VALVE_LABELS : NODE_STATE_LABELS,
+              selectedNode.type === "mixing_valve"
+                ? MIXING_VALVE_LABELS
+                : VALUE_ONLY_TYPES.has(selectedNode.type)
+                  ? VALUE_LABELS
+                  : NODE_STATE_LABELS,
               (value) => this._setNodeState(selectedNode.id, value),
               selectedNode.type === "mixing_valve" ? MIXING_VALVE_HELPERS : {}
             )}

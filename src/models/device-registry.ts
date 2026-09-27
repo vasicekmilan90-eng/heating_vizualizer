@@ -322,6 +322,21 @@ export const OUTDOOR_UNIT: DeviceDefinition = {
   },
 };
 
+function inlineSensor(type: string): DeviceDefinition {
+  return {
+    type,
+    labelKey: `devices.${type}.name`,
+    width: 80,
+    height: 44,
+    ports: [
+      { id: "in", labelKey: "devices.inline.ports.in", kind: "inlet", position: { x: 0, y: 30 } },
+      { id: "out", labelKey: "devices.inline.ports.out", kind: "outlet", position: { x: 80, y: 30 } },
+    ],
+  };
+}
+
+export const PIPE_SENSOR = inlineSensor("pipe_sensor");
+
 export const DEVICE_TYPES: string[] = [
   HEAT_PUMP.type,
   VALVE_3WAY.type,
@@ -334,6 +349,7 @@ export const DEVICE_TYPES: string[] = [
   MIXING_VALVE.type,
   ELECTRIC_HEATER.type,
   OUTDOOR_UNIT.type,
+  PIPE_SENSOR.type,
 ];
 
 const REGISTRY = new Map<string, DeviceDefinition>([
@@ -348,6 +364,7 @@ const REGISTRY = new Map<string, DeviceDefinition>([
   [MIXING_VALVE.type, MIXING_VALVE],
   [ELECTRIC_HEATER.type, ELECTRIC_HEATER],
   [OUTDOOR_UNIT.type, OUTDOOR_UNIT],
+  [PIPE_SENSOR.type, PIPE_SENSOR],
 ]);
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {
