@@ -1,118 +1,218 @@
-function t(t,e,i,o){var s,n=arguments.length,r=n<3?e:null===o?o=Object.getOwnPropertyDescriptor(e,i):o;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)r=Reflect.decorate(t,e,i,o);else for(var a=t.length-1;a>=0;a--)(s=t[a])&&(r=(n<3?s(r):n>3?s(e,i,r):s(e,i))||r);return n>3&&r&&Object.defineProperty(e,i,r),r}"function"==typeof SuppressedError&&SuppressedError;const e=globalThis,i=e.ShadowRoot&&(void 0===e.ShadyCSS||e.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,o=Symbol(),s=new WeakMap;let n=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==o)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(i&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=s.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&s.set(e,t))}return t}toString(){return this.cssText}};const r=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,i,o)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[o+1],t[0]);return new n(i,t,o)},a=i?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new n("string"==typeof t?t:t+"",void 0,o))(e)})(t):t,{is:d,defineProperty:l,getOwnPropertyDescriptor:c,getOwnPropertyNames:h,getOwnPropertySymbols:p,getPrototypeOf:u}=Object,v=globalThis,_=v.trustedTypes,y=_?_.emptyScript:"",g=v.reactiveElementPolyfillSupport,f=(t,e)=>t,m={toAttribute(t,e){switch(e){case Boolean:t=t?y:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},$=(t,e)=>!d(t,e),b={attribute:!0,type:String,converter:m,reflect:!1,useDefault:!1,hasChanged:$};Symbol.metadata??=Symbol("metadata"),v.litPropertyMetadata??=new WeakMap;let x=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=b){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const i=Symbol(),o=this.getPropertyDescriptor(t,i,e);void 0!==o&&l(this.prototype,t,o)}}static getPropertyDescriptor(t,e,i){const{get:o,set:s}=c(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:o,set(e){const n=o?.call(this);s?.call(this,e),this.requestUpdate(t,n,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??b}static _$Ei(){if(this.hasOwnProperty(f("elementProperties")))return;const t=u(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(f("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(f("properties"))){const t=this.properties,e=[...h(t),...p(t)];for(const i of e)this.createProperty(i,t[i])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,i]of e)this.elementProperties.set(t,i)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const i=this._$Eu(t,e);void 0!==i&&this._$Eh.set(i,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(a(t))}else void 0!==t&&e.push(a(t));return e}static _$Eu(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const i of e.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((t,o)=>{if(i)t.adoptedStyleSheets=o.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const i of o){const o=document.createElement("style"),s=e.litNonce;void 0!==s&&o.setAttribute("nonce",s),o.textContent=i.cssText,t.appendChild(o)}})(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$ET(t,e){const i=this.constructor.elementProperties.get(t),o=this.constructor._$Eu(t,i);if(void 0!==o&&!0===i.reflect){const s=(void 0!==i.converter?.toAttribute?i.converter:m).toAttribute(e,i.type);this._$Em=t,null==s?this.removeAttribute(o):this.setAttribute(o,s),this._$Em=null}}_$AK(t,e){const i=this.constructor,o=i._$Eh.get(t);if(void 0!==o&&this._$Em!==o){const t=i.getPropertyOptions(o),s="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:m;this._$Em=o;const n=s.fromAttribute(e,t.type);this[o]=n??this._$Ej?.get(o)??n,this._$Em=null}}requestUpdate(t,e,i,o=!1,s){if(void 0!==t){const n=this.constructor;if(!1===o&&(s=this[t]),i??=n.getPropertyOptions(t),!((i.hasChanged??$)(s,e)||i.useDefault&&i.reflect&&s===this._$Ej?.get(t)&&!this.hasAttribute(n._$Eu(t,i))))return;this.C(t,e,i)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:i,reflect:o,wrapped:s},n){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,n??e??this[t]),!0!==s||void 0!==n)||(this._$AL.has(t)||(this.hasUpdated||i||(e=void 0),this._$AL.set(t,e)),!0===o&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,i]of t){const{wrapped:t}=i,o=this[e];!0!==t||this._$AL.has(e)||void 0===o||this.C(e,void 0,i,o)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};x.elementStyles=[],x.shadowRootOptions={mode:"open"},x[f("elementProperties")]=new Map,x[f("finalized")]=new Map,g?.({ReactiveElement:x}),(v.reactiveElementVersions??=[]).push("2.1.2");const A=globalThis,w=t=>t,k=A.trustedTypes,S=k?k.createPolicy("lit-html",{createHTML:t=>t}):void 0,E="$lit$",C=`lit$${Math.random().toFixed(9).slice(2)}$`,P="?"+C,N=`<${P}>`,I=document,T=()=>I.createComment(""),O=t=>null===t||"object"!=typeof t&&"function"!=typeof t,M=Array.isArray,U="[ \t\n\f\r]",z=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,H=/-->/g,j=/>/g,D=RegExp(`>|${U}(?:([^\\s"'>=/]+)(${U}*=${U}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),R=/'/g,K=/"/g,L=/^(?:script|style|textarea|title)$/i,B=t=>(e,...i)=>({_$litType$:t,strings:e,values:i}),V=B(1),q=B(2),W=Symbol.for("lit-noChange"),J=Symbol.for("lit-nothing"),Z=new WeakMap,F=I.createTreeWalker(I,129);function G(t,e){if(!M(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==S?S.createHTML(e):e}const X=(t,e)=>{const i=t.length-1,o=[];let s,n=2===e?"<svg>":3===e?"<math>":"",r=z;for(let e=0;e<i;e++){const i=t[e];let a,d,l=-1,c=0;for(;c<i.length&&(r.lastIndex=c,d=r.exec(i),null!==d);)c=r.lastIndex,r===z?"!--"===d[1]?r=H:void 0!==d[1]?r=j:void 0!==d[2]?(L.test(d[2])&&(s=RegExp("</"+d[2],"g")),r=D):void 0!==d[3]&&(r=D):r===D?">"===d[0]?(r=s??z,l=-1):void 0===d[1]?l=-2:(l=r.lastIndex-d[2].length,a=d[1],r=void 0===d[3]?D:'"'===d[3]?K:R):r===K||r===R?r=D:r===H||r===j?r=z:(r=D,s=void 0);const h=r===D&&t[e+1].startsWith("/>")?" ":"";n+=r===z?i+N:l>=0?(o.push(a),i.slice(0,l)+E+i.slice(l)+C+h):i+C+(-2===l?e:h)}return[G(t,n+(t[i]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),o]};class Y{constructor({strings:t,_$litType$:e},i){let o;this.parts=[];let s=0,n=0;const r=t.length-1,a=this.parts,[d,l]=X(t,e);if(this.el=Y.createElement(d,i),F.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(o=F.nextNode())&&a.length<r;){if(1===o.nodeType){if(o.hasAttributes())for(const t of o.getAttributeNames())if(t.endsWith(E)){const e=l[n++],i=o.getAttribute(t).split(C),r=/([.?@])?(.*)/.exec(e);a.push({type:1,index:s,name:r[2],strings:i,ctor:"."===r[1]?ot:"?"===r[1]?st:"@"===r[1]?nt:it}),o.removeAttribute(t)}else t.startsWith(C)&&(a.push({type:6,index:s}),o.removeAttribute(t));if(L.test(o.tagName)){const t=o.textContent.split(C),e=t.length-1;if(e>0){o.textContent=k?k.emptyScript:"";for(let i=0;i<e;i++)o.append(t[i],T()),F.nextNode(),a.push({type:2,index:++s});o.append(t[e],T())}}}else if(8===o.nodeType)if(o.data===P)a.push({type:2,index:s});else{let t=-1;for(;-1!==(t=o.data.indexOf(C,t+1));)a.push({type:7,index:s}),t+=C.length-1}s++}}static createElement(t,e){const i=I.createElement("template");return i.innerHTML=t,i}}function Q(t,e,i=t,o){if(e===W)return e;let s=void 0!==o?i._$Co?.[o]:i._$Cl;const n=O(e)?void 0:e._$litDirective$;return s?.constructor!==n&&(s?._$AO?.(!1),void 0===n?s=void 0:(s=new n(t),s._$AT(t,i,o)),void 0!==o?(i._$Co??=[])[o]=s:i._$Cl=s),void 0!==s&&(e=Q(t,s._$AS(t,e.values),s,o)),e}class tt{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:i}=this._$AD,o=(t?.creationScope??I).importNode(e,!0);F.currentNode=o;let s=F.nextNode(),n=0,r=0,a=i[0];for(;void 0!==a;){if(n===a.index){let e;2===a.type?e=new et(s,s.nextSibling,this,t):1===a.type?e=new a.ctor(s,a.name,a.strings,this,t):6===a.type&&(e=new rt(s,this,t)),this._$AV.push(e),a=i[++r]}n!==a?.index&&(s=F.nextNode(),n++)}return F.currentNode=I,o}p(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class et{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,i,o){this.type=2,this._$AH=J,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=o,this._$Cv=o?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=Q(this,t,e),O(t)?t===J||null==t||""===t?(this._$AH!==J&&this._$AR(),this._$AH=J):t!==this._$AH&&t!==W&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>M(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==J&&O(this._$AH)?this._$AA.nextSibling.data=t:this.T(I.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:i}=t,o="number"==typeof i?this._$AC(t):(void 0===i.el&&(i.el=Y.createElement(G(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===o)this._$AH.p(e);else{const t=new tt(o,this),i=t.u(this.options);t.p(e),this.T(i),this._$AH=t}}_$AC(t){let e=Z.get(t.strings);return void 0===e&&Z.set(t.strings,e=new Y(t)),e}k(t){M(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,o=0;for(const s of t)o===e.length?e.push(i=new et(this.O(T()),this.O(T()),this,this.options)):i=e[o],i._$AI(s),o++;o<e.length&&(this._$AR(i&&i._$AB.nextSibling,o),e.length=o)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=w(t).nextSibling;w(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class it{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,i,o,s){this.type=1,this._$AH=J,this._$AN=void 0,this.element=t,this.name=e,this._$AM=o,this.options=s,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=J}_$AI(t,e=this,i,o){const s=this.strings;let n=!1;if(void 0===s)t=Q(this,t,e,0),n=!O(t)||t!==this._$AH&&t!==W,n&&(this._$AH=t);else{const o=t;let r,a;for(t=s[0],r=0;r<s.length-1;r++)a=Q(this,o[i+r],e,r),a===W&&(a=this._$AH[r]),n||=!O(a)||a!==this._$AH[r],a===J?t=J:t!==J&&(t+=(a??"")+s[r+1]),this._$AH[r]=a}n&&!o&&this.j(t)}j(t){t===J?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class ot extends it{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===J?void 0:t}}class st extends it{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==J)}}class nt extends it{constructor(t,e,i,o,s){super(t,e,i,o,s),this.type=5}_$AI(t,e=this){if((t=Q(this,t,e,0)??J)===W)return;const i=this._$AH,o=t===J&&i!==J||t.capture!==i.capture||t.once!==i.once||t.passive!==i.passive,s=t!==J&&(i===J||o);o&&this.element.removeEventListener(this.name,this,i),s&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class rt{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Q(this,t)}}const at=A.litHtmlPolyfillSupport;at?.(Y,et),(A.litHtmlVersions??=[]).push("3.3.3");const dt=globalThis;class lt extends x{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const o=i?.renderBefore??e;let s=o._$litPart$;if(void 0===s){const t=i?.renderBefore??null;o._$litPart$=s=new et(e.insertBefore(T(),t),t,void 0,i??{})}return s._$AI(t),s})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return W}}lt._$litElement$=!0,lt.finalized=!0,dt.litElementHydrateSupport?.({LitElement:lt});const ct=dt.litElementPolyfillSupport;ct?.({LitElement:lt}),(dt.litElementVersions??=[]).push("4.2.2");const ht=t=>(e,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(t,e)}):customElements.define(t,e)},pt={attribute:!0,type:String,converter:m,reflect:!1,hasChanged:$},ut=(t=pt,e,i)=>{const{kind:o,metadata:s}=i;let n=globalThis.litPropertyMetadata.get(s);if(void 0===n&&globalThis.litPropertyMetadata.set(s,n=new Map),"setter"===o&&((t=Object.create(t)).wrapped=!0),n.set(i.name,t),"accessor"===o){const{name:o}=i;return{set(i){const s=e.get.call(this);e.set.call(this,i),this.requestUpdate(o,s,t,!0,i)},init(e){return void 0!==e&&this.C(o,void 0,t,e),e}}}if("setter"===o){const{name:o}=i;return function(i){const s=this[o];e.call(this,i),this.requestUpdate(o,s,t,!0,i)}}throw Error("Unsupported decorator location: "+o)};function vt(t){return(e,i)=>"object"==typeof i?ut(t,e,i):((t,e,i)=>{const o=e.hasOwnProperty(i);return e.constructor.createProperty(i,t),o?Object.getOwnPropertyDescriptor(e,i):void 0})(t,e,i)}function _t(t){return vt({...t,state:!0,attribute:!1})}const yt="en",gt={nodes:[],edges:[],overlays:[]};function ft(t){return{type:"custom:heating-visualizer-card",schema:(e=t.schema,{nodes:[...e?.nodes??[]],edges:[...e?.edges??[]],overlays:[...e?.overlays??[]]}),language:t.language??yt,translations:t.translations??{}};var e}function mt(t){return"undefined"!=typeof crypto&&"function"==typeof crypto.randomUUID?`${t}_${crypto.randomUUID().slice(0,8)}`:`${t}_${Math.random().toString(36).slice(2,10)}`}const $t={en:{"devices.heat_pump.name":"Heat pump","devices.heat_pump.ports.cold_in":"Cold inlet","devices.heat_pump.ports.hot_out":"Hot outlet","devices.valve_3way.name":"3-way valve","devices.valve_3way.ports.in":"Inlet","devices.valve_3way.ports.out_a":"Outlet A","devices.valve_3way.ports.out_b":"Outlet B","devices.boiler.name":"Boiler","devices.boiler.ports.cold_in":"Cold inlet","devices.boiler.ports.hot_out":"Hot outlet","devices.junction.name":"Junction","devices.junction.ports.in":"Inlet","devices.junction.ports.out_top":"Top outlet","devices.junction.ports.out_bottom":"Bottom outlet","devices.circulation_pump.name":"Circulation pump","devices.circulation_pump.ports.in":"Inlet","devices.circulation_pump.ports.out":"Outlet","devices.floor_heating.name":"Floor heating","devices.floor_heating.ports.in":"Supply","devices.floor_heating.ports.out":"Return","editor.title":"Schema editor","editor.add_device":"Add device","editor.device_type":"Device type","editor.add_selected_device":"Add selected device","editor.add_heat_pump":"Heat pump","editor.delete_selected":"Delete selected","editor.empty_hint":"Add a device to start building your schema.","editor.language":"Language","editor.translations":"Translations","editor.schema_tab":"Schema","editor.overlay_tab":"Overlays","editor.overlays_empty":"No overlays yet. Switch to overlay tab to add sensor labels.","editor.add_overlay":"Add overlay","editor.connection_pending":"Connecting from {0} — click a compatible port","editor.node_state_title":"Selected device state binding","editor.node_state_entity":"State entity","editor.node_state_active":"Active state","editor.node_state_mode_attribute":"Valve mode attribute","editor.node_state_branch_a":"Valve branch A value","editor.node_state_branch_b":"Valve branch B value","overlay.entity":"Entity","overlay.template":"Display template","card.empty":"No schema configured. Edit this card to design your heating layout."},cs:{"devices.heat_pump.name":"Tepelné čerpadlo","devices.heat_pump.ports.cold_in":"Studená voda – vstup","devices.heat_pump.ports.hot_out":"Teplá voda – výstup","devices.valve_3way.name":"Třícestný ventil","devices.valve_3way.ports.in":"Vstup","devices.valve_3way.ports.out_a":"Výstup A","devices.valve_3way.ports.out_b":"Výstup B","devices.boiler.name":"Bojler","devices.boiler.ports.cold_in":"Studená voda – vstup","devices.boiler.ports.hot_out":"Teplá voda – výstup","devices.junction.name":"Uzel","devices.junction.ports.in":"Vstup","devices.junction.ports.out_top":"Horní výstup","devices.junction.ports.out_bottom":"Spodní výstup","devices.circulation_pump.name":"Oběhové čerpadlo","devices.circulation_pump.ports.in":"Vstup","devices.circulation_pump.ports.out":"Výstup","devices.floor_heating.name":"Podlahové topení","devices.floor_heating.ports.in":"Přívod","devices.floor_heating.ports.out":"Vratka","editor.title":"Editor schématu","editor.add_device":"Přidat zařízení","editor.device_type":"Typ zařízení","editor.add_selected_device":"Přidat vybrané zařízení","editor.add_heat_pump":"Tepelné čerpadlo","editor.delete_selected":"Smazat vybrané","editor.empty_hint":"Přidejte zařízení a začněte sestavovat schéma.","editor.language":"Jazyk","editor.translations":"Překlady","editor.schema_tab":"Schéma","editor.overlay_tab":"Popisky","editor.overlays_empty":"Zatím žádné popisky. Přepněte na záložku Popisky.","editor.add_overlay":"Přidat popisek","editor.connection_pending":"Napojování z {0} — klikněte na kompatibilní port","editor.node_state_title":"Stavové napojení vybraného zařízení","editor.node_state_entity":"Entita stavu","editor.node_state_active":"Aktivní stav","editor.node_state_mode_attribute":"Atribut režimu ventilu","editor.node_state_branch_a":"Hodnota větve A","editor.node_state_branch_b":"Hodnota větve B","overlay.entity":"Entita","overlay.template":"Šablona zobrazení","card.empty":"Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma."}};class bt{constructor(t,e={}){this._language=t,this._userTranslations=e}get language(){return this._language}t(t,...e){let i=this._lookup(t);return e.forEach((t,e)=>{i=i.replace(`{${e}}`,t)}),i}_lookup(t){const e=this._userTranslations[this._language]?.[t];if(void 0!==e)return e;const i=$t[this._language]?.[t];if(void 0!==i)return i;const o=this._userTranslations[yt]?.[t];if(void 0!==o)return o;const s=$t[yt]?.[t];return void 0!==s?s:t}getAvailableLanguages(){return[...new Set([...Object.keys($t),...Object.keys(this._userTranslations)])].sort()}getEditableTranslations(){return{...$t[this._language]??{},...$t[yt]??{},...this._userTranslations[this._language]??{}}}}function xt(t,e){return new bt(t??yt,e??{})}const At={type:"heat_pump",labelKey:"devices.heat_pump.name",width:120,height:100,ports:[{id:"cold_in",labelKey:"devices.heat_pump.ports.cold_in",kind:"inlet",position:{x:0,y:70}},{id:"hot_out",labelKey:"devices.heat_pump.ports.hot_out",kind:"outlet",position:{x:120,y:30}}]},wt={type:"valve_3way",labelKey:"devices.valve_3way.name",width:100,height:100,ports:[{id:"in",labelKey:"devices.valve_3way.ports.in",kind:"inlet",position:{x:0,y:50}},{id:"out_a",labelKey:"devices.valve_3way.ports.out_a",kind:"outlet",position:{x:100,y:25}},{id:"out_b",labelKey:"devices.valve_3way.ports.out_b",kind:"outlet",position:{x:100,y:75}}]},kt={type:"boiler",labelKey:"devices.boiler.name",width:90,height:140,ports:[{id:"cold_in",labelKey:"devices.boiler.ports.cold_in",kind:"inlet",position:{x:0,y:110}},{id:"hot_out",labelKey:"devices.boiler.ports.hot_out",kind:"outlet",position:{x:90,y:30}}]},St={type:"junction",labelKey:"devices.junction.name",width:60,height:60,ports:[{id:"in",labelKey:"devices.junction.ports.in",kind:"inlet",position:{x:0,y:30}},{id:"out_top",labelKey:"devices.junction.ports.out_top",kind:"outlet",position:{x:60,y:15}},{id:"out_bottom",labelKey:"devices.junction.ports.out_bottom",kind:"outlet",position:{x:60,y:45}}]},Et={type:"circulation_pump",labelKey:"devices.circulation_pump.name",width:90,height:90,ports:[{id:"in",labelKey:"devices.circulation_pump.ports.in",kind:"inlet",position:{x:0,y:45}},{id:"out",labelKey:"devices.circulation_pump.ports.out",kind:"outlet",position:{x:90,y:45}}]},Ct={type:"floor_heating",labelKey:"devices.floor_heating.name",width:140,height:90,ports:[{id:"in",labelKey:"devices.floor_heating.ports.in",kind:"inlet",position:{x:0,y:45}},{id:"out",labelKey:"devices.floor_heating.ports.out",kind:"outlet",position:{x:140,y:45}}]},Pt=[At.type,wt.type,kt.type,St.type,Et.type,Ct.type],Nt=new Map([[At.type,At],[wt.type,wt],[kt.type,kt],[St.type,St],[Et.type,Et],[Ct.type,Ct]]);function It(t){return Nt.get(t)}function Tt(t,e){const i=It(t.type);if(!i)return;const o=i.ports.find(t=>t.id===e);return o?{nodeId:t.id,portId:o.id,x:t.position.x+o.position.x,y:t.position.y+o.position.y,kind:o.kind}:void 0}function Ot(t,e){return t.nodeId===e.nodeId&&t.portId===e.portId}function Mt(t,e){if(!t||!e.entity_id)return"—";const i=t.states[e.entity_id];if(!i)return"—";if(e.template)return function(t,e,i){return t.replace(/\{\{\s*state\s*\}\}/g,e).replace(/\{\{\s*attr\(['"](\w+)['"]\)\s*\}\}/g,(t,e)=>String(i[e]??""))}(e.template,i.state,i.attributes);const o=i.attributes.unit_of_measurement;return o?`${i.state} ${o}`:i.state}function Ut(t,e){const i=t.states[e.entity];if(!i)return!1;if("state"===e.condition)return void 0!==e.state&&i.state===e.state;const o=Number(i.state);return!Number.isNaN(o)&&(void 0!==e.below&&o<e.below||void 0!==e.above&&o>e.above)}function zt(t,e){return t.ports.map(t=>q`
+function e(e,t,i,o){var n,r=arguments.length,s=r<3?t:null===o?o=Object.getOwnPropertyDescriptor(t,i):o;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)s=Reflect.decorate(e,t,i,o);else for(var a=e.length-1;a>=0;a--)(n=e[a])&&(s=(r<3?n(s):r>3?n(t,i,s):n(t,i))||s);return r>3&&s&&Object.defineProperty(t,i,s),s}"function"==typeof SuppressedError&&SuppressedError;const t=globalThis,i=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,o=Symbol(),n=new WeakMap;let r=class{constructor(e,t,i){if(this._$cssResult$=!0,i!==o)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o;const t=this.t;if(i&&void 0===e){const i=void 0!==t&&1===t.length;i&&(e=n.get(t)),void 0===e&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),i&&n.set(t,e))}return e}toString(){return this.cssText}};const s=(e,...t)=>{const i=1===e.length?e[0]:t.reduce((t,i,o)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if("number"==typeof e)return e;throw Error("Value passed to 'css' function must be a 'css' function result: "+e+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+e[o+1],e[0]);return new r(i,e,o)},a=i?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t="";for(const i of e.cssRules)t+=i.cssText;return(e=>new r("string"==typeof e?e:e+"",void 0,o))(t)})(e):e,{is:d,defineProperty:l,getOwnPropertyDescriptor:c,getOwnPropertyNames:h,getOwnPropertySymbols:u,getPrototypeOf:p}=Object,v=globalThis,_=v.trustedTypes,y=_?_.emptyScript:"",m=v.reactiveElementPolyfillSupport,f=(e,t)=>e,g={toAttribute(e,t){switch(t){case Boolean:e=e?y:null;break;case Object:case Array:e=null==e?e:JSON.stringify(e)}return e},fromAttribute(e,t){let i=e;switch(t){case Boolean:i=null!==e;break;case Number:i=null===e?null:Number(e);break;case Object:case Array:try{i=JSON.parse(e)}catch(e){i=null}}return i}},b=(e,t)=>!d(e,t),$={attribute:!0,type:String,converter:g,reflect:!1,useDefault:!1,hasChanged:b};Symbol.metadata??=Symbol("metadata"),v.litPropertyMetadata??=new WeakMap;let x=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=$){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){const i=Symbol(),o=this.getPropertyDescriptor(e,i,t);void 0!==o&&l(this.prototype,e,o)}}static getPropertyDescriptor(e,t,i){const{get:o,set:n}=c(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:o,set(t){const r=o?.call(this);n?.call(this,t),this.requestUpdate(e,r,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??$}static _$Ei(){if(this.hasOwnProperty(f("elementProperties")))return;const e=p(this);e.finalize(),void 0!==e.l&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(f("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(f("properties"))){const e=this.properties,t=[...h(e),...u(e)];for(const i of t)this.createProperty(i,e[i])}const e=this[Symbol.metadata];if(null!==e){const t=litPropertyMetadata.get(e);if(void 0!==t)for(const[e,i]of t)this.elementProperties.set(e,i)}this._$Eh=new Map;for(const[e,t]of this.elementProperties){const i=this._$Eu(e,t);void 0!==i&&this._$Eh.set(i,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){const t=[];if(Array.isArray(e)){const i=new Set(e.flat(1/0).reverse());for(const e of i)t.unshift(a(e))}else void 0!==e&&t.push(a(e));return t}static _$Eu(e,t){const i=t.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof e?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),void 0!==this.renderRoot&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){const e=new Map,t=this.constructor.elementProperties;for(const i of t.keys())this.hasOwnProperty(i)&&(e.set(i,this[i]),delete this[i]);e.size>0&&(this._$Ep=e)}createRenderRoot(){const e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((e,o)=>{if(i)e.adoptedStyleSheets=o.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(const i of o){const o=document.createElement("style"),n=t.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=i.cssText,e.appendChild(o)}})(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,i){this._$AK(e,i)}_$ET(e,t){const i=this.constructor.elementProperties.get(e),o=this.constructor._$Eu(e,i);if(void 0!==o&&!0===i.reflect){const n=(void 0!==i.converter?.toAttribute?i.converter:g).toAttribute(t,i.type);this._$Em=e,null==n?this.removeAttribute(o):this.setAttribute(o,n),this._$Em=null}}_$AK(e,t){const i=this.constructor,o=i._$Eh.get(e);if(void 0!==o&&this._$Em!==o){const e=i.getPropertyOptions(o),n="function"==typeof e.converter?{fromAttribute:e.converter}:void 0!==e.converter?.fromAttribute?e.converter:g;this._$Em=o;const r=n.fromAttribute(t,e.type);this[o]=r??this._$Ej?.get(o)??r,this._$Em=null}}requestUpdate(e,t,i,o=!1,n){if(void 0!==e){const r=this.constructor;if(!1===o&&(n=this[e]),i??=r.getPropertyOptions(e),!((i.hasChanged??b)(n,t)||i.useDefault&&i.reflect&&n===this._$Ej?.get(e)&&!this.hasAttribute(r._$Eu(e,i))))return;this.C(e,t,i)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:i,reflect:o,wrapped:n},r){i&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,r??t??this[e]),!0!==n||void 0!==r)||(this._$AL.has(e)||(this.hasUpdated||i||(t=void 0),this._$AL.set(e,t)),!0===o&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}const e=this.scheduleUpdate();return null!=e&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}const e=this.constructor.elementProperties;if(e.size>0)for(const[t,i]of e){const{wrapped:e}=i,o=this[t];!0!==e||this._$AL.has(t)||void 0===o||this.C(t,void 0,i,o)}}let e=!1;const t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};x.elementStyles=[],x.shadowRootOptions={mode:"open"},x[f("elementProperties")]=new Map,x[f("finalized")]=new Map,m?.({ReactiveElement:x}),(v.reactiveElementVersions??=[]).push("2.1.2");const k=globalThis,w=e=>e,A=k.trustedTypes,E=A?A.createPolicy("lit-html",{createHTML:e=>e}):void 0,S="$lit$",C=`lit$${Math.random().toFixed(9).slice(2)}$`,P="?"+C,I=`<${P}>`,N=document,M=()=>N.createComment(""),O=e=>null===e||"object"!=typeof e&&"function"!=typeof e,T=Array.isArray,z="[ \t\n\f\r]",U=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,H=/-->/g,K=/>/g,R=RegExp(`>|${z}(?:([^\\s"'>=/]+)(${z}*=${z}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),j=/'/g,L=/"/g,D=/^(?:script|style|textarea|title)$/i,B=e=>(t,...i)=>({_$litType$:e,strings:t,values:i}),V=B(1),F=B(2),q=Symbol.for("lit-noChange"),Z=Symbol.for("lit-nothing"),W=new WeakMap,J=N.createTreeWalker(N,129);function G(e,t){if(!T(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==E?E.createHTML(t):t}const X=(e,t)=>{const i=e.length-1,o=[];let n,r=2===t?"<svg>":3===t?"<math>":"",s=U;for(let t=0;t<i;t++){const i=e[t];let a,d,l=-1,c=0;for(;c<i.length&&(s.lastIndex=c,d=s.exec(i),null!==d);)c=s.lastIndex,s===U?"!--"===d[1]?s=H:void 0!==d[1]?s=K:void 0!==d[2]?(D.test(d[2])&&(n=RegExp("</"+d[2],"g")),s=R):void 0!==d[3]&&(s=R):s===R?">"===d[0]?(s=n??U,l=-1):void 0===d[1]?l=-2:(l=s.lastIndex-d[2].length,a=d[1],s=void 0===d[3]?R:'"'===d[3]?L:j):s===L||s===j?s=R:s===H||s===K?s=U:(s=R,n=void 0);const h=s===R&&e[t+1].startsWith("/>")?" ":"";r+=s===U?i+I:l>=0?(o.push(a),i.slice(0,l)+S+i.slice(l)+C+h):i+C+(-2===l?t:h)}return[G(e,r+(e[i]||"<?>")+(2===t?"</svg>":3===t?"</math>":"")),o]};class Y{constructor({strings:e,_$litType$:t},i){let o;this.parts=[];let n=0,r=0;const s=e.length-1,a=this.parts,[d,l]=X(e,t);if(this.el=Y.createElement(d,i),J.currentNode=this.el.content,2===t||3===t){const e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;null!==(o=J.nextNode())&&a.length<s;){if(1===o.nodeType){if(o.hasAttributes())for(const e of o.getAttributeNames())if(e.endsWith(S)){const t=l[r++],i=o.getAttribute(e).split(C),s=/([.?@])?(.*)/.exec(t);a.push({type:1,index:n,name:s[2],strings:i,ctor:"."===s[1]?oe:"?"===s[1]?ne:"@"===s[1]?re:ie}),o.removeAttribute(e)}else e.startsWith(C)&&(a.push({type:6,index:n}),o.removeAttribute(e));if(D.test(o.tagName)){const e=o.textContent.split(C),t=e.length-1;if(t>0){o.textContent=A?A.emptyScript:"";for(let i=0;i<t;i++)o.append(e[i],M()),J.nextNode(),a.push({type:2,index:++n});o.append(e[t],M())}}}else if(8===o.nodeType)if(o.data===P)a.push({type:2,index:n});else{let e=-1;for(;-1!==(e=o.data.indexOf(C,e+1));)a.push({type:7,index:n}),e+=C.length-1}n++}}static createElement(e,t){const i=N.createElement("template");return i.innerHTML=e,i}}function Q(e,t,i=e,o){if(t===q)return t;let n=void 0!==o?i._$Co?.[o]:i._$Cl;const r=O(t)?void 0:t._$litDirective$;return n?.constructor!==r&&(n?._$AO?.(!1),void 0===r?n=void 0:(n=new r(e),n._$AT(e,i,o)),void 0!==o?(i._$Co??=[])[o]=n:i._$Cl=n),void 0!==n&&(t=Q(e,n._$AS(e,t.values),n,o)),t}class ee{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){const{el:{content:t},parts:i}=this._$AD,o=(e?.creationScope??N).importNode(t,!0);J.currentNode=o;let n=J.nextNode(),r=0,s=0,a=i[0];for(;void 0!==a;){if(r===a.index){let t;2===a.type?t=new te(n,n.nextSibling,this,e):1===a.type?t=new a.ctor(n,a.name,a.strings,this,e):6===a.type&&(t=new se(n,this,e)),this._$AV.push(t),a=i[++s]}r!==a?.index&&(n=J.nextNode(),r++)}return J.currentNode=N,o}p(e){let t=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(e,i,t),t+=i.strings.length-2):i._$AI(e[t])),t++}}class te{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,i,o){this.type=2,this._$AH=Z,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=i,this.options=o,this._$Cv=o?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode;const t=this._$AM;return void 0!==t&&11===e?.nodeType&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=Q(this,e,t),O(e)?e===Z||null==e||""===e?(this._$AH!==Z&&this._$AR(),this._$AH=Z):e!==this._$AH&&e!==q&&this._(e):void 0!==e._$litType$?this.$(e):void 0!==e.nodeType?this.T(e):(e=>T(e)||"function"==typeof e?.[Symbol.iterator])(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==Z&&O(this._$AH)?this._$AA.nextSibling.data=e:this.T(N.createTextNode(e)),this._$AH=e}$(e){const{values:t,_$litType$:i}=e,o="number"==typeof i?this._$AC(e):(void 0===i.el&&(i.el=Y.createElement(G(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===o)this._$AH.p(t);else{const e=new ee(o,this),i=e.u(this.options);e.p(t),this.T(i),this._$AH=e}}_$AC(e){let t=W.get(e.strings);return void 0===t&&W.set(e.strings,t=new Y(e)),t}k(e){T(this._$AH)||(this._$AH=[],this._$AR());const t=this._$AH;let i,o=0;for(const n of e)o===t.length?t.push(i=new te(this.O(M()),this.O(M()),this,this.options)):i=t[o],i._$AI(n),o++;o<t.length&&(this._$AR(i&&i._$AB.nextSibling,o),t.length=o)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){const t=w(e).nextSibling;w(e).remove(),e=t}}setConnected(e){void 0===this._$AM&&(this._$Cv=e,this._$AP?.(e))}}class ie{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,i,o,n){this.type=1,this._$AH=Z,this._$AN=void 0,this.element=e,this.name=t,this._$AM=o,this.options=n,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=Z}_$AI(e,t=this,i,o){const n=this.strings;let r=!1;if(void 0===n)e=Q(this,e,t,0),r=!O(e)||e!==this._$AH&&e!==q,r&&(this._$AH=e);else{const o=e;let s,a;for(e=n[0],s=0;s<n.length-1;s++)a=Q(this,o[i+s],t,s),a===q&&(a=this._$AH[s]),r||=!O(a)||a!==this._$AH[s],a===Z?e=Z:e!==Z&&(e+=(a??"")+n[s+1]),this._$AH[s]=a}r&&!o&&this.j(e)}j(e){e===Z?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}}class oe extends ie{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===Z?void 0:e}}class ne extends ie{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==Z)}}class re extends ie{constructor(e,t,i,o,n){super(e,t,i,o,n),this.type=5}_$AI(e,t=this){if((e=Q(this,e,t,0)??Z)===q)return;const i=this._$AH,o=e===Z&&i!==Z||e.capture!==i.capture||e.once!==i.once||e.passive!==i.passive,n=e!==Z&&(i===Z||o);o&&this.element.removeEventListener(this.name,this,i),n&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}}class se{constructor(e,t,i){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(e){Q(this,e)}}const ae=k.litHtmlPolyfillSupport;ae?.(Y,te),(k.litHtmlVersions??=[]).push("3.3.3");const de=globalThis;class le extends x{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){const t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=((e,t,i)=>{const o=i?.renderBefore??t;let n=o._$litPart$;if(void 0===n){const e=i?.renderBefore??null;o._$litPart$=n=new te(t.insertBefore(M(),e),e,void 0,i??{})}return n._$AI(e),n})(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return q}}le._$litElement$=!0,le.finalized=!0,de.litElementHydrateSupport?.({LitElement:le});const ce=de.litElementPolyfillSupport;ce?.({LitElement:le}),(de.litElementVersions??=[]).push("4.2.2");const he=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}):customElements.define(e,t)},ue={attribute:!0,type:String,converter:g,reflect:!1,hasChanged:b},pe=(e=ue,t,i)=>{const{kind:o,metadata:n}=i;let r=globalThis.litPropertyMetadata.get(n);if(void 0===r&&globalThis.litPropertyMetadata.set(n,r=new Map),"setter"===o&&((e=Object.create(e)).wrapped=!0),r.set(i.name,e),"accessor"===o){const{name:o}=i;return{set(i){const n=t.get.call(this);t.set.call(this,i),this.requestUpdate(o,n,e,!0,i)},init(t){return void 0!==t&&this.C(o,void 0,e,t),t}}}if("setter"===o){const{name:o}=i;return function(i){const n=this[o];t.call(this,i),this.requestUpdate(o,n,e,!0,i)}}throw Error("Unsupported decorator location: "+o)};function ve(e){return(t,i)=>"object"==typeof i?pe(e,t,i):((e,t,i)=>{const o=t.hasOwnProperty(i);return t.constructor.createProperty(i,e),o?Object.getOwnPropertyDescriptor(t,i):void 0})(e,t,i)}function _e(e){return ve({...e,state:!0,attribute:!1})}const ye="en",me={nodes:[],edges:[],overlays:[]};function fe(e){return{...e,type:"custom:heating-visualizer-card",schema:(t=e.schema,{nodes:[...t?.nodes??[]],edges:[...t?.edges??[]],overlays:[...t?.overlays??[]]})};var t}function ge(e){return"undefined"!=typeof crypto&&"function"==typeof crypto.randomUUID?`${e}_${crypto.randomUUID().slice(0,8)}`:`${e}_${Math.random().toString(36).slice(2,10)}`}const be={en:{"devices.heat_pump.name":"Heat pump","devices.heat_pump.ports.cold_in":"Cold inlet","devices.heat_pump.ports.hot_out":"Hot outlet","devices.valve_3way.name":"3-way valve","devices.valve_3way.ports.in":"Inlet","devices.valve_3way.ports.out_a":"Outlet A","devices.valve_3way.ports.out_b":"Outlet B","devices.boiler.name":"Boiler","devices.boiler.ports.cold_in":"Cold inlet","devices.boiler.ports.hot_out":"Hot outlet","devices.junction.name":"Junction","devices.junction.ports.in":"Inlet","devices.junction.ports.out_top":"Top outlet","devices.junction.ports.out_bottom":"Bottom outlet","devices.circulation_pump.name":"Circulation pump","devices.circulation_pump.ports.in":"Inlet","devices.circulation_pump.ports.out":"Outlet","devices.floor_heating.name":"Floor heating","devices.floor_heating.ports.in":"Supply","devices.floor_heating.ports.out":"Return","devices.manifold.name":"Floor heating manifold","devices.manifold.ports.supply_in":"Supply","devices.manifold.ports.return_out":"Return","devices.manifold.ports.loop_out":"Loop {0} supply","devices.manifold.ports.loop_in":"Loop {0} return","devices.manifold.channels":"Loops (actuators)","devices.manifold.channel":"Loop {0}","devices.buffer_tank.name":"Buffer tank","devices.buffer_tank.ports.source_in":"From heat source","devices.buffer_tank.ports.source_out":"Back to heat source","devices.buffer_tank.ports.supply_out":"To heating system","devices.buffer_tank.ports.return_in":"Return from heating system","devices.buffer_tank.channels":"Temperature sensors (top → bottom)","devices.buffer_tank.channel":"Sensor {0}","devices.mixing_valve.name":"Mixing valve","devices.mixing_valve.ports.hot_in":"Hot branch","devices.mixing_valve.ports.return_in":"Return (bypass)","devices.mixing_valve.ports.mixed_out":"Mixed water","devices.electric_heater.name":"Electric flow heater","devices.electric_heater.ports.in":"Inlet","devices.electric_heater.ports.out":"Outlet","editor.heater_title":"Electric heating element","devices.outdoor_unit.name":"Heat pump outdoor unit","devices.outdoor_unit.ports.hot_out":"Heating water out","devices.outdoor_unit.ports.cold_in":"Heating water return","devices.outdoor_unit.channels":"Displayed values","devices.outdoor_unit.channel":"Value {0}","devices.inline.ports.in":"Inlet","devices.inline.ports.out":"Outlet","devices.pipe_sensor.name":"Pipe sensor","editor.node_value_entity":"Value entity","editor.node_state_position_entity":"Actuator entity","editor.node_state_position_attribute":"Position attribute (%)","editor.node_state_position_helper":"Empty = current_position or the entity state","editor.channel_name":"Name","editor.title":"Schema editor","editor.add_device":"Add device","editor.device_type":"Device type","editor.add_selected_device":"Add selected device","editor.add_heat_pump":"Heat pump","editor.delete_selected":"Delete selected","editor.rotate_selected":"Rotate","editor.empty_hint":"Add a device to start building your schema.","editor.language":"Language","editor.translations":"Translations","editor.schema_tab":"Schema","editor.overlay_tab":"Overlays","editor.overlays_empty":"No overlays yet. Switch to overlay tab to add sensor labels.","editor.add_overlay":"Add overlay","editor.connection_pending":"Connecting from {0} — click a compatible port","editor.node_state_title":"Selected device state binding","editor.node_state_entity":"State entity","editor.node_state_active":"Active state","editor.node_state_mode_attribute":"Valve mode attribute","editor.node_state_branch_a":"Valve branch A value","editor.node_state_branch_b":"Valve branch B value","editor.language_auto":"Home Assistant language","editor.default_value":"Default: {0}","overlay.entity":"Entity","overlay.name":"Name","overlay.template":"Display template","overlay.rules":"Conditional rules","overlay.add_rule":"Add rule","overlay.rule.condition":"Condition","overlay.rule.condition_state":"State equals","overlay.rule.condition_numeric":"Numeric value","overlay.rule.entity":"Entity","overlay.rule.entity_helper":"Empty = overlay entity","overlay.rule.state":"State","overlay.rule.above":"Above","overlay.rule.below":"Below","overlay.rule.color":"Text color","overlay.rule.hide":"Hide overlay","card.empty":"No schema configured. Edit this card to design your heating layout."},cs:{"devices.heat_pump.name":"Tepelné čerpadlo","devices.heat_pump.ports.cold_in":"Studená voda – vstup","devices.heat_pump.ports.hot_out":"Teplá voda – výstup","devices.valve_3way.name":"Třícestný ventil","devices.valve_3way.ports.in":"Vstup","devices.valve_3way.ports.out_a":"Výstup A","devices.valve_3way.ports.out_b":"Výstup B","devices.boiler.name":"Bojler","devices.boiler.ports.cold_in":"Studená voda – vstup","devices.boiler.ports.hot_out":"Teplá voda – výstup","devices.junction.name":"Uzel","devices.junction.ports.in":"Vstup","devices.junction.ports.out_top":"Horní výstup","devices.junction.ports.out_bottom":"Spodní výstup","devices.circulation_pump.name":"Oběhové čerpadlo","devices.circulation_pump.ports.in":"Vstup","devices.circulation_pump.ports.out":"Výstup","devices.floor_heating.name":"Podlahové topení","devices.floor_heating.ports.in":"Přívod","devices.floor_heating.ports.out":"Vratka","devices.manifold.name":"Rozdělovač podlahového topení","devices.manifold.ports.supply_in":"Přívod","devices.manifold.ports.return_out":"Vratka","devices.manifold.ports.loop_out":"Okruh {0} – přívod","devices.manifold.ports.loop_in":"Okruh {0} – vratka","devices.manifold.channels":"Okruhy (termopohony)","devices.manifold.channel":"Okruh {0}","devices.buffer_tank.name":"Akumulační nádrž","devices.buffer_tank.ports.source_in":"Od zdroje tepla","devices.buffer_tank.ports.source_out":"Zpět ke zdroji tepla","devices.buffer_tank.ports.supply_out":"Do topného systému","devices.buffer_tank.ports.return_in":"Vratka z topného systému","devices.buffer_tank.channels":"Teplotní čidla (shora dolů)","devices.buffer_tank.channel":"Čidlo {0}","devices.mixing_valve.name":"Směšovací ventil","devices.mixing_valve.ports.hot_in":"Teplá větev","devices.mixing_valve.ports.return_in":"Vratka (bypass)","devices.mixing_valve.ports.mixed_out":"Smíšená voda","devices.electric_heater.name":"Průtokový elektrický ohřívač","devices.electric_heater.ports.in":"Vstup","devices.electric_heater.ports.out":"Výstup","editor.heater_title":"Elektrická topná spirála","devices.outdoor_unit.name":"Venkovní jednotka TČ","devices.outdoor_unit.ports.hot_out":"Výstup topné vody","devices.outdoor_unit.ports.cold_in":"Vratka topné vody","devices.outdoor_unit.channels":"Zobrazené hodnoty","devices.outdoor_unit.channel":"Hodnota {0}","devices.inline.ports.in":"Vstup","devices.inline.ports.out":"Výstup","devices.pipe_sensor.name":"Čidlo na potrubí","editor.node_value_entity":"Entita hodnoty","editor.node_state_position_entity":"Entita pohonu","editor.node_state_position_attribute":"Atribut polohy (%)","editor.node_state_position_helper":"Prázdné = current_position nebo stav entity","editor.channel_name":"Název","editor.title":"Editor schématu","editor.add_device":"Přidat zařízení","editor.device_type":"Typ zařízení","editor.add_selected_device":"Přidat vybrané zařízení","editor.add_heat_pump":"Tepelné čerpadlo","editor.delete_selected":"Smazat vybrané","editor.rotate_selected":"Otočit","editor.empty_hint":"Přidejte zařízení a začněte sestavovat schéma.","editor.language":"Jazyk","editor.translations":"Překlady","editor.schema_tab":"Schéma","editor.overlay_tab":"Popisky","editor.overlays_empty":"Zatím žádné popisky. Přepněte na záložku Popisky.","editor.add_overlay":"Přidat popisek","editor.connection_pending":"Napojování z {0} — klikněte na kompatibilní port","editor.node_state_title":"Stavové napojení vybraného zařízení","editor.node_state_entity":"Entita stavu","editor.node_state_active":"Aktivní stav","editor.node_state_mode_attribute":"Atribut režimu ventilu","editor.node_state_branch_a":"Hodnota větve A","editor.node_state_branch_b":"Hodnota větve B","editor.language_auto":"Jazyk Home Assistantu","editor.default_value":"Výchozí: {0}","overlay.entity":"Entita","overlay.name":"Název","overlay.template":"Šablona zobrazení","overlay.rules":"Podmíněná pravidla","overlay.add_rule":"Přidat pravidlo","overlay.rule.condition":"Podmínka","overlay.rule.condition_state":"Stav je roven","overlay.rule.condition_numeric":"Číselná hodnota","overlay.rule.entity":"Entita","overlay.rule.entity_helper":"Prázdné = entita popisku","overlay.rule.state":"Stav","overlay.rule.above":"Nad","overlay.rule.below":"Pod","overlay.rule.color":"Barva textu","overlay.rule.hide":"Skrýt popisek","card.empty":"Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma."}};class $e{constructor(e,t={}){this._language=e,this._userTranslations=t}get language(){return this._language}t(e,...t){let i=this._lookup(e);return t.forEach((e,t)=>{i=i.replace(`{${t}}`,e)}),i}_lookup(e){const t=this._userTranslations[this._language]?.[e];if(void 0!==t)return t;const i=be[this._language]?.[e];if(void 0!==i)return i;const o=this._userTranslations[ye]?.[e];if(void 0!==o)return o;const n=be[ye]?.[e];return void 0!==n?n:e}getAvailableLanguages(){return[...new Set([...Object.keys(be),...Object.keys(this._userTranslations)])].sort()}getEditableTranslations(){return{...be[ye]??{},...be[this._language]??{},...this._userTranslations[this._language]??{}}}}function xe(e,t){const i=t??{};return new $e(function(e,t){if(!e)return ye;if(be[e]||t[e])return e;const i=e.split("-")[0];return be[i]||t[i]?i:e}(e,i),i)}const ke="states",we="hassFormatters",Ae="hassInternationalization";class Ee{constructor(e,t){this._host=e,this._context=t,this._callback=(e,t)=>{this._unsubscribe&&this._unsubscribe!==t&&this._unsubscribe(),this._unsubscribe=t,e!==this.value&&(this.value=e,this._host.requestUpdate())},e.addController(this)}hostConnected(){const e=new Event("context-request",{bubbles:!0,composed:!0});e.context=this._context,e.contextTarget=this._host,e.callback=this._callback,e.subscribe=!0,this._host.dispatchEvent(e)}hostDisconnected(){this._unsubscribe?.(),this._unsubscribe=void 0}}const Se={type:"heat_pump",labelKey:"devices.heat_pump.name",width:120,height:100,ports:[{id:"cold_in",labelKey:"devices.heat_pump.ports.cold_in",kind:"inlet",position:{x:0,y:70}},{id:"hot_out",labelKey:"devices.heat_pump.ports.hot_out",kind:"outlet",position:{x:120,y:30}}]},Ce={type:"valve_3way",labelKey:"devices.valve_3way.name",width:100,height:100,ports:[{id:"in",labelKey:"devices.valve_3way.ports.in",kind:"inlet",position:{x:0,y:50}},{id:"out_a",labelKey:"devices.valve_3way.ports.out_a",kind:"outlet",position:{x:100,y:25}},{id:"out_b",labelKey:"devices.valve_3way.ports.out_b",kind:"outlet",position:{x:100,y:75}}]},Pe={type:"boiler",labelKey:"devices.boiler.name",width:90,height:140,heater:!0,ports:[{id:"cold_in",labelKey:"devices.boiler.ports.cold_in",kind:"inlet",position:{x:0,y:110}},{id:"hot_out",labelKey:"devices.boiler.ports.hot_out",kind:"outlet",position:{x:90,y:30}}]},Ie={type:"junction",labelKey:"devices.junction.name",width:60,height:60,ports:[{id:"in",labelKey:"devices.junction.ports.in",kind:"inlet",position:{x:0,y:30}},{id:"out_top",labelKey:"devices.junction.ports.out_top",kind:"outlet",position:{x:60,y:15}},{id:"out_bottom",labelKey:"devices.junction.ports.out_bottom",kind:"outlet",position:{x:60,y:45}}]},Ne={type:"circulation_pump",labelKey:"devices.circulation_pump.name",width:90,height:90,ports:[{id:"in",labelKey:"devices.circulation_pump.ports.in",kind:"inlet",position:{x:0,y:45}},{id:"out",labelKey:"devices.circulation_pump.ports.out",kind:"outlet",position:{x:90,y:45}}]},Me={type:"floor_heating",labelKey:"devices.floor_heating.name",width:140,height:90,ports:[{id:"in",labelKey:"devices.floor_heating.ports.in",kind:"inlet",position:{x:0,y:45}},{id:"out",labelKey:"devices.floor_heating.ports.out",kind:"outlet",position:{x:140,y:45}}]};const Oe={type:"manifold",labelKey:"devices.manifold.name",width:184,height:130,ports:[{id:"supply_in",labelKey:"devices.manifold.ports.supply_in",kind:"inlet",position:{x:0,y:30}},{id:"return_out",labelKey:"devices.manifold.ports.return_out",kind:"outlet",position:{x:0,y:100}}],channels:{kind:"switch",titleKey:"devices.manifold.channels",itemKey:"devices.manifold.channel",min:1,max:12,default:4},resolve:e=>function(e){const t=[];for(let i=0;i<e;i++){const e=50+36*i,o=String(i+1);t.push({id:`loop_${o}_out`,labelKey:"devices.manifold.ports.loop_out",labelArgs:[o],kind:"outlet",position:{x:e,y:0}},{id:`loop_${o}_in`,labelKey:"devices.manifold.ports.loop_in",labelArgs:[o],kind:"inlet",position:{x:e,y:130}})}return{...Oe,width:50+36*e-10,ports:[...Oe.ports,...t]}}(e.channels?.length||4)},Te={type:"buffer_tank",labelKey:"devices.buffer_tank.name",width:100,height:186,heater:!0,ports:[{id:"source_in",labelKey:"devices.buffer_tank.ports.source_in",kind:"inlet",position:{x:0,y:40}},{id:"source_out",labelKey:"devices.buffer_tank.ports.source_out",kind:"outlet",position:{x:0,y:150}},{id:"supply_out",labelKey:"devices.buffer_tank.ports.supply_out",kind:"outlet",position:{x:100,y:40}},{id:"return_in",labelKey:"devices.buffer_tank.ports.return_in",kind:"inlet",position:{x:100,y:150}}],channels:{kind:"sensor",titleKey:"devices.buffer_tank.channels",itemKey:"devices.buffer_tank.channel",min:1,max:5,default:3}},ze={type:"mixing_valve",labelKey:"devices.mixing_valve.name",width:100,height:110,ports:[{id:"hot_in",labelKey:"devices.mixing_valve.ports.hot_in",kind:"inlet",position:{x:0,y:70}},{id:"return_in",labelKey:"devices.mixing_valve.ports.return_in",kind:"inlet",position:{x:50,y:110}},{id:"mixed_out",labelKey:"devices.mixing_valve.ports.mixed_out",kind:"outlet",position:{x:100,y:70}}]},Ue={type:"electric_heater",labelKey:"devices.electric_heater.name",width:120,height:60,ports:[{id:"in",labelKey:"devices.electric_heater.ports.in",kind:"inlet",position:{x:0,y:30}},{id:"out",labelKey:"devices.electric_heater.ports.out",kind:"outlet",position:{x:120,y:30}}]},He={type:"outdoor_unit",labelKey:"devices.outdoor_unit.name",width:170,height:120,ports:[{id:"hot_out",labelKey:"devices.outdoor_unit.ports.hot_out",kind:"outlet",position:{x:170,y:40}},{id:"cold_in",labelKey:"devices.outdoor_unit.ports.cold_in",kind:"inlet",position:{x:170,y:90}}],channels:{kind:"sensor",titleKey:"devices.outdoor_unit.channels",itemKey:"devices.outdoor_unit.channel",min:0,max:4,default:0}};const Ke={type:Re="pipe_sensor",labelKey:`devices.${Re}.name`,width:80,height:44,ports:[{id:"in",labelKey:"devices.inline.ports.in",kind:"inlet",position:{x:0,y:30}},{id:"out",labelKey:"devices.inline.ports.out",kind:"outlet",position:{x:80,y:30}}]};var Re;const je=[Se.type,Ce.type,Pe.type,Ie.type,Ne.type,Me.type,Oe.type,Te.type,ze.type,Ue.type,He.type,Ke.type],Le=new Map([[Se.type,Se],[Ce.type,Ce],[Pe.type,Pe],[Ie.type,Ie],[Ne.type,Ne],[Me.type,Me],[Oe.type,Oe],[Te.type,Te],[ze.type,ze],[Ue.type,Ue],[He.type,He],[Ke.type,Ke]]);function De(e){return Le.get(e)}function Be(e){const t=Le.get(e.type);return t?.resolve?t.resolve(e):t}function Ve(e){return((e??0)%360+360)%360}function Fe(e,t){const i=t*Math.PI/180,o=Math.cos(i),n=Math.sin(i);return{x:Math.round(1e3*(e.x*o-e.y*n))/1e3,y:Math.round(1e3*(e.x*n+e.y*o))/1e3}}function qe(e,t){const{x:i,y:o}=t.position,n=[[i,{x:-1,y:0}],[e.width-i,{x:1,y:0}],[o,{x:0,y:-1}],[e.height-o,{x:0,y:1}]];return n.sort((e,t)=>e[0]-t[0]),n[0][1]}function Ze(e,t){const i=Be(e);if(!i)return;const o=i.ports.find(e=>e.id===t);if(!o)return;const n=Ve(e.rotation),r=i.width/2,s=i.height/2,a=Fe({x:o.position.x-r,y:o.position.y-s},n);return{nodeId:e.id,portId:o.id,x:e.position.x+r+a.x,y:e.position.y+s+a.y,kind:o.kind,direction:Fe(qe(i,o),n)}}function We(e,t){const i=Ve(e.rotation)%180!=0,o=i?t.height:t.width,n=i?t.width:t.height;return{x:e.position.x+(t.width-o)/2,y:e.position.y+(t.height-n)/2,width:o,height:n}}function Je(e,t){return e.nodeId===t.nodeId&&e.portId===t.portId}function Ge(e,t=10){return Math.round(e/t)*t}function Xe(e,t,i){if(!e||!i.entity_id)return"—";const o=e[i.entity_id];if(!o)return"—";if(i.template)return function(e,t,i){return e.replace(/\{\{\s*state\s*\}\}/g,t).replace(/\{\{\s*attr\(['"](\w+)['"]\)\s*\}\}/g,(e,t)=>String(i[t]??""))}(i.template,o.state,o.attributes);if(t)return t.formatEntityState(o);const n=o.attributes.unit_of_measurement;return n?`${o.state} ${n}`:o.state}const Ye=new Set(["primary","accent","disabled","red","pink","purple","deep-purple","indigo","blue","light-blue","cyan","teal","green","light-green","lime","yellow","amber","orange","deep-orange","brown","light-grey","grey","dark-grey","blue-grey","black","white"]);function Qe(e){return Ye.has(e)?`var(--${e}-color)`:e}function et(e,t,i){const o=e[t.entity||i];if(!o)return!1;if("state"===t.condition)return void 0!==t.state&&o.state===t.state;if(void 0===t.above&&void 0===t.below)return!1;const n=Number(o.state);return!Number.isNaN(n)&&((void 0===t.above||n>t.above)&&(void 0===t.below||n<t.below))}function tt(e,t,i){if(!e||!t?.entity_id)return{active:!1};const o=e[t.entity_id];if(!o)return{active:!1};const n=Number(o.state),r=o.attributes.unit_of_measurement,s=i?i.formatEntityState(o):r?`${o.state} ${r}`:o.state,a=t.active_state??"on",d=o.state===a||"on"===a&&"heat"===o.state,l=t.mode_attribute??"position",c=String(o.attributes[l]??o.state??"");let h;return c===(t.branch_a_value??"a")&&(h="a"),c===(t.branch_b_value??"b")&&(h="b"),{active:d,valveBranch:h,value:s,numeric:""!==o.state.trim()&&Number.isFinite(n)?n:void 0,position:it(o,t.mode_attribute),unit:r}}function it(e,t){const i=t?e.attributes[t]:e.attributes.current_position??e.state,o=Number(i);if(null!=i&&""!==i&&Number.isFinite(o))return Math.min(100,Math.max(0,o))}function ot(e,t){return e.ports.map(e=>F`
     <circle
-      class="port port-${t.kind}"
-      data-port-id="${t.id}"
-      cx="${t.position.x}" cy="${t.position.y}" r="5"
+      class="port port-${e.kind}"
+      data-port-id="${e.id}"
+      cx="${e.position.x}" cy="${e.position.y}" r="5"
       fill="var(--card-background-color, #1c1c1c)"
-      stroke="${"inlet"===t.kind?"#4fc3f7":"#ff8a65"}"
+      stroke="${"inlet"===e.kind?"#4fc3f7":"#ff8a65"}"
       stroke-width="2"
-    />
-    <title>${e.t(t.labelKey)}</title>
-  `)}function Ht(t,e,i,o,s){switch(t){case"heat_pump":return function(t,e,i,o){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",n=i?2.5:1.5;return q`
+    ><title>${t.t(e.labelKey,...e.labelArgs??[])}</title></circle>
+  `)}const nt="#ef5350",rt="#42a5f5";function st(e){if(void 0===e)return"var(--divider-color, #888)";const t=Math.min(1,Math.max(0,(e-20)/40));return`hsl(${Math.round(220*(1-t))}, 75%, 50%)`}const at="#ff7043";function dt(e,t,i,o){const n=i/6;let r=`M ${e} ${t}`;for(let i=1;i<=6;i++)r+=` L ${e+i*n} ${t+(i%2==0?0:-8)}`;const s=o.active?at:"var(--divider-color, #888)";return F`
+    <path class="heater ${o.active?"active":""}" d="${r}" fill="none"
+      stroke="${s}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+  `}function lt(e,t,i,o,n,r={}){const s=r.channels??[];switch(e){case"heat_pump":return function(e,t,i,o){const n=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",r=i?2.5:1.5;return F`
     <g class="device device-heat-pump">
       <rect
         x="10" y="15" width="100" height="70" rx="8"
         fill="var(--card-background-color, #1c1c1c)"
-        stroke="${s}" stroke-width="${n}"
+        stroke="${n}" stroke-width="${r}"
       />
       <circle cx="60" cy="50" r="22"
-        fill="none" stroke="${s}" stroke-width="${n}"
+        fill="none" stroke="${n}" stroke-width="${r}"
       />
       <path d="M 48 50 L 72 50 M 60 38 L 60 62"
         stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round"
       />
-      <text x="60" y="8" text-anchor="middle" class="device-label">
-        ${e.t(t.labelKey)}
-      </text>
-      ${zt(t,e)}
+      ${ot(e,t)}
     </g>
-  `}(e,i,o,s);case"valve_3way":return function(t,e,i,o){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",n=i?2.5:1.5,r="a"===o.valveBranch?"#4caf50":"var(--divider-color, #555)",a="b"===o.valveBranch?"#4caf50":"var(--divider-color, #555)";return q`
+  `}(t,i,o,n);case"valve_3way":return function(e,t,i,o){const n=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",r=i?2.5:1.5,s="a"===o.valveBranch?"#4caf50":"var(--divider-color, #555)",a="b"===o.valveBranch?"#4caf50":"var(--divider-color, #555)";return F`
     <g class="device device-valve-3way">
       <polygon
         points="10,50 45,15 45,35 90,35 90,65 45,65 45,85"
         fill="var(--card-background-color, #1c1c1c)"
-        stroke="${s}" stroke-width="${n}"
+        stroke="${n}" stroke-width="${r}"
       />
-      <line x1="45" y1="50" x2="90" y2="25" stroke="${r}" stroke-width="3" />
+      <line x1="45" y1="50" x2="90" y2="25" stroke="${s}" stroke-width="3" />
       <line x1="45" y1="50" x2="90" y2="75" stroke="${a}" stroke-width="3" />
-      <text x="50" y="8" text-anchor="middle" class="device-label">${e.t(t.labelKey)}</text>
-      ${zt(t,e)}
+      ${ot(e,t)}
     </g>
-  `}(e,i,o,s);case"boiler":return function(t,e,i,o){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return q`
+  `}(t,i,o,n);case"boiler":return function(e,t,i,o,n){const r=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return F`
     <g class="device device-boiler">
       <rect
         x="10" y="10" width="70" height="120" rx="18"
         fill="var(--card-background-color, #1c1c1c)"
-        stroke="${s}" stroke-width="${i?2.5:1.5}"
+        stroke="${r}" stroke-width="${i?2.5:1.5}"
       />
       <path d="M 30 35 L 60 35 M 30 55 L 60 55 M 30 75 L 60 75"
         stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
-      <text x="45" y="8" text-anchor="middle" class="device-label">${e.t(t.labelKey)}</text>
-      ${zt(t,e)}
+      ${n?dt(24,100,42,n):F``}
+      ${ot(e,t)}
     </g>
-  `}(e,i,o,s);case"junction":return function(t,e,i,o){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return q`
+  `}(t,i,o,n,r.heater);case"junction":return function(e,t,i,o){const n=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return F`
     <g class="device device-junction">
       <circle
         cx="30" cy="30" r="18"
         fill="var(--card-background-color, #1c1c1c)"
-        stroke="${s}" stroke-width="${i?2.5:1.5}"
+        stroke="${n}" stroke-width="${i?2.5:1.5}"
       />
-      <text x="30" y="8" text-anchor="middle" class="device-label">${e.t(t.labelKey)}</text>
-      ${zt(t,e)}
+      ${ot(e,t)}
     </g>
-  `}(e,i,o,s);case"circulation_pump":return function(t,e,i,o){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return q`
+  `}(t,i,o,n);case"circulation_pump":return function(e,t,i,o){const n=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return F`
     <g class="device device-circulation-pump">
       <circle
         cx="45" cy="45" r="28"
         fill="var(--card-background-color, #1c1c1c)"
-        stroke="${s}" stroke-width="${i?2.5:1.5}"
+        stroke="${n}" stroke-width="${i?2.5:1.5}"
       />
       <path d="M 32 52 A 14 14 0 0 1 58 38"
         fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
       <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
-      <text x="45" y="8" text-anchor="middle" class="device-label">${e.t(t.labelKey)}</text>
-      ${zt(t,e)}
+      ${ot(e,t)}
     </g>
-  `}(e,i,o,s);case"floor_heating":return function(t,e,i,o){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return q`
+  `}(t,i,o,n);case"floor_heating":return function(e,t,i,o){const n=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)";return F`
     <g class="device device-floor-heating">
       <rect
         x="10" y="18" width="120" height="55" rx="8"
         fill="var(--card-background-color, #1c1c1c)"
-        stroke="${s}" stroke-width="${i?2.5:1.5}"
+        stroke="${n}" stroke-width="${i?2.5:1.5}"
       />
       <path d="M 20 40 C 35 30, 50 50, 65 40 C 80 30, 95 50, 110 40 C 115 37, 120 37, 126 40"
         fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" />
-      <text x="70" y="8" text-anchor="middle" class="device-label">${e.t(t.labelKey)}</text>
-      ${zt(t,e)}
+      ${ot(e,t)}
     </g>
-  `}(e,i,o,s);default:return}}let jt=class extends lt{constructor(){super(...arguments),this.schema={nodes:[],edges:[],overlays:[]},this.editable=!1}updated(t){t.has("editable")&&this.toggleAttribute("editable",this.editable)}render(){const t=this._translator(),{nodes:e,edges:i,overlays:o}=this.schema,s=this._computeBounds(e);return V`
+  `}(t,i,o,n);case"manifold":return function(e,t,i,o,n){const r=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",s=i?2.5:1.5,a=e.width-8,d=e.ports.filter(e=>e.id.startsWith("loop_")&&"outlet"===e.kind);return F`
+    <g class="device device-manifold">
+      <rect x="2" y="18" width="${e.width-4}" height="94" rx="6"
+        fill="none" stroke="${r}" stroke-width="${s}" stroke-dasharray="4 3" />
+      <rect x="4" y="22" width="${a}" height="16" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${nt}" stroke-width="2" />
+      <rect x="4" y="92" width="${a}" height="16" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${rt}" stroke-width="2" />
+      ${d.map((t,i)=>{const o=t.position.x,r=n[i]?.active??!1;return F`
+          <line x1="${o}" y1="0" x2="${o}" y2="22" stroke="${nt}" stroke-width="2" />
+          <rect class="actuator ${r?"active":""}" x="${o-7}" y="6" width="14" height="11" rx="2"
+            fill="${r?"#4caf50":"var(--card-background-color, #1c1c1c)"}"
+            stroke="${r?"#4caf50":"var(--divider-color, #888)"}" stroke-width="1.5" />
+          <line x1="${o}" y1="108" x2="${o}" y2="${e.height}" stroke="${rt}" stroke-width="2" />
+          <text x="${o}" y="69" text-anchor="middle" class="device-label">${i+1}</text>
+        `})}
+      ${ot(e,t)}
+    </g>
+  `}(t,i,o,n,s);case"buffer_tank":return function(e,t,i,o,n,r){const s=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",a=i?2.5:1.5,d=e.height-10,l=n.length,c=n.map((e,t)=>1===l?(16+d)/2:34+t*(d-16-36)/(l-1));return F`
+    <g class="device device-buffer-tank">
+      ${e.ports.map(e=>F`
+        <line x1="${e.position.x}" y1="${e.position.y}" x2="${0===e.position.x?14:86}" y2="${e.position.y}"
+          stroke="var(--divider-color, #888)" stroke-width="2" />
+      `)}
+      <rect x="14" y="10" width="72" height="${e.height-14}" rx="10"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${s}" stroke-width="${a}" />
+      ${n.map((e,t)=>{const i=0===t?16:(c[t-1]+c[t])/2,o=t===l-1?d:(c[t]+c[t+1])/2,n=st(e.numeric);return F`
+          <rect x="17" y="${i}" width="66" height="${o-i}" fill="${n}" opacity="0.3" />
+          <circle cx="18" cy="${c[t]}" r="3" fill="${n}" />
+          <text x="52" y="${c[t]+4}" text-anchor="middle" class="device-value">
+            ${e.value??"—"}
+          </text>
+        `})}
+      ${r?dt(28,d-8,44,r):F``}
+      ${ot(e,t)}
+    </g>
+  `}(t,i,o,n,s,r.heater);case"mixing_valve":return function(e,t,i,o){const n=i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",r=i?2.5:1.5,s=o.position,a=void 0===s?"var(--divider-color, #888)":`hsl(${Math.round(210*(1-s/100))}, 75%, 55%)`;return F`
+    <g class="device device-mixing-valve">
+      <line x1="0" y1="70" x2="22" y2="70" stroke="${nt}" stroke-width="3" />
+      <line x1="50" y1="96" x2="50" y2="${e.height}" stroke="${rt}" stroke-width="3" />
+      <line x1="78" y1="70" x2="${e.width}" y2="70" stroke="${a}" stroke-width="3" />
+      <path d="M 22 56 L 50 70 L 22 84 Z M 78 56 L 50 70 L 78 84 Z M 36 98 L 50 70 L 64 98 Z"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${n}" stroke-width="${r}"
+        stroke-linejoin="round" />
+      <line x1="50" y1="36" x2="50" y2="70" stroke="${n}" stroke-width="2" />
+      <rect x="28" y="10" width="44" height="26" rx="4"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${n}" stroke-width="${r}" />
+      ${void 0===s?F``:F`<rect x="30" y="12" width="${40*s/100}" height="22" rx="3" fill="${a}" opacity="0.35" />`}
+      <text x="50" y="27" text-anchor="middle" class="device-value">
+        ${void 0===s?"—":`${Math.round(s)} %`}
+      </text>
+      ${ot(e,t)}
+    </g>
+  `}(t,i,o,n);case"electric_heater":return function(e,t,i,o){const n=o.active?at:i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",r=i?2.5:1.5;return F`
+    <g class="device device-electric-heater">
+      <rect x="10" y="12" width="${e.width-20}" height="${e.height-24}" rx="8"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${n}" stroke-width="${r}" />
+      ${dt(24,e.height/2+4,e.width-48,o)}
+      ${ot(e,t)}
+    </g>
+  `}(t,i,o,n);case"outdoor_unit":return function(e,t,i,o,n){const r=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",s=i?2.5:1.5;return F`
+    <g class="device device-outdoor-unit">
+      <rect x="10" y="12" width="${e.width-20}" height="${e.height-24}" rx="6"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${r}" stroke-width="${s}" />
+      <circle cx="${58}" cy="${60}" r="34" fill="none" stroke="var(--divider-color, #888)" stroke-width="1.5" />
+      <g class="fan ${o.active?"spinning":""}">
+        ${[0,90,180,270].map(e=>F`
+          <path d="${"M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z"}" transform="translate(${58} ${60}) rotate(${e})"
+            fill="var(--primary-color, #03a9f4)" opacity="0.75" />
+        `)}
+        <circle cx="${58}" cy="${60}" r="5" fill="var(--primary-color, #03a9f4)" />
+      </g>
+      ${n.map((e,t)=>F`
+        <text x="104" y="${36+18*t}" class="device-value">
+          <title>${e.label??""}</title>${e.value??"—"}
+        </text>
+      `)}
+      ${ot(e,t)}
+    </g>
+  `}(t,i,o,n,s);case"pipe_sensor":return function(e,t,i,o,n){const r=e.width/2,s=e.height-14,a=o.unit?.includes("°")??!1,d=i?"var(--primary-color, #03a9f4)":a?st(o.numeric):"var(--primary-color, #03a9f4)";return F`
+    <g class="device device-inline-sensor">
+      <line x1="0" y1="${s}" x2="${e.width}" y2="${s}" stroke="var(--divider-color, #888)" stroke-width="3" />
+      <circle cx="${r}" cy="${s}" r="11" fill="var(--card-background-color, #1c1c1c)"
+        stroke="${d}" stroke-width="${i?2.5:2}" />
+      <path d="${function(e,t,i){switch(e){case"temperature":return`M ${t-1.5} ${i+2} V ${i-6} A 1.5 1.5 0 0 1 ${t+1.5} ${i-6} V ${i+2} M ${t-3} ${i+4.5} A 3 3 0 1 0 ${t+3} ${i+4.5} A 3 3 0 1 0 ${t-3} ${i+4.5}`;case"flow":return`M ${t-6} ${i} L ${t+5} ${i} M ${t+1} ${i-4} L ${t+5} ${i} L ${t+1} ${i+4}`;case"pressure":return`M ${t-6} ${i+3} A 6 6 0 1 1 ${t+6} ${i+3} M ${t} ${i+1} L ${t+4} ${i-4}`;case"energy":return`M ${t+1} ${i-7} L ${t-4} ${i+1} L ${t} ${i+1} L ${t-1} ${i+7} L ${t+4} ${i-1} L ${t} ${i-1} Z`}}(n,r,s)}" fill="${"none"}"
+        stroke="${d}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <text x="${r}" y="${s-17}" text-anchor="middle" class="device-value">${o.value??"—"}</text>
+      ${ot(e,t)}
+    </g>
+  `}(t,i,o,n,"temperature");default:return}}let ct=class extends le{constructor(){super(...arguments),this.schema={nodes:[],edges:[],overlays:[]},this.editable=!1,this._states=new Ee(this,ke),this._formatters=new Ee(this,we),this._i18n=new Ee(this,Ae)}updated(e){e.has("editable")&&this.toggleAttribute("editable",this.editable)}render(){const e=this._translator(),{nodes:t,edges:i,overlays:o}=this.schema,n=this._dragBounds??this._computeBounds(t);return V`
       <svg
-        viewBox="${s.x} ${s.y} ${s.width} ${s.height}"
+        viewBox="${n.x} ${n.y} ${n.width} ${n.height}"
         @pointerdown="${this._onCanvasPointerDown}"
         @pointermove="${this._onCanvasPointerMove}"
         @pointerup="${this._onCanvasPointerUp}"
         @pointerleave="${this._onCanvasPointerUp}"
       >
-        ${i.map(t=>this._renderEdge(t))}
-        ${e.map(e=>this._renderNode(e,t))}
-        ${o.map(e=>this._renderOverlay(e,t))}
+        ${this.editable?F`
+            <defs>
+              <pattern id="grid" width="${20}" height="${20}" patternUnits="userSpaceOnUse">
+                <circle class="grid-dot" cx="0" cy="0" r="1" />
+              </pattern>
+            </defs>
+            <rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="url(#grid)" />
+          `:Z}
+        ${i.map(e=>this._renderEdge(e))}
+        ${t.map(t=>this._renderNode(t,e))}
+        ${o.map(t=>this._renderOverlay(t,e))}
       </svg>
-    `}_translator(){return xt(this.config?.language,this.config?.translations)}_computeBounds(t){if(!t.length)return{x:0,y:0,width:800,height:400};let e=1/0,i=1/0,o=-1/0,s=-1/0;for(const n of t){const t=It(n.type);t&&(e=Math.min(e,n.position.x),i=Math.min(i,n.position.y-20),o=Math.max(o,n.position.x+t.width),s=Math.max(s,n.position.y+t.height+10))}return{x:e-40,y:i-40,width:o-e+80,height:s-i+80}}_renderEdge(t){const e=this.schema.nodes.find(e=>e.id===t.from.nodeId),i=this.schema.nodes.find(e=>e.id===t.to.nodeId);if(!e||!i)return V``;const o=Tt(e,t.from.portId),s=Tt(i,t.to.portId);return o&&s?q`<path class="pipe" d="${function(t,e){const i=(t.x+e.x)/2;return`M ${t.x} ${t.y} C ${i} ${t.y}, ${i} ${e.y}, ${e.x} ${e.y}`}(o,s)}" />`:V``}_renderNode(t,e){const i=It(t.type);if(!i)return V``;const o=this.selectedNodeId===t.id,s=function(t,e){if(!t||!e?.entity_id)return{active:!1};const i=t.states[e.entity_id];if(!i)return{active:!1};const o=e.active_state??"on",s=i.state===o||"on"===o&&"heat"===i.state,n=e.mode_attribute??"position",r=String(i.attributes[n]??i.state??"");let a;return r===(e.branch_a_value??"a")&&(a="a"),r===(e.branch_b_value??"b")&&(a="b"),{active:s,valveBranch:a}}(this.hass,t.state),n=Ht(t.type,i,e,o,s);return n?q`
+    `}_translator(){return xe(this.config?.language??this._i18n.value?.language,this.config?.translations)}_computeBounds(e){if(!e.length)return{x:0,y:0,width:800,height:400};let t=1/0,i=1/0,o=-1/0,n=-1/0;for(const r of e){const e=Be(r);if(!e)continue;const s=We(r,e);t=Math.min(t,s.x),i=Math.min(i,s.y-20),o=Math.max(o,s.x+s.width),n=Math.max(n,s.y+s.height+10)}return{x:t-40,y:i-40,width:o-t+80,height:n-i+80}}_renderEdge(e){const t=this.schema.nodes.find(t=>t.id===e.from.nodeId),i=this.schema.nodes.find(t=>t.id===e.to.nodeId);if(!t||!i)return V``;const o=Ze(t,e.from.portId),n=Ze(i,e.to.portId);if(!o||!n)return V``;const r=function(e,t){const i=Math.hypot(t.x-e.x,t.y-e.y),o=Math.max(30,i/2),n=e.x+e.direction.x*o,r=e.y+e.direction.y*o,s=t.x+t.direction.x*o,a=t.y+t.direction.y*o;return`M ${e.x} ${e.y} C ${n} ${r}, ${s} ${a}, ${t.x} ${t.y}`}(o,n),s=this.selectedEdgeId===e.id;return F`
+      <path class="pipe ${s?"selected":""}" d="${r}" />
+      ${this.editable?F`<path class="pipe-hit" data-edge-id="${e.id}" d="${r}" />`:Z}
+    `}_renderNode(e,t){const i=Be(e);if(!i)return V``;const o=this.selectedNodeId===e.id,n=this._states.value,r=this._formatters.value,s=tt(n,e.state,r),a=(e.channels??[]).map(e=>({...tt(n,e,r),label:e.name})),d=e.heater?.entity_id?tt(n,e.heater,r):void 0,l=lt(e.type,i,t,o,s,{channels:a,heater:d});if(!l)return V``;const c=Ve(e.rotation),h=We(e,i).y-e.position.y-4;return F`
       <g
-        class="node ${this._dragNodeId===t.id?"dragging":""}"
-        data-node-id="${t.id}"
-        transform="translate(${t.position.x} ${t.position.y})"
+        class="node ${this._dragNodeId===e.id?"dragging":""}"
+        data-node-id="${e.id}"
+        transform="translate(${e.position.x} ${e.position.y})"
       >
-        ${n}
-      </g>
-    `:V``}_renderOverlay(t,e){const i=Mt(this.hass,t),o=function(t,e){let i,o,s=!0;if(!t||!e.rules?.length)return{color:i,className:o,visible:s};for(const n of e.rules)Ut(t,n)&&(n.effect.color&&(i=n.effect.color),n.effect.class&&(o=n.effect.class),void 0!==n.effect.visible&&(s=n.effect.visible));return{color:i,className:o,visible:s}}(this.hass,t);if(!o.visible)return V``;const s=`${t.labelKey?e.t(t.labelKey):t.entity_id}: ${i}`,n=Math.max(80,7*s.length+16);return q`
-      <g class="overlay-group ${o.className??""}" transform="translate(${t.position.x} ${t.position.y})">
-        <rect class="overlay-bg" x="0" y="0" width="${n}" height="22" rx="4" />
-        <text class="overlay-text" x="8" y="15" fill="${o.color??"var(--primary-text-color, #e0e0e0)"}">
-          ${s}
+        <g transform="rotate(${c} ${i.width/2} ${i.height/2})">
+          ${l}
+        </g>
+        <text x="${i.width/2}" y="${h}" text-anchor="middle" class="device-label">
+          ${t.t(i.labelKey)}
         </text>
       </g>
-    `}_onCanvasPointerDown(t){if(!this.editable)return;const e=t.target,i=e?.closest?.("[data-node-id]");if(!i)return void this._dispatchSelect(void 0);const o=i.getAttribute("data-node-id");if(!o)return;const s=this.schema.nodes.find(t=>t.id===o);if(!s)return;const n=e?.closest?.("[data-port-id]");if(n){const e=n.getAttribute("data-port-id");if(e)return this._dispatchPortClick(o,e),void t.stopPropagation()}this._dragNodeId=o,i.setPointerCapture(t.pointerId),this._dispatchSelect(o),t.preventDefault()}_onCanvasPointerMove(t){if(!this.editable||!this._dragNodeId)return;const e=this.schema.nodes.find(t=>t.id===this._dragNodeId);if(!e)return;const i=this.renderRoot.querySelector("svg");if(!i)return;const o=i.createSVGPoint();o.x=t.clientX,o.y=t.clientY;const s=i.getScreenCTM();if(!s)return;const n=o.matrixTransform(s.inverse());this.dispatchEvent(new CustomEvent("node-move",{detail:{nodeId:e.id,position:{x:Math.round(n.x),y:Math.round(n.y)}},bubbles:!0,composed:!0}))}_onCanvasPointerUp(t){if(this._dragNodeId){const e=this.renderRoot.querySelector(`[data-node-id="${this._dragNodeId}"]`);e?.releasePointerCapture(t.pointerId),this._dragNodeId=void 0}}_dispatchSelect(t){this.dispatchEvent(new CustomEvent("node-select",{detail:{nodeId:t},bubbles:!0,composed:!0}))}_dispatchPortClick(t,e){this.dispatchEvent(new CustomEvent("port-click",{detail:{nodeId:t,portId:e},bubbles:!0,composed:!0}))}};jt.styles=r`
+    `}_renderOverlay(e,t){const i=this._states.value,o=this._formatters.value,n=Xe(i,o,e),r=function(e,t){let i,o,n=!0;if(!e||!t.rules?.length)return{color:i,className:o,visible:n};for(const r of t.rules)et(e,r,t.entity_id)&&(r.effect.color&&(i=Qe(r.effect.color)),r.effect.class&&(o=r.effect.class),void 0!==r.effect.visible&&(n=r.effect.visible));return{color:i,className:o,visible:n}}(i,e);if(!r.visible)return V``;const s=e.labelKey?t.t(e.labelKey):function(e,t,i){const o=e?.[i.entity_id];return o&&t?t.formatEntityName(o,i.name):"string"==typeof i.name?i.name:i.entity_id}(i,o,e),a=`${s}: ${n}`,d=Math.max(80,7*a.length+16);return F`
+      <g class="overlay-group ${r.className??""}" transform="translate(${e.position.x} ${e.position.y})">
+        <rect class="overlay-bg" x="0" y="0" width="${d}" height="22" rx="4" />
+        <text class="overlay-text" x="8" y="15" fill="${r.color??"var(--primary-text-color, #e0e0e0)"}">
+          ${a}
+        </text>
+      </g>
+    `}_onCanvasPointerDown(e){if(!this.editable)return;const t=e.target,i=t?.getAttribute?.("data-edge-id");if(i)return void this.dispatchEvent(new CustomEvent("edge-select",{detail:{edgeId:i},bubbles:!0,composed:!0}));const o=t?.closest?.("[data-node-id]");if(!o)return void this._dispatchSelect(void 0);const n=o.getAttribute("data-node-id");if(!n)return;const r=this.schema.nodes.find(e=>e.id===n);if(!r)return;const s=t?.closest?.("[data-port-id]");if(s){const t=s.getAttribute("data-port-id");if(t)return this._dispatchPortClick(n,t),void e.stopPropagation()}this._dragNodeId=n;const a=this._toLocal(e);this._dragOffset=a?{x:a.x-r.position.x,y:a.y-r.position.y}:{x:0,y:0},this._dragBounds=this._computeBounds(this.schema.nodes),o.setPointerCapture(e.pointerId),this._dispatchSelect(n),e.preventDefault()}_toLocal(e){const t=this.renderRoot.querySelector("svg"),i=t?.getScreenCTM();if(!t||!i)return;const o=t.createSVGPoint();return o.x=e.clientX,o.y=e.clientY,o.matrixTransform(i.inverse())}_onCanvasPointerMove(e){if(!this.editable||!this._dragNodeId)return;const t=this.schema.nodes.find(e=>e.id===this._dragNodeId),i=this._toLocal(e);if(!t||!i)return;const o=this._dragOffset??{x:0,y:0},n={x:Ge(i.x-o.x,10),y:Ge(i.y-o.y,10)};n.x===t.position.x&&n.y===t.position.y||this.dispatchEvent(new CustomEvent("node-move",{detail:{nodeId:t.id,position:n},bubbles:!0,composed:!0}))}_onCanvasPointerUp(e){if(this._dragNodeId){const t=this.renderRoot.querySelector(`[data-node-id="${this._dragNodeId}"]`);t?.releasePointerCapture(e.pointerId),this._dragNodeId=void 0,this._dragOffset=void 0,this._dragBounds=void 0,this.requestUpdate()}}_dispatchSelect(e){this.dispatchEvent(new CustomEvent("node-select",{detail:{nodeId:e},bubbles:!0,composed:!0}))}_dispatchPortClick(e,t){this.dispatchEvent(new CustomEvent("port-click",{detail:{nodeId:e,portId:t},bubbles:!0,composed:!0}))}};ct.styles=s`
     :host {
       display: block;
       width: 100%;
@@ -131,10 +231,44 @@ function t(t,e,i,o){var s,n=arguments.length,r=n<3?e:null===o?o=Object.getOwnPro
       stroke-width: 4;
       stroke-linecap: round;
     }
+    .pipe.selected {
+      stroke: var(--primary-color, #03a9f4);
+      stroke-width: 6;
+    }
+    .pipe-hit {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 16;
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+    .grid-dot {
+      fill: var(--divider-color, #555);
+    }
+    .spinning {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: spin 1.6s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .spinning {
+        animation: none;
+      }
+    }
     .device-label {
       fill: var(--primary-text-color, #e0e0e0);
-      font-size: 11px;
-      font-family: var(--ha-font-family, sans-serif);
+      font-size: var(--ha-font-size-xs, 11px);
+      pointer-events: none;
+    }
+    .device-value {
+      fill: var(--primary-text-color, #e0e0e0);
+      font-size: var(--ha-font-size-s, 12px);
+      font-weight: var(--ha-font-weight-medium, 500);
       pointer-events: none;
     }
     .node {
@@ -157,90 +291,96 @@ function t(t,e,i,o){var s,n=arguments.length,r=n<3?e:null===o?o=Object.getOwnPro
     }
     .overlay-text {
       fill: var(--primary-text-color, #e0e0e0);
-      font-size: 12px;
-      font-family: var(--ha-font-family, monospace);
+      font-size: var(--ha-font-size-s, 12px);
     }
     .port-highlight {
       stroke: var(--primary-color, #03a9f4) !important;
       stroke-width: 3 !important;
     }
-  `,t([vt({attribute:!1})],jt.prototype,"hass",void 0),t([vt({attribute:!1})],jt.prototype,"schema",void 0),t([vt({attribute:!1})],jt.prototype,"config",void 0),t([vt({type:Boolean})],jt.prototype,"editable",void 0),t([vt({attribute:!1})],jt.prototype,"selectedNodeId",void 0),t([vt({attribute:!1})],jt.prototype,"selectedPort",void 0),jt=t([ht("heating-schema-canvas")],jt);let Dt=class extends lt{constructor(){super(...arguments),this._tab="schema",this._selectedDeviceType=At.type,this._translationEdits={}}set hass(t){this._hass=t,this.requestUpdate()}get hass(){return this._hass}setConfig(t){this._config=ft(t);const e=xt(this._config.language,this._config.translations);this._translationEdits={...e.getEditableTranslations()},this.requestUpdate()}render(){if(!this._config)return V``;const t=xt(this._config.language,this._config.translations);return V`
+  `,e([ve({attribute:!1})],ct.prototype,"schema",void 0),e([ve({attribute:!1})],ct.prototype,"config",void 0),e([ve({type:Boolean})],ct.prototype,"editable",void 0),e([ve({attribute:!1})],ct.prototype,"selectedNodeId",void 0),e([ve({attribute:!1})],ct.prototype,"selectedEdgeId",void 0),e([ve({attribute:!1})],ct.prototype,"selectedPort",void 0),ct=e([he("heating-schema-canvas")],ct);const ht={entity_id:"editor.node_state_entity",active_state:"editor.node_state_active",mode_attribute:"editor.node_state_mode_attribute",branch_a_value:"editor.node_state_branch_a",branch_b_value:"editor.node_state_branch_b"},ut={active_state:"on",mode_attribute:"position",branch_a_value:"a",branch_b_value:"b"},pt=new Set(["pipe_sensor"]),vt={entity_id:"editor.node_value_entity"},_t={...ht,entity_id:"editor.node_state_position_entity",mode_attribute:"editor.node_state_position_attribute"},yt={mode_attribute:"editor.node_state_position_helper"},mt={...ht,name:"editor.channel_name"},ft=[{name:"name",selector:{text:{}}},{name:"entity_id",selector:{entity:{}}},{name:"active_state",selector:{state:{}},context:{filter_entity:"entity_id"}}],gt=[{name:"name",selector:{text:{}}},{name:"entity_id",selector:{entity:{}}}],bt=[{name:"entity_id",selector:{entity:{}}},{name:"active_state",selector:{state:{}},context:{filter_entity:"entity_id"}}];function $t(e,t){const i=(e.channels??[]).map(e=>({...e})),o=i.length||t.default;for(;i.length<o;)i.push({});return i}const xt={entity_id:"overlay.entity",name:"overlay.name",template:"overlay.template"},kt=[{name:"entity_id",selector:{entity:{}}},{name:"name",selector:{entity_name:{}},context:{entity:"entity_id"}},{name:"template",selector:{text:{}}},{type:"grid",name:"position",schema:[{name:"x",selector:{number:{mode:"box"}}},{name:"y",selector:{number:{mode:"box"}}}]}];function wt(e){return Object.fromEntries(Object.entries(e).filter(([,e])=>null!=e&&""!==e))}const At={condition:"overlay.rule.condition",entity:"overlay.rule.entity",state:"overlay.rule.state",above:"overlay.rule.above",below:"overlay.rule.below",color:"overlay.rule.color",hide:"overlay.rule.hide"},Et={entity:"overlay.rule.entity_helper"};let St=class extends le{constructor(){super(...arguments),this._tab="schema",this._selectedDeviceType=Se.type,this._translationEdits={},this._formReady=void 0!==customElements.get("ha-form")}set hass(e){this._hass=e,this.requestUpdate()}get hass(){return this._hass}connectedCallback(){super.connectedCallback(),this._formReady||this._loadHaForm()}setConfig(e){this._config=fe(e),this._translationEdits={...this._translator().getEditableTranslations()},this.requestUpdate()}render(){if(!this._config)return V``;const e=this._translator();return V`
       <div class="editor">
         <div class="tabs">
           <button
             type="button"
             class="${"schema"===this._tab?"active":""}"
             @click="${()=>{this._tab="schema"}}"
-          >${t.t("editor.schema_tab")}</button>
+          >${e.t("editor.schema_tab")}</button>
           <button
             type="button"
             class="${"overlays"===this._tab?"active":""}"
             @click="${()=>{this._tab="overlays"}}"
-          >${t.t("editor.overlay_tab")}</button>
+          >${e.t("editor.overlay_tab")}</button>
           <button
             type="button"
             class="${"translations"===this._tab?"active":""}"
             @click="${()=>{this._tab="translations"}}"
-          >${t.t("editor.translations")}</button>
+          >${e.t("editor.translations")}</button>
         </div>
 
-        ${"schema"===this._tab?this._renderSchemaTab(t):J}
-        ${"overlays"===this._tab?this._renderOverlaysTab(t):J}
-        ${"translations"===this._tab?this._renderTranslationsTab(t):J}
+        ${"schema"===this._tab?this._renderSchemaTab(e):Z}
+        ${"overlays"===this._tab?this._renderOverlaysTab(e):Z}
+        ${"translations"===this._tab?this._renderTranslationsTab(e):Z}
       </div>
-    `}_renderSchemaTab(t){const e=this._config.schema,i=e.nodes.find(t=>t.id===this._selectedNodeId);return V`
+    `}_renderSchemaTab(e){const t=this._config.schema,i=t.nodes.find(e=>e.id===this._selectedNodeId);return V`
       <div class="toolbar">
-        <label>${t.t("editor.device_type")}</label>
+        <label>${e.t("editor.device_type")}</label>
         <select
           .value="${this._selectedDeviceType}"
-          @change="${t=>{this._selectedDeviceType=t.target.value}}"
+          @change="${e=>{this._selectedDeviceType=e.target.value}}"
         >
-          ${Pt.map(e=>V`
-            <option value="${e}">
-              ${t.t(`devices.${e}.name`)}
+          ${je.map(t=>V`
+            <option value="${t}">
+              ${e.t(`devices.${t}.name`)}
             </option>
           `)}
         </select>
         <select
-          .value="${this._config.language??yt}"
+          .value="${this._config.language??""}"
           @change="${this._onLanguageChange}"
         >
-          ${t.getAvailableLanguages().map(t=>V`<option value="${t}">${t}</option>`)}
+          <option value="">${e.t("editor.language_auto")}</option>
+          ${e.getAvailableLanguages().map(e=>V`<option value="${e}">${e}</option>`)}
         </select>
         <button
           type="button"
           class="primary"
-          @click="${t=>this._onAddDeviceClick(t)}"
+          @click="${e=>this._onAddDeviceClick(e)}"
         >
-          ${t.t("editor.add_selected_device")}
+          ${e.t("editor.add_selected_device")}
         </button>
         <button
           type="button"
           class="primary"
-          @click="${t=>this._onAddHeatPumpClick(t)}"
+          @click="${e=>this._onAddHeatPumpClick(e)}"
         >
-          ${t.t("editor.add_heat_pump")}
+          ${e.t("editor.add_heat_pump")}
         </button>
         ${this._selectedNodeId?V`
-            <button type="button" class="danger" @click="${t=>this._onDeleteSelectedClick(t)}">
-              ${t.t("editor.delete_selected")}
+            <button type="button" @click="${e=>this._onRotateSelectedClick(e)}">
+              ↻ ${e.t("editor.rotate_selected")}
             </button>
-          `:J}
+          `:Z}
+        ${this._selectedNodeId||this._selectedEdgeId?V`
+            <button type="button" class="danger" @click="${e=>this._onDeleteSelectedClick(e)}">
+              ${e.t("editor.delete_selected")}
+            </button>
+          `:Z}
       </div>
 
       ${this._pendingPort?V`<p class="connection-hint">
-            ${t.t("editor.connection_pending",this._portLabel(t,this._pendingPort))}
-          </p>`:J}
+            ${e.t("editor.connection_pending",this._portLabel(e,this._pendingPort))}
+          </p>`:Z}
 
-      ${e.nodes.length?J:V`<p class="hint">${t.t("editor.empty_hint")}</p>`}
+      ${t.nodes.length?Z:V`<p class="hint">${e.t("editor.empty_hint")}</p>`}
 
       <heating-schema-canvas
-        .hass="${this.hass}"
         .config="${this._config}"
-        .schema="${e}"
+        .schema="${t}"
         .editable="${!0}"
         .selectedNodeId="${this._selectedNodeId}"
+        .selectedEdgeId="${this._selectedEdgeId}"
         @node-select="${this._onNodeSelect}"
+        @edge-select="${this._onEdgeSelect}"
         @node-move="${this._onNodeMove}"
         @port-click="${this._onPortClick}"
       ></heating-schema-canvas>
@@ -248,136 +388,141 @@ function t(t,e,i,o){var s,n=arguments.length,r=n<3?e:null===o?o=Object.getOwnPro
       ${i?V`
           <div class="overlay-item">
             <header>
-              <span>${t.t("editor.node_state_title")}</span>
-              <span>${t.t(`devices.${i.type}.name`)}</span>
+              <span>${e.t("editor.node_state_title")}</span>
+              <span>${e.t(`devices.${i.type}.name`)}</span>
             </header>
-            <div class="field">
-              <label>${t.t("editor.node_state_entity")}</label>
-              ${this._hass?V`
-                  <ha-entity-picker
-                    .hass="${this._hass}"
-                    .value="${i.state?.entity_id??""}"
-                    allow-custom-entity
-                    @value-changed="${t=>this._updateNodeState(i.id,{entity_id:t.detail.value??""})}"
-                  ></ha-entity-picker>
-                `:V`
-                  <input
-                    .value="${i.state?.entity_id??""}"
-                    @change="${t=>this._updateNodeState(i.id,{entity_id:t.target.value})}"
-                  />
-                `}
-            </div>
-            <div class="field">
-              <label>${t.t("editor.node_state_active")}</label>
-              <input
-                .value="${i.state?.active_state??"on"}"
-                @change="${t=>this._updateNodeState(i.id,{active_state:t.target.value})}"
-              />
-            </div>
-            ${"valve_3way"===i.type?V`
-                <div class="field">
-                  <label>${t.t("editor.node_state_mode_attribute")}</label>
-                  <input
-                    .value="${i.state?.mode_attribute??"position"}"
-                    @change="${t=>this._updateNodeState(i.id,{mode_attribute:t.target.value})}"
-                  />
+            ${this._renderForm(e,function(e){if(pt.has(e))return[{name:"entity_id",selector:{entity:{}}}];if("mixing_valve"===e)return[{name:"entity_id",selector:{entity:{}}},{name:"mode_attribute",selector:{attribute:{}},context:{filter_entity:"entity_id"}}];const t=[{name:"entity_id",selector:{entity:{}}},{name:"active_state",selector:{state:{}},context:{filter_entity:"entity_id"}}];if("valve_3way"===e){const e={filter_entity:"entity_id",filter_attribute:"mode_attribute"};t.push({name:"mode_attribute",selector:{attribute:{}},context:{filter_entity:"entity_id"}},{name:"branch_a_value",selector:{state:{}},context:e},{name:"branch_b_value",selector:{state:{}},context:e})}return t}(i.type),{...i.state??{}},"mixing_valve"===i.type?_t:pt.has(i.type)?vt:ht,e=>this._setNodeState(i.id,e),"mixing_valve"===i.type?yt:{})}
+            ${this._renderChannels(e,i)}
+            ${De(i.type)?.heater?V`
+                <div class="rules">
+                  <header><span>${e.t("editor.heater_title")}</span></header>
+                  ${this._renderForm(e,bt,{...i.heater??{}},ht,e=>this._setNodeHeater(i.id,e))}
                 </div>
-                <div class="field">
-                  <label>${t.t("editor.node_state_branch_a")}</label>
-                  <input
-                    .value="${i.state?.branch_a_value??"a"}"
-                    @change="${t=>this._updateNodeState(i.id,{branch_a_value:t.target.value})}"
-                  />
-                </div>
-                <div class="field">
-                  <label>${t.t("editor.node_state_branch_b")}</label>
-                  <input
-                    .value="${i.state?.branch_b_value??"b"}"
-                    @change="${t=>this._updateNodeState(i.id,{branch_b_value:t.target.value})}"
-                  />
-                </div>
-              `:J}
+              `:Z}
           </div>
-        `:J}
-    `}_renderOverlaysTab(t){const e=this._config.schema?.overlays??[];return V`
+        `:Z}
+    `}_renderChannels(e,t){const i=De(t.type)?.channels;if(!i)return Z;const o=$t(t,i);return V`
+      <div class="rules">
+        <header>
+          <span>${e.t(i.titleKey)} (${o.length})</span>
+          <span>
+            <button
+              type="button"
+              ?disabled="${o.length<=i.min}"
+              @click="${()=>this._setChannelCount(t.id,o.length-1)}"
+            >−</button>
+            <button
+              type="button"
+              ?disabled="${o.length>=i.max}"
+              @click="${()=>this._setChannelCount(t.id,o.length+1)}"
+            >+</button>
+          </span>
+        </header>
+        ${o.map((o,n)=>V`
+          <div class="rule">
+            <strong>${o.name||e.t(i.itemKey,String(n+1))}</strong>
+            ${this._renderForm(e,"sensor"===i.kind?gt:ft,{...o},mt,e=>this._setChannel(t.id,n,e))}
+          </div>
+        `)}
+      </div>
+    `}_renderOverlaysTab(e){const t=this._config.schema?.overlays??[];return V`
       <div class="toolbar">
         <button type="button" class="primary" @click="${this._addOverlay}">
-          ${t.t("editor.add_overlay")}
+          ${e.t("editor.add_overlay")}
         </button>
       </div>
 
-      ${e.length?J:V`<p class="hint">${t.t("editor.overlays_empty")}</p>`}
+      ${t.length?Z:V`<p class="hint">${e.t("editor.overlays_empty")}</p>`}
 
       <heating-schema-canvas
-        .hass="${this.hass}"
         .config="${this._config}"
         .schema="${this._config.schema}"
         .editable="${!1}"
       ></heating-schema-canvas>
 
-      ${e.map((e,i)=>V`
+      ${t.map((t,i)=>V`
         <div class="overlay-item">
           <header>
-            <span>${e.entity_id||`Overlay ${i+1}`}</span>
-            <button type="button" class="danger" @click="${()=>this._removeOverlay(e.id)}">×</button>
+            <span>${t.entity_id||`Overlay ${i+1}`}</span>
+            <button type="button" class="danger" @click="${()=>this._removeOverlay(t.id)}">×</button>
           </header>
-          <div class="field">
-            <label>${t.t("overlay.entity")}</label>
-            ${this._hass?V`
-                <ha-entity-picker
-                  .hass="${this._hass}"
-                  .value="${e.entity_id}"
-                  allow-custom-entity
-                  @value-changed="${t=>this._updateOverlay(e.id,{entity_id:t.detail.value??""})}"
-                ></ha-entity-picker>
-              `:V`
-                <input
-                  .value="${e.entity_id}"
-                  @change="${t=>this._updateOverlay(e.id,{entity_id:t.target.value})}"
-                />
-              `}
-          </div>
-          <div class="field">
-            <label>${t.t("overlay.template")}</label>
-            <input
-              placeholder="{{ state }} °C"
-              .value="${e.template??""}"
-              @change="${t=>this._updateOverlay(e.id,{template:t.target.value||void 0})}"
-            />
-          </div>
-          <div class="field">
-            <label>X / Y</label>
-            <input
-              type="number"
-              .value="${String(e.position.x)}"
-              @change="${t=>this._updateOverlay(e.id,{position:{...e.position,x:Number(t.target.value)}})}"
-            />
-            <input
-              type="number"
-              .value="${String(e.position.y)}"
-              @change="${t=>this._updateOverlay(e.id,{position:{...e.position,y:Number(t.target.value)}})}"
-            />
+          ${this._renderForm(e,kt,{entity_id:t.entity_id,name:t.name,template:t.template,position:t.position},xt,e=>this._onOverlayFormChange(t.id,e))}
+          <div class="rules">
+            <header>
+              <span>${e.t("overlay.rules")}</span>
+              <button type="button" @click="${()=>this._addRule(t)}">
+                ${e.t("overlay.add_rule")}
+              </button>
+            </header>
+            ${(t.rules??[]).map((i,o)=>V`
+              <div class="rule">
+                <button
+                  type="button"
+                  class="danger remove-rule"
+                  @click="${()=>this._updateRules(t.id,e=>e.filter((e,t)=>t!==o))}"
+                >×</button>
+                ${this._renderForm(e,function(e){const t={field:"condition",value:"numeric"};return[{name:"condition",selector:{select:{mode:"dropdown",options:[{value:"state",label:e.t("overlay.rule.condition_state")},{value:"numeric",label:e.t("overlay.rule.condition_numeric")}]}}},{name:"entity",selector:{entity:{}}},{name:"state",selector:{state:{}},context:{filter_entity:"entity"},visible:{field:"condition",value:"state"}},{name:"above",selector:{number:{mode:"box",step:"any"}},visible:t},{name:"below",selector:{number:{mode:"box",step:"any"}},visible:t},{name:"color",selector:{ui_color:{}}},{name:"hide",selector:{boolean:{}}}]}(e),function(e){return{condition:e.condition,entity:e.entity,state:e.state,above:e.above,below:e.below,color:e.effect.color,hide:!1===e.effect.visible}}(i),At,e=>this._updateRules(t.id,t=>t.map((t,i)=>i===o?function(e,t){const i=wt(e),o=i.condition??"state",n=e=>void 0===e?void 0:Number(e);return{condition:o,entity:i.entity,state:"state"===o?i.state:void 0,above:"numeric"===o?n(i.above):void 0,below:"numeric"===o?n(i.below):void 0,effect:{...t.effect,color:i.color,visible:!i.hide&&void 0}}}(e,t):t)),Et)}
+              </div>
+            `)}
           </div>
         </div>
       `)}
-    `}_renderTranslationsTab(t){const e=Object.entries(this._translationEdits).sort(([t],[e])=>t.localeCompare(e));return V`
-      <p class="hint">${t.t("editor.language")}: ${this._config.language}</p>
-      ${e.map(([t,e])=>V`
+    `}_renderForm(e,t,i,o,n,r={}){const s=t=>o[t.name]?e.t(o[t.name]):t.name.toUpperCase(),a=t=>{if(r[t.name])return e.t(r[t.name]);const i=ut[t.name];return void 0!==i?e.t("editor.default_value",i):void 0};return this._formReady&&this._hass?V`
+        <ha-form
+          .hass="${this._hass}"
+          .data="${i}"
+          .schema="${t}"
+          .computeLabel="${s}"
+          .computeHelper="${a}"
+          @value-changed="${e=>{e.stopPropagation(),n(e.detail.value)}}"
+        ></ha-form>
+      `:V`${t.map(e=>"schema"in e?e.schema.map(t=>this._renderFallbackField(t,e.name,i,s,n)):this._renderFallbackField(e,void 0,i,s,n))}`}_renderFallbackField(e,t,i,o,n){if("entity_name"in e.selector)return Z;if(e.visible&&i[e.visible.field]!==e.visible.value)return Z;const r=t?i[t]??{}:i,s=o=>{const s={...r,[e.name]:o};n(t?{...i,[t]:s}:s)};if("boolean"in e.selector)return V`
+        <div class="field">
+          <label>
+            <input
+              type="checkbox"
+              .checked="${Boolean(r[e.name])}"
+              @change="${e=>s(e.target.checked)}"
+            />
+            ${o(e)}
+          </label>
+        </div>
+      `;const a=e.selector.select;if(a)return V`
+        <div class="field">
+          <label>${o(e)}</label>
+          <select
+            .value="${String(r[e.name]??"")}"
+            @change="${e=>s(e.target.value)}"
+          >
+            ${a.options.map(e=>V`<option value="${e.value}">${e.label}</option>`)}
+          </select>
+        </div>
+      `;const d="number"in e.selector;return V`
+      <div class="field">
+        <label>${o(e)}</label>
+        <input
+          type="${d?"number":"text"}"
+          .value="${String(r[e.name]??"")}"
+          @change="${e=>{const t=e.target.value;s(d&&""!==t?Number(t):t)}}"
+        />
+      </div>
+    `}_renderTranslationsTab(e){const t=Object.entries(this._translationEdits).sort(([e],[t])=>e.localeCompare(t));return V`
+      <p class="hint">${e.t("editor.language")}: ${e.language}</p>
+      ${t.map(([e,t])=>V`
         <div class="translation-item">
-          <header><code>${t}</code></header>
+          <header><code>${e}</code></header>
           <input
-            .value="${e}"
-            @input="${e=>this._onTranslationInput(t,e.target.value)}"
+            .value="${t}"
+            @input="${t=>this._onTranslationInput(e,t.target.value)}"
           />
         </div>
       `)}
-    `}_emitConfig(t,e){const i=ft({...this._config,...e,schema:t});this._config=i,this.requestUpdate(),this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:i},bubbles:!0,composed:!0}))}_onAddDeviceClick(t){t.preventDefault(),t.stopPropagation(),this._addDevice(this._selectedDeviceType)}_onAddHeatPumpClick(t){t.preventDefault(),t.stopPropagation(),this._selectedDeviceType=At.type,this._addDevice(At.type)}_onDeleteSelectedClick(t){t.preventDefault(),t.stopPropagation(),this._deleteSelected()}_addDevice(t){if(!It(t))return;const e=this._cloneSchema(),i=30*e.nodes.length,o={id:mt(t),type:t,position:{x:80+i,y:80+i}};e.nodes.push(o),this._selectedNodeId=o.id,this._emitConfig(e)}_deleteSelected(){if(!this._selectedNodeId)return;const t=this._selectedNodeId,e=this._cloneSchema();e.nodes=e.nodes.filter(e=>e.id!==t),e.edges=e.edges.filter(e=>e.from.nodeId!==t&&e.to.nodeId!==t),this._selectedNodeId=void 0,this._pendingPort=void 0,this._emitConfig(e)}_addOverlay(){const t=this._cloneSchema(),e={id:mt("ov"),position:{x:40,y:40+30*t.overlays.length},entity_id:"",template:"{{ state }}"};t.overlays.push(e),this._emitConfig(t)}_removeOverlay(t){const e=this._cloneSchema();e.overlays=e.overlays.filter(e=>e.id!==t),this._emitConfig(e)}_updateOverlay(t,e){const i=this._cloneSchema();i.overlays=i.overlays.map(i=>i.id===t?{...i,...e}:i),this._emitConfig(i)}_onLanguageChange(t){const e=t.target.value,i=xt(e,this._config.translations);this._translationEdits={...i.getEditableTranslations()},this._emitConfig(this._cloneSchema(),{language:e})}_onTranslationInput(t,e){this._translationEdits={...this._translationEdits,[t]:e};const i=this._config.language??"en",o={...this._config.translations,[i]:{...this._config.translations?.[i]??{},[t]:e}};this._emitConfig(this._cloneSchema(),{translations:o})}_onNodeSelect(t){this._selectedNodeId=t.detail.nodeId}_onNodeMove(t){const e=this._cloneSchema();e.nodes=e.nodes.map(e=>e.id===t.detail.nodeId?{...e,position:t.detail.position}:e),this._emitConfig(e)}_updateNodeState(t,e){const i=this._cloneSchema();i.nodes=i.nodes.map(i=>i.id!==t?i:{...i,state:{...i.state??{},...e}}),this._emitConfig(i)}_onPortClick(t){const{nodeId:e,portId:i}=t.detail,o={nodeId:e,portId:i};if(!this._pendingPort)return void(this._pendingPort=o);if(Ot(this._pendingPort,o))return void(this._pendingPort=void 0);const s=this._cloneSchema(),n=this._createEdge(this._pendingPort,o,s.edges);n&&(s.edges.push(n),this._emitConfig(s)),this._pendingPort=void 0}_createEdge(t,e,i){const o=this._orderPorts(t,e);if(!o)return;const s=i.some(t=>Ot(t.from,o.from)&&Ot(t.to,o.to));return s?void 0:{id:mt("edge"),from:o.from,to:o.to}}_orderPorts(t,e){const i=this._config.schema?.nodes.find(e=>e.id===t.nodeId),o=this._config.schema?.nodes.find(t=>t.id===e.nodeId);if(!i||!o)return;const s=It(i.type),n=It(o.type);if(!s||!n)return;const r=s.ports.find(e=>e.id===t.portId),a=n.ports.find(t=>t.id===e.portId);return r&&a?"outlet"===r.kind&&"inlet"===a.kind?{from:t,to:e}:"outlet"===a.kind&&"inlet"===r.kind?{from:e,to:t}:void 0:void 0}_portLabel(t,e){const i=this._config.schema?.nodes.find(t=>t.id===e.nodeId);if(!i)return e.portId;const o=It(i.type),s=o?.ports.find(t=>t.id===e.portId);return s?t.t(s.labelKey):e.portId}_cloneSchema(){const t=this._config.schema??{nodes:[],edges:[],overlays:[]};return{nodes:(t.nodes??[]).map(t=>({...t,position:{...t.position},state:t.state?{...t.state}:void 0})),edges:(t.edges??[]).map(t=>({...t,from:{...t.from},to:{...t.to}})),overlays:(t.overlays??[]).map(t=>({...t,position:{...t.position},rules:t.rules?.map(t=>({...t,effect:{...t.effect}}))}))}}};Dt.styles=r`
+    `}_emitConfig(e,t){const i=JSON.parse(JSON.stringify(fe({...this._config,...t,schema:e})));this._config=i,this.requestUpdate(),this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:i},bubbles:!0,composed:!0}))}_onAddDeviceClick(e){e.preventDefault(),e.stopPropagation(),this._addDevice(this._selectedDeviceType)}_onAddHeatPumpClick(e){e.preventDefault(),e.stopPropagation(),this._selectedDeviceType=Se.type,this._addDevice(Se.type)}_onDeleteSelectedClick(e){e.preventDefault(),e.stopPropagation(),this._deleteSelected()}_onRotateSelectedClick(e){e.preventDefault(),e.stopPropagation();const t=this._selectedNodeId;if(!t)return;const i=this._cloneSchema();i.nodes=i.nodes.map(e=>{if(e.id!==t)return e;const i=Ve((e.rotation??0)+90);return{...e,rotation:i||void 0}}),this._emitConfig(i)}_addDevice(e){const t=De(e);if(!t)return;const i=this._cloneSchema(),o=30*i.nodes.length,n={id:ge(e),type:e,position:{x:80+o,y:80+o}};t.channels?.default&&(n.channels=Array.from({length:t.channels.default},()=>({}))),i.nodes.push(n),this._selectedNodeId=n.id,this._emitConfig(i)}_setNodeHeater(e,t){const i=wt(t),o=this._cloneSchema();o.nodes=o.nodes.map(t=>t.id===e?{...t,heater:Object.keys(i).length?i:void 0}:t),this._emitConfig(o)}_setChannelCount(e,t){const i=this._cloneSchema(),o=i.nodes.find(t=>t.id===e),n=o&&De(o.type)?.channels;if(!o||!n||t<n.min||t>n.max)return;const r=$t(o,n).slice(0,t);for(;r.length<t;)r.push({});o.channels=r;const s=new Set(Be(o)?.ports.map(e=>e.id));i.edges=i.edges.filter(t=>!(t.from.nodeId===e&&!s.has(t.from.portId)||t.to.nodeId===e&&!s.has(t.to.portId))),this._emitConfig(i)}_setChannel(e,t,i){const o=this._cloneSchema(),n=o.nodes.find(t=>t.id===e),r=n&&De(n.type)?.channels;if(!n||!r)return;const s=$t(n,r);s[t]=wt(i),n.channels=s,this._emitConfig(o)}_deleteSelected(){const e=this._cloneSchema();if(this._selectedEdgeId){const t=this._selectedEdgeId;return e.edges=e.edges.filter(e=>e.id!==t),this._selectedEdgeId=void 0,void this._emitConfig(e)}if(!this._selectedNodeId)return;const t=this._selectedNodeId;e.nodes=e.nodes.filter(e=>e.id!==t),e.edges=e.edges.filter(e=>e.from.nodeId!==t&&e.to.nodeId!==t),this._selectedNodeId=void 0,this._pendingPort=void 0,this._emitConfig(e)}_addOverlay(){const e=this._cloneSchema(),t={id:ge("ov"),position:{x:40,y:40+30*e.overlays.length},entity_id:"",template:"{{ state }}"};e.overlays.push(t),this._emitConfig(e)}_removeOverlay(e){const t=this._cloneSchema();t.overlays=t.overlays.filter(t=>t.id!==e),this._emitConfig(t)}_updateOverlay(e,t){const i=this._cloneSchema();i.overlays=i.overlays.map(i=>i.id===e?{...i,...t}:i),this._emitConfig(i)}_onLanguageChange(e){const t=e.target.value,i={...this._config};t?i.language=t:delete i.language,this._config=i,this._translationEdits={...this._translator().getEditableTranslations()},this._emitConfig(this._cloneSchema())}_onTranslationInput(e,t){this._translationEdits={...this._translationEdits,[e]:t};const i=this._translator().language,o={...this._config.translations,[i]:{...this._config.translations?.[i]??{},[e]:t}};this._emitConfig(this._cloneSchema(),{translations:o})}_onNodeSelect(e){this._selectedNodeId=e.detail.nodeId,this._selectedEdgeId=void 0}_onEdgeSelect(e){this._selectedEdgeId=e.detail.edgeId,this._selectedNodeId=void 0,this._pendingPort=void 0}_onNodeMove(e){const t=this._cloneSchema();t.nodes=t.nodes.map(t=>t.id===e.detail.nodeId?{...t,position:e.detail.position}:t),this._emitConfig(t)}_setNodeState(e,t){const i=wt(t),o=this._cloneSchema();o.nodes=o.nodes.map(t=>t.id===e?{...t,state:Object.keys(i).length?i:void 0}:t),this._emitConfig(o)}_addRule(e){this._updateRules(e.id,t=>[...t,{condition:"state",entity:e.entity_id||void 0,effect:{}}])}_updateRules(e,t){const i=this._config.schema?.overlays.find(t=>t.id===e);if(!i)return;const o=t([...i.rules??[]]);this._updateOverlay(e,{rules:o.length?o:void 0})}_onOverlayFormChange(e,t){const i=wt(t),o=i.position??{};this._updateOverlay(e,{entity_id:i.entity_id??"",name:i.name,template:i.template,position:{x:Number(o.x??0),y:Number(o.y??0)}})}_translator(){return xe(this._config?.language??this._hass?.language,this._config?.translations)}async _loadHaForm(){try{const e=await(window.loadCardHelpers?.()),t=e?.createCardElement({type:"button"}),i=t?.constructor;await(i?.getConfigElement?.()),await customElements.whenDefined("ha-form"),this._formReady=!0}catch{}}_onPortClick(e){const{nodeId:t,portId:i}=e.detail,o={nodeId:t,portId:i};if(!this._pendingPort)return void(this._pendingPort=o);if(Je(this._pendingPort,o))return void(this._pendingPort=void 0);const n=this._cloneSchema(),r=this._createEdge(this._pendingPort,o,n.edges);r&&(n.edges.push(r),this._emitConfig(n)),this._pendingPort=void 0}_createEdge(e,t,i){const o=this._orderPorts(e,t);if(!o)return;const n=i.some(e=>Je(e.from,o.from)&&Je(e.to,o.to));return n?void 0:{id:ge("edge"),from:o.from,to:o.to}}_orderPorts(e,t){const i=this._config.schema?.nodes.find(t=>t.id===e.nodeId),o=this._config.schema?.nodes.find(e=>e.id===t.nodeId);if(!i||!o)return;const n=Be(i),r=Be(o);if(!n||!r)return;const s=n.ports.find(t=>t.id===e.portId),a=r.ports.find(e=>e.id===t.portId);return s&&a?"outlet"===s.kind&&"inlet"===a.kind?{from:e,to:t}:"outlet"===a.kind&&"inlet"===s.kind?{from:t,to:e}:void 0:void 0}_portLabel(e,t){const i=this._config.schema?.nodes.find(e=>e.id===t.nodeId);if(!i)return t.portId;const o=Be(i),n=o?.ports.find(e=>e.id===t.portId);return n?e.t(n.labelKey,...n.labelArgs??[]):t.portId}_cloneSchema(){const e=this._config.schema??{nodes:[],edges:[],overlays:[]};return{nodes:(e.nodes??[]).map(e=>({...e,position:{...e.position},state:e.state?{...e.state}:void 0,channels:e.channels?.map(e=>({...e})),heater:e.heater?{...e.heater}:void 0})),edges:(e.edges??[]).map(e=>({...e,from:{...e.from},to:{...e.to}})),overlays:(e.overlays??[]).map(e=>({...e,position:{...e.position},rules:e.rules?.map(e=>({...e,effect:{...e.effect}}))}))}}};St.styles=s`
     .editor {
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding: 8px 0;
-      font-family: var(--ha-font-family, sans-serif);
     }
     .tabs {
       display: flex;
@@ -465,18 +610,53 @@ function t(t,e,i,o){var s,n=arguments.length,r=n<3?e:null===o?o=Object.getOwnPro
       color: var(--primary-color, #03a9f4);
       margin: 0;
     }
-  `,t([_t()],Dt.prototype,"_config",void 0),t([_t()],Dt.prototype,"_tab",void 0),t([_t()],Dt.prototype,"_selectedNodeId",void 0),t([_t()],Dt.prototype,"_pendingPort",void 0),t([_t()],Dt.prototype,"_selectedDeviceType",void 0),t([_t()],Dt.prototype,"_translationEdits",void 0),Dt=t([ht("heating-visualizer-editor")],Dt);let Rt=class extends lt{setConfig(t){if(!t||"object"!=typeof t)throw new Error("Invalid card configuration");this._config=ft(t)}getCardSize(){return 1}static getConfigElement(){return document.createElement("heating-visualizer-editor")}static getStubConfig(){return{type:"custom:heating-visualizer-card",language:"cs",schema:gt,translations:{}}}render(){if(!this._config)return V``;const t=this._config.schema,e=xt(this._config.language,this._config.translations);return V`
+    .rules {
+      margin-top: 8px;
+      border-top: 1px solid var(--divider-color, #444);
+      padding-top: 8px;
+    }
+    .rules header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9em;
+    }
+    .rule {
+      position: relative;
+      margin-top: 8px;
+      padding: 8px 32px 8px 8px;
+      border-radius: 8px;
+      background: var(--secondary-background-color, rgba(127, 127, 127, 0.08));
+    }
+    .rule .remove-rule {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+    }
+    .rules button {
+      font: inherit;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--divider-color, #555);
+      background: transparent;
+      color: var(--primary-text-color, #e0e0e0);
+      cursor: pointer;
+    }
+    .rules button.danger {
+      border-color: #e57373;
+      color: #e57373;
+    }
+  `,e([_e()],St.prototype,"_config",void 0),e([_e()],St.prototype,"_tab",void 0),e([_e()],St.prototype,"_selectedNodeId",void 0),e([_e()],St.prototype,"_selectedEdgeId",void 0),e([_e()],St.prototype,"_pendingPort",void 0),e([_e()],St.prototype,"_selectedDeviceType",void 0),e([_e()],St.prototype,"_translationEdits",void 0),e([_e()],St.prototype,"_formReady",void 0),St=e([he("heating-visualizer-editor")],St);let Ct=class extends le{constructor(){super(...arguments),this._i18n=new Ee(this,Ae)}setConfig(e){if(!e||"object"!=typeof e)throw new Error("Invalid card configuration");this._config=fe(e)}getCardSize(){return 6}getGridOptions(){return{columns:12,min_columns:6}}static getConfigElement(){return document.createElement("heating-visualizer-editor")}static getStubConfig(){return{schema:me}}render(){if(!this._config)return V``;const e=this._config.schema,t=xe(this._config.language??this._i18n.value?.language,this._config.translations);return V`
       <ha-card>
-        ${t.nodes.length||t.overlays.length?V`
+        ${e.nodes.length||e.overlays.length?V`
             <heating-schema-canvas
-              .hass="${this.hass}"
               .config="${this._config}"
-              .schema="${t}"
+              .schema="${e}"
               .editable="${!1}"
             ></heating-schema-canvas>
-          `:V`<div class="empty">${e.t("card.empty")}</div>`}
+          `:V`<div class="empty">${t.t("card.empty")}</div>`}
       </ha-card>
-    `}};Rt.styles=r`
+    `}};Ct.styles=s`
     :host {
       display: block;
     }
@@ -487,8 +667,7 @@ function t(t,e,i,o){var s,n=arguments.length,r=n<3?e:null===o?o=Object.getOwnPro
       padding: 24px;
       text-align: center;
       opacity: 0.8;
-      font-family: var(--ha-font-family, sans-serif);
       color: var(--primary-text-color, #e0e0e0);
     }
-  `,t([vt({attribute:!1})],Rt.prototype,"hass",void 0),t([_t()],Rt.prototype,"_config",void 0),Rt=t([ht("heating-visualizer-card")],Rt),window.customCards=window.customCards??[],window.customCards.push({type:"heating-visualizer-card",name:"Heating Visualizer",description:"Design and visualize heating system schemas with live sensor overlays.",preview:!0}),window.HeatingVisualizerCard=Rt,console.info("%c HEATING-VISUALIZER-CARD %c v0.1.0 · HA 2026.7 ","color: white; background: #039be5; font-weight: bold;","color: #039be5; background: white; font-weight: bold;");export{Rt as HeatingVisualizerCard};
+  `,e([_e()],Ct.prototype,"_config",void 0),Ct=e([he("heating-visualizer-card")],Ct),window.customCards=window.customCards??[],window.customCards.push({type:"heating-visualizer-card",name:"Heating Visualizer",description:"Design and visualize heating system schemas with live sensor overlays.",preview:!0,documentationURL:"https://github.com/vasicekmilan90-eng/heating_vizualizer"}),console.info("%c HEATING-VISUALIZER-CARD %c v0.2.0 ","color: white; background: #039be5; font-weight: bold;","color: #039be5; background: white; font-weight: bold;");export{Ct as HeatingVisualizerCard};
 //# sourceMappingURL=heating-visualizer-card.js.map

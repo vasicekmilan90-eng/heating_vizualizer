@@ -1,18 +1,37 @@
-import { css, html, LitElement, svg, TemplateResult } from "lit";
+import { css, html, LitElement, nothing, svg, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { HomeAssistant } from "../types/home-assistant.js";
+import type {
+  HassEntities,
+  HomeAssistantFormatters,
+  HomeAssistantInternationalization,
+} from "../types/home-assistant.js";
 import type { HeatingSchema, SchemaNode } from "../models/schema.js";
-import { getDeviceDefinition } from "../models/device-registry.js";
+import { getNodeDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
-import { buildPipePath, getAbsolutePort } from "../utils/geometry.js";
-import { formatOverlayValue, resolveNodeVisualState, resolveOverlayStyle } from "../utils/entity.js";
+import {
+  buildPipePath,
+  getAbsolutePort,
+  getNodeBounds,
+  normalizeRotation,
+  snapToGrid,
+  type Point,
+  type Rect,
+} from "../utils/geometry.js";
+import {
+  formatOverlayName,
+  formatOverlayValue,
+  resolveNodeVisualState,
+  resolveOverlayStyle,
+} from "../utils/entity.js";
+import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import type { HeatingVisualizerConfig } from "../models/schema.js";
 
+const GRID_SIZE = 10;
+
 @customElement("heating-schema-canvas")
 export class HeatingSchemaCanvas extends LitElement {
-  @property({ attribute: false }) public hass?: HomeAssistant;
   @property({ attribute: false }) public schema: HeatingSchema = {
     nodes: [],
     edges: [],
@@ -21,6 +40,7 @@ export class HeatingSchemaCanvas extends LitElement {
   @property({ attribute: false }) public config?: HeatingVisualizerConfig;
   @property({ type: Boolean }) public editable = false;
   @property({ attribute: false }) public selectedNodeId?: string;
+  @property({ attribute: false }) public selectedEdgeId?: string;
   @property({ attribute: false }) public selectedPort?: { nodeId: string; portId: string };
 
   static styles = css`
@@ -42,10 +62,44 @@ export class HeatingSchemaCanvas extends LitElement {
       stroke-width: 4;
       stroke-linecap: round;
     }
+    .pipe.selected {
+      stroke: var(--primary-color, #03a9f4);
+      stroke-width: 6;
+    }
+    .pipe-hit {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 16;
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+    .grid-dot {
+      fill: var(--divider-color, #555);
+    }
+    .spinning {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: spin 1.6s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .spinning {
+        animation: none;
+      }
+    }
     .device-label {
       fill: var(--primary-text-color, #e0e0e0);
-      font-size: 11px;
-      font-family: var(--ha-font-family, sans-serif);
+      font-size: var(--ha-font-size-xs, 11px);
+      pointer-events: none;
+    }
+    .device-value {
+      fill: var(--primary-text-color, #e0e0e0);
+      font-size: var(--ha-font-size-s, 12px);
+      font-weight: var(--ha-font-weight-medium, 500);
       pointer-events: none;
     }
     .node {
@@ -68,8 +122,7 @@ export class HeatingSchemaCanvas extends LitElement {
     }
     .overlay-text {
       fill: var(--primary-text-color, #e0e0e0);
-      font-size: 12px;
-      font-family: var(--ha-font-family, monospace);
+      font-size: var(--ha-font-size-s, 12px);
     }
     .port-highlight {
       stroke: var(--primary-color, #03a9f4) !important;
@@ -78,6 +131,19 @@ export class HeatingSchemaCanvas extends LitElement {
   `;
 
   private _dragNodeId?: string;
+  private _dragOffset?: Point;
+  // Frozen while dragging so the coordinate system does not shift under the pointer.
+  private _dragBounds?: Rect;
+
+  private _states = new HassContextConsumer<HassEntities>(this, HA_CONTEXT.states);
+  private _formatters = new HassContextConsumer<HomeAssistantFormatters>(
+    this,
+    HA_CONTEXT.formatters
+  );
+  private _i18n = new HassContextConsumer<HomeAssistantInternationalization>(
+    this,
+    HA_CONTEXT.internationalization
+  );
 
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("editable")) {
@@ -88,7 +154,7 @@ export class HeatingSchemaCanvas extends LitElement {
   protected render(): TemplateResult {
     const t = this._translator();
     const { nodes, edges, overlays } = this.schema;
-    const bounds = this._computeBounds(nodes);
+    const bounds = this._dragBounds ?? this._computeBounds(nodes);
 
     return html`
       <svg
@@ -98,6 +164,16 @@ export class HeatingSchemaCanvas extends LitElement {
         @pointerup="${this._onCanvasPointerUp}"
         @pointerleave="${this._onCanvasPointerUp}"
       >
+        ${this.editable
+          ? svg`
+            <defs>
+              <pattern id="grid" width="${GRID_SIZE * 2}" height="${GRID_SIZE * 2}" patternUnits="userSpaceOnUse">
+                <circle class="grid-dot" cx="0" cy="0" r="1" />
+              </pattern>
+            </defs>
+            <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" />
+          `
+          : nothing}
         ${edges.map((edge) => this._renderEdge(edge))}
         ${nodes.map((node) => this._renderNode(node, t))}
         ${overlays.map((overlay) => this._renderOverlay(overlay, t))}
@@ -106,7 +182,10 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _translator(): Translator {
-    return createTranslator(this.config?.language, this.config?.translations);
+    return createTranslator(
+      this.config?.language ?? this._i18n.value?.language,
+      this.config?.translations
+    );
   }
 
   private _computeBounds(nodes: SchemaNode[]): {
@@ -125,12 +204,13 @@ export class HeatingSchemaCanvas extends LitElement {
     let maxY = -Infinity;
 
     for (const node of nodes) {
-      const def = getDeviceDefinition(node.type);
+      const def = getNodeDefinition(node);
       if (!def) continue;
-      minX = Math.min(minX, node.position.x);
-      minY = Math.min(minY, node.position.y - 20);
-      maxX = Math.max(maxX, node.position.x + def.width);
-      maxY = Math.max(maxY, node.position.y + def.height + 10);
+      const rect = getNodeBounds(node, def);
+      minX = Math.min(minX, rect.x);
+      minY = Math.min(minY, rect.y - 20);
+      maxX = Math.max(maxX, rect.x + rect.width);
+      maxY = Math.max(maxY, rect.y + rect.height + 10);
     }
 
     const pad = 40;
@@ -151,17 +231,38 @@ export class HeatingSchemaCanvas extends LitElement {
     const to = getAbsolutePort(toNode, edge.to.portId);
     if (!from || !to) return html``;
 
-    return svg`<path class="pipe" d="${buildPipePath(from, to)}" />`;
+    const d = buildPipePath(from, to);
+    const selected = this.selectedEdgeId === edge.id;
+    return svg`
+      <path class="pipe ${selected ? "selected" : ""}" d="${d}" />
+      ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${edge.id}" d="${d}" />` : nothing}
+    `;
   }
 
   private _renderNode(node: SchemaNode, t: Translator): TemplateResult {
-    const def = getDeviceDefinition(node.type);
+    const def = getNodeDefinition(node);
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const visualState = resolveNodeVisualState(this.hass, node.state);
-    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState);
+    const states = this._states.value;
+    const formatters = this._formatters.value;
+    const visualState = resolveNodeVisualState(states, node.state, formatters);
+    const channelStates = (node.channels ?? []).map((c) => ({
+      ...resolveNodeVisualState(states, c, formatters),
+      label: c.name,
+    }));
+    const heater = node.heater?.entity_id
+      ? resolveNodeVisualState(states, node.heater, formatters)
+      : undefined;
+    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, {
+      channels: channelStates,
+      heater,
+    });
     if (!deviceSvg) return html``;
+
+    const rotation = normalizeRotation(node.rotation);
+    const rect = getNodeBounds(node, def);
+    const labelY = rect.y - node.position.y - 4;
 
     return svg`
       <g
@@ -169,7 +270,12 @@ export class HeatingSchemaCanvas extends LitElement {
         data-node-id="${node.id}"
         transform="translate(${node.position.x} ${node.position.y})"
       >
-        ${deviceSvg}
+        <g transform="rotate(${rotation} ${def.width / 2} ${def.height / 2})">
+          ${deviceSvg}
+        </g>
+        <text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">
+          ${t.t(def.labelKey)}
+        </text>
       </g>
     `;
   }
@@ -178,11 +284,15 @@ export class HeatingSchemaCanvas extends LitElement {
     overlay: HeatingSchema["overlays"][number],
     t: Translator
   ): TemplateResult {
-    const text = formatOverlayValue(this.hass, overlay);
-    const style = resolveOverlayStyle(this.hass, overlay);
+    const states = this._states.value;
+    const formatters = this._formatters.value;
+    const text = formatOverlayValue(states, formatters, overlay);
+    const style = resolveOverlayStyle(states, overlay);
     if (!style.visible) return html``;
 
-    const label = overlay.labelKey ? t.t(overlay.labelKey) : overlay.entity_id;
+    const label = overlay.labelKey
+      ? t.t(overlay.labelKey)
+      : formatOverlayName(states, formatters, overlay);
     const display = `${label}: ${text}`;
     const width = Math.max(80, display.length * 7 + 16);
 
@@ -200,6 +310,18 @@ export class HeatingSchemaCanvas extends LitElement {
     if (!this.editable) return;
 
     const target = ev.target as SVGElement | null;
+    const edgeId = target?.getAttribute?.("data-edge-id");
+    if (edgeId) {
+      this.dispatchEvent(
+        new CustomEvent("edge-select", {
+          detail: { edgeId },
+          bubbles: true,
+          composed: true,
+        })
+      );
+      return;
+    }
+
     const nodeEl = target?.closest?.("[data-node-id]") as SVGGraphicsElement | null;
     if (!nodeEl) {
       this._dispatchSelect(undefined);
@@ -223,33 +345,43 @@ export class HeatingSchemaCanvas extends LitElement {
     }
 
     this._dragNodeId = nodeId;
+    const local = this._toLocal(ev);
+    this._dragOffset = local
+      ? { x: local.x - node.position.x, y: local.y - node.position.y }
+      : { x: 0, y: 0 };
+    this._dragBounds = this._computeBounds(this.schema.nodes);
     nodeEl.setPointerCapture(ev.pointerId);
     this._dispatchSelect(nodeId);
     ev.preventDefault();
+  }
+
+  private _toLocal(ev: PointerEvent): Point | undefined {
+    const svgEl = this.renderRoot.querySelector("svg");
+    const ctm = svgEl?.getScreenCTM();
+    if (!svgEl || !ctm) return undefined;
+    const pt = svgEl.createSVGPoint();
+    pt.x = ev.clientX;
+    pt.y = ev.clientY;
+    return pt.matrixTransform(ctm.inverse());
   }
 
   private _onCanvasPointerMove(ev: PointerEvent): void {
     if (!this.editable || !this._dragNodeId) return;
 
     const node = this.schema.nodes.find((n) => n.id === this._dragNodeId);
-    if (!node) return;
+    const local = this._toLocal(ev);
+    if (!node || !local) return;
 
-    const svgEl = this.renderRoot.querySelector("svg");
-    if (!svgEl) return;
+    const offset = this._dragOffset ?? { x: 0, y: 0 };
+    const position = {
+      x: snapToGrid(local.x - offset.x, GRID_SIZE),
+      y: snapToGrid(local.y - offset.y, GRID_SIZE),
+    };
+    if (position.x === node.position.x && position.y === node.position.y) return;
 
-    const pt = svgEl.createSVGPoint();
-    pt.x = ev.clientX;
-    pt.y = ev.clientY;
-    const ctm = svgEl.getScreenCTM();
-    if (!ctm) return;
-
-    const local = pt.matrixTransform(ctm.inverse());
     this.dispatchEvent(
       new CustomEvent("node-move", {
-        detail: {
-          nodeId: node.id,
-          position: { x: Math.round(local.x), y: Math.round(local.y) },
-        },
+        detail: { nodeId: node.id, position },
         bubbles: true,
         composed: true,
       })
@@ -263,6 +395,9 @@ export class HeatingSchemaCanvas extends LitElement {
       ) as SVGGraphicsElement | null;
       nodeEl?.releasePointerCapture(ev.pointerId);
       this._dragNodeId = undefined;
+      this._dragOffset = undefined;
+      this._dragBounds = undefined;
+      this.requestUpdate();
     }
   }
 
