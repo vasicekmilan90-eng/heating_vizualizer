@@ -389,6 +389,34 @@ export const SOLAR_COLLECTOR: DeviceDefinition = {
   ],
 };
 
+/** Primary circuit on the left, secondary circuit on the right. */
+function fourPort(type: string, width: number, height: number): DeviceDefinition {
+  const port = (id: string, kind: "inlet" | "outlet", x: number, y: number): PortDefinition => ({
+    id,
+    labelKey: `devices.four_port.ports.${id}`,
+    kind,
+    position: { x, y },
+  });
+  return {
+    type,
+    labelKey: `devices.${type}.name`,
+    width,
+    height,
+    ports: [
+      port("primary_in", "inlet", 0, 30),
+      port("primary_out", "outlet", 0, height - 30),
+      port("secondary_out", "outlet", width, 30),
+      port("secondary_in", "inlet", width, height - 30),
+    ],
+  };
+}
+
+export const HYDRAULIC_SEPARATOR: DeviceDefinition = {
+  ...fourPort("hydraulic_separator", 80, 160),
+  valueDisplay: "only",
+};
+export const PLATE_HEAT_EXCHANGER = fourPort("plate_heat_exchanger", 100, 120);
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
   OUTDOOR_UNIT,
@@ -398,6 +426,8 @@ const ALL_DEVICES: DeviceDefinition[] = [
   SOLAR_COLLECTOR,
   BOILER,
   BUFFER_TANK,
+  HYDRAULIC_SEPARATOR,
+  PLATE_HEAT_EXCHANGER,
   VALVE_3WAY,
   MIXING_VALVE,
   CIRCULATION_PUMP,

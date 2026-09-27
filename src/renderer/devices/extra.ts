@@ -6,6 +6,8 @@ import {
   CARD_FILL,
   HEATER_ACTIVE_COLOR,
   NEUTRAL_STROKE,
+  RETURN_COLOR,
+  SUPPLY_COLOR,
   type SvgResult,
   frameStroke,
   frameWidth,
@@ -92,6 +94,55 @@ function renderSolarCollector(
   `;
 }
 
+function renderHydraulicSeparator(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const left = 25;
+  const right = def.width - 25;
+  const top = 8;
+  const bottom = def.height - 8;
+  const middle = def.height / 2;
+  const value = numericValue(state);
+  return svg`
+    <g class="device device-hydraulic-separator">
+      ${renderPortStubs(def, left)}
+      <rect x="${left}" y="${top}" width="${right - left}" height="${middle - top}" fill="${SUPPLY_COLOR}" opacity="0.25" />
+      <rect x="${left}" y="${middle}" width="${right - left}" height="${bottom - middle}" fill="${RETURN_COLOR}" opacity="0.25" />
+      <rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}" rx="${(right - left) / 2}"
+        fill="none" stroke="${frameStroke(state, selected)}" stroke-width="${frameWidth(selected)}" />
+      ${value ? svg`<text x="${def.width / 2}" y="${middle + 4}" text-anchor="middle" class="device-value">${value}</text>` : svg``}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
+function renderPlateHeatExchanger(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const left = 22;
+  const right = def.width - 22;
+  const plates: SvgResult[] = [];
+  for (let x = left + 7, i = 0; x < right - 3; x += 7, i++) {
+    plates.push(svg`<line x1="${x}" y1="18" x2="${x}" y2="${def.height - 18}"
+      stroke="${i % 2 === 0 ? SUPPLY_COLOR : RETURN_COLOR}" stroke-width="2" opacity="0.8" />`);
+  }
+  return svg`
+    <g class="device device-plate-heat-exchanger">
+      ${renderPortStubs(def, left)}
+      <rect x="${left}" y="10" width="${right - left}" height="${def.height - 20}" rx="4"
+        fill="${CARD_FILL}" stroke="${frameStroke(state, selected)}" stroke-width="${frameWidth(selected)}" />
+      ${plates}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -109,6 +160,10 @@ export function renderExtraDevice(
       return renderHeatSource(def, t, selected, state, "logs");
     case "solar_collector":
       return renderSolarCollector(def, t, selected, state);
+    case "hydraulic_separator":
+      return renderHydraulicSeparator(def, t, selected, state);
+    case "plate_heat_exchanger":
+      return renderPlateHeatExchanger(def, t, selected, state);
     default:
       return undefined;
   }
