@@ -1,3 +1,5 @@
+import type { EntityNameConfig } from "../types/home-assistant.js";
+
 export type PortKind = "inlet" | "outlet";
 
 export interface PortDefinition {
@@ -62,6 +64,8 @@ export interface SchemaOverlay {
   id: string;
   position: { x: number; y: number };
   entity_id: string;
+  /** Passed to `formatEntityName`; ignored when `labelKey` is set. */
+  name?: EntityNameConfig;
   labelKey?: string;
   template?: string;
   rules?: OverlayStateRule[];
@@ -80,8 +84,11 @@ export type TranslationsConfig = Record<string, TranslationMap>;
 export interface HeatingVisualizerConfig {
   type: string;
   schema?: HeatingSchema;
+  /** Falls back to the Home Assistant user language when unset. */
   language?: string;
   translations?: TranslationsConfig;
+  /** Keys managed by the dashboard (grid_options, visibility, view_layout, …). */
+  [key: string]: unknown;
 }
 
 export const DEFAULT_LANGUAGE = "en";
@@ -104,10 +111,9 @@ export function normalizeConfig(
   config: Partial<HeatingVisualizerConfig>
 ): HeatingVisualizerConfig {
   return {
+    ...config,
     type: "custom:heating-visualizer-card",
     schema: normalizeSchema(config.schema),
-    language: config.language ?? DEFAULT_LANGUAGE,
-    translations: config.translations ?? {},
   };
 }
 

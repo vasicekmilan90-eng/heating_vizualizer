@@ -1,12 +1,17 @@
 import { css, html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import type { HomeAssistant, LovelaceCardEditor } from "../types/home-assistant.js";
+import type {
+  HaFormSchema,
+  HaFormSelectorSchema,
+  HomeAssistant,
+  LovelaceCardEditor,
+} from "../types/home-assistant.js";
 import {
   generateId,
   normalizeConfig,
-  DEFAULT_LANGUAGE,
   type HeatingSchema,
   type HeatingVisualizerConfig,
+  type NodeStateBinding,
   type PortRef,
   type SchemaEdge,
   type SchemaNode,
@@ -19,10 +24,71 @@ import {
   HEAT_PUMP,
 } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
+import type { Translator } from "../i18n/translations.js";
 import { portRefsEqual } from "../utils/geometry.js";
 import "../renderer/schema-canvas.js";
 
 type EditorTab = "schema" | "overlays" | "translations";
+
+type FormData = Record<string, unknown>;
+
+const NODE_STATE_LABELS: Record<string, string> = {
+  entity_id: "editor.node_state_entity",
+  active_state: "editor.node_state_active",
+  mode_attribute: "editor.node_state_mode_attribute",
+  branch_a_value: "editor.node_state_branch_a",
+  branch_b_value: "editor.node_state_branch_b",
+};
+
+/** Runtime defaults applied in `resolveNodeVisualState`. */
+const NODE_STATE_DEFAULTS: Record<string, string> = {
+  active_state: "on",
+  mode_attribute: "position",
+  branch_a_value: "a",
+  branch_b_value: "b",
+};
+
+const OVERLAY_LABELS: Record<string, string> = {
+  entity_id: "overlay.entity",
+  name: "overlay.name",
+  template: "overlay.template",
+};
+
+const OVERLAY_SCHEMA: HaFormSchema[] = [
+  { name: "entity_id", selector: { entity: {} } },
+  { name: "name", selector: { entity_name: {} }, context: { entity: "entity_id" } },
+  { name: "template", selector: { text: {} } },
+  {
+    type: "grid",
+    name: "position",
+    schema: [
+      { name: "x", selector: { number: { mode: "box" } } },
+      { name: "y", selector: { number: { mode: "box" } } },
+    ],
+  },
+];
+
+function nodeStateSchema(nodeType: string): HaFormSchema[] {
+  const schema: HaFormSchema[] = [
+    { name: "entity_id", selector: { entity: {} } },
+    { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
+  ];
+  if (nodeType === "valve_3way") {
+    const branchContext = { filter_entity: "entity_id", filter_attribute: "mode_attribute" };
+    schema.push(
+      { name: "mode_attribute", selector: { attribute: {} }, context: { filter_entity: "entity_id" } },
+      { name: "branch_a_value", selector: { state: {} }, context: branchContext },
+      { name: "branch_b_value", selector: { state: {} }, context: branchContext }
+    );
+  }
+  return schema;
+}
+
+function compact(value: FormData): FormData {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== undefined && v !== null && v !== "")
+  );
+}
 
 @customElement("heating-visualizer-editor")
 export class HeatingVisualizerEditor extends LitElement implements LovelaceCardEditor {
@@ -34,6 +100,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _pendingPort?: PortRef;
   @state() private _selectedDeviceType = HEAT_PUMP.type;
   @state() private _translationEdits: TranslationMap = {};
+  @state() private _formReady = customElements.get("ha-form") !== undefined;
 
   static styles = css`
     .editor {
@@ -41,7 +108,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       flex-direction: column;
       gap: 12px;
       padding: 8px 0;
-      font-family: var(--ha-font-family, sans-serif);
     }
     .tabs {
       display: flex;
@@ -140,17 +206,21 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     return this._hass;
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    if (!this._formReady) void this._loadHaForm();
+  }
+
   public setConfig(config: HeatingVisualizerConfig): void {
     this._config = normalizeConfig(config);
-    const t = createTranslator(this._config.language, this._config.translations);
-    this._translationEdits = { ...t.getEditableTranslations() };
+    this._translationEdits = { ...this._translator().getEditableTranslations() };
     this.requestUpdate();
   }
 
   protected render(): TemplateResult {
     if (!this._config) return html``;
 
-    const t = createTranslator(this._config.language, this._config.translations);
+    const t = this._translator();
 
     return html`
       <div class="editor">
@@ -179,7 +249,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     `;
   }
 
-  private _renderSchemaTab(t: ReturnType<typeof createTranslator>): TemplateResult {
+  private _renderSchemaTab(t: Translator): TemplateResult {
     const schema = this._config.schema!;
     const selectedNode = schema.nodes.find((n) => n.id === this._selectedNodeId);
 
@@ -199,9 +269,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           `)}
         </select>
         <select
-          .value="${this._config.language ?? DEFAULT_LANGUAGE}"
+          .value="${this._config.language ?? ""}"
           @change="${this._onLanguageChange}"
         >
+          <option value="">${t.t("editor.language_auto")}</option>
           ${t.getAvailableLanguages().map(
             (lang) => html`<option value="${lang}">${lang}</option>`
           )}
@@ -240,7 +311,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         : nothing}
 
       <heating-schema-canvas
-        .hass="${this.hass}"
         .config="${this._config}"
         .schema="${schema}"
         .editable="${true}"
@@ -257,81 +327,20 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               <span>${t.t("editor.node_state_title")}</span>
               <span>${t.t(`devices.${selectedNode.type}.name`)}</span>
             </header>
-            <div class="field">
-              <label>${t.t("editor.node_state_entity")}</label>
-              ${this._hass
-                ? html`
-                  <ha-entity-picker
-                    .hass="${this._hass}"
-                    .value="${selectedNode.state?.entity_id ?? ""}"
-                    allow-custom-entity
-                    @value-changed="${(ev: CustomEvent) =>
-                      this._updateNodeState(selectedNode.id, {
-                        entity_id: (ev.detail as { value: string }).value ?? "",
-                      })}"
-                  ></ha-entity-picker>
-                `
-                : html`
-                  <input
-                    .value="${selectedNode.state?.entity_id ?? ""}"
-                    @change="${(ev: Event) =>
-                      this._updateNodeState(selectedNode.id, {
-                        entity_id: (ev.target as HTMLInputElement).value,
-                      })}"
-                  />
-                `}
-            </div>
-            <div class="field">
-              <label>${t.t("editor.node_state_active")}</label>
-              <input
-                .value="${selectedNode.state?.active_state ?? "on"}"
-                @change="${(ev: Event) =>
-                  this._updateNodeState(selectedNode.id, {
-                    active_state: (ev.target as HTMLInputElement).value,
-                  })}"
-              />
-            </div>
-            ${selectedNode.type === "valve_3way"
-              ? html`
-                <div class="field">
-                  <label>${t.t("editor.node_state_mode_attribute")}</label>
-                  <input
-                    .value="${selectedNode.state?.mode_attribute ?? "position"}"
-                    @change="${(ev: Event) =>
-                      this._updateNodeState(selectedNode.id, {
-                        mode_attribute: (ev.target as HTMLInputElement).value,
-                      })}"
-                  />
-                </div>
-                <div class="field">
-                  <label>${t.t("editor.node_state_branch_a")}</label>
-                  <input
-                    .value="${selectedNode.state?.branch_a_value ?? "a"}"
-                    @change="${(ev: Event) =>
-                      this._updateNodeState(selectedNode.id, {
-                        branch_a_value: (ev.target as HTMLInputElement).value,
-                      })}"
-                  />
-                </div>
-                <div class="field">
-                  <label>${t.t("editor.node_state_branch_b")}</label>
-                  <input
-                    .value="${selectedNode.state?.branch_b_value ?? "b"}"
-                    @change="${(ev: Event) =>
-                      this._updateNodeState(selectedNode.id, {
-                        branch_b_value: (ev.target as HTMLInputElement).value,
-                      })}"
-                  />
-                </div>
-              `
-              : nothing}
+            ${this._renderForm(
+              t,
+              nodeStateSchema(selectedNode.type),
+              { ...(selectedNode.state ?? {}) },
+              NODE_STATE_LABELS,
+              (value) => this._setNodeState(selectedNode.id, value)
+            )}
           </div>
         `
         : nothing}
     `;
   }
 
-  private _renderOverlaysTab(t: ReturnType<typeof createTranslator>): TemplateResult {
+  private _renderOverlaysTab(t: Translator): TemplateResult {
     const overlays = this._config.schema?.overlays ?? [];
 
     return html`
@@ -346,7 +355,6 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         : nothing}
 
       <heating-schema-canvas
-        .hass="${this.hass}"
         .config="${this._config}"
         .schema="${this._config.schema!}"
         .editable="${false}"
@@ -358,78 +366,97 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             <span>${overlay.entity_id || `Overlay ${index + 1}`}</span>
             <button type="button" class="danger" @click="${() => this._removeOverlay(overlay.id)}">×</button>
           </header>
-          <div class="field">
-            <label>${t.t("overlay.entity")}</label>
-            ${this._hass
-              ? html`
-                <ha-entity-picker
-                  .hass="${this._hass}"
-                  .value="${overlay.entity_id}"
-                  allow-custom-entity
-                  @value-changed="${(ev: CustomEvent) =>
-                    this._updateOverlay(overlay.id, {
-                      entity_id: (ev.detail as { value: string }).value ?? "",
-                    })}"
-                ></ha-entity-picker>
-              `
-              : html`
-                <input
-                  .value="${overlay.entity_id}"
-                  @change="${(ev: Event) =>
-                    this._updateOverlay(overlay.id, {
-                      entity_id: (ev.target as HTMLInputElement).value,
-                    })}"
-                />
-              `}
-          </div>
-          <div class="field">
-            <label>${t.t("overlay.template")}</label>
-            <input
-              placeholder="{{ state }} °C"
-              .value="${overlay.template ?? ""}"
-              @change="${(ev: Event) =>
-                this._updateOverlay(overlay.id, {
-                  template: (ev.target as HTMLInputElement).value || undefined,
-                })}"
-            />
-          </div>
-          <div class="field">
-            <label>X / Y</label>
-            <input
-              type="number"
-              .value="${String(overlay.position.x)}"
-              @change="${(ev: Event) =>
-                this._updateOverlay(overlay.id, {
-                  position: {
-                    ...overlay.position,
-                    x: Number((ev.target as HTMLInputElement).value),
-                  },
-                })}"
-            />
-            <input
-              type="number"
-              .value="${String(overlay.position.y)}"
-              @change="${(ev: Event) =>
-                this._updateOverlay(overlay.id, {
-                  position: {
-                    ...overlay.position,
-                    y: Number((ev.target as HTMLInputElement).value),
-                  },
-                })}"
-            />
-          </div>
+          ${this._renderForm(
+            t,
+            OVERLAY_SCHEMA,
+            {
+              entity_id: overlay.entity_id,
+              name: overlay.name,
+              template: overlay.template,
+              position: overlay.position,
+            },
+            OVERLAY_LABELS,
+            (value) => this._onOverlayFormChange(overlay.id, value)
+          )}
         </div>
       `)}
     `;
   }
 
-  private _renderTranslationsTab(t: ReturnType<typeof createTranslator>): TemplateResult {
+  private _renderForm(
+    t: Translator,
+    schema: HaFormSchema[],
+    data: FormData,
+    labels: Record<string, string>,
+    onChange: (value: FormData) => void
+  ): TemplateResult {
+    const computeLabel = (field: HaFormSchema): string =>
+      labels[field.name] ? t.t(labels[field.name]) : field.name.toUpperCase();
+    const computeHelper = (field: HaFormSchema): string | undefined =>
+      NODE_STATE_DEFAULTS[field.name] !== undefined
+        ? t.t("editor.default_value", NODE_STATE_DEFAULTS[field.name])
+        : undefined;
+
+    if (this._formReady && this._hass) {
+      return html`
+        <ha-form
+          .hass="${this._hass}"
+          .data="${data}"
+          .schema="${schema}"
+          .computeLabel="${computeLabel}"
+          .computeHelper="${computeHelper}"
+          @value-changed="${(ev: CustomEvent<{ value: FormData }>) => {
+            ev.stopPropagation();
+            onChange(ev.detail.value);
+          }}"
+        ></ha-form>
+      `;
+    }
+
+    return html`${schema.map((item) =>
+      "schema" in item
+        ? item.schema.map((field) =>
+            this._renderFallbackField(field, item.name, data, computeLabel, onChange)
+          )
+        : this._renderFallbackField(item, undefined, data, computeLabel, onChange)
+    )}`;
+  }
+
+  /** Plain input used only when `ha-form` could not be loaded. */
+  private _renderFallbackField(
+    field: HaFormSelectorSchema,
+    group: string | undefined,
+    data: FormData,
+    computeLabel: (field: HaFormSchema) => string,
+    onChange: (value: FormData) => void
+  ): TemplateResult | typeof nothing {
+    if ("entity_name" in field.selector) return nothing;
+
+    const scope = group ? ((data[group] as FormData | undefined) ?? {}) : data;
+    const isNumber = "number" in field.selector;
+    return html`
+      <div class="field">
+        <label>${computeLabel(field)}</label>
+        <input
+          type="${isNumber ? "number" : "text"}"
+          .value="${String(scope[field.name] ?? "")}"
+          @change="${(ev: Event) => {
+            const raw = (ev.target as HTMLInputElement).value;
+            const next = { ...scope, [field.name]: isNumber ? Number(raw) : raw };
+            onChange(group ? { ...data, [group]: next } : next);
+          }}"
+        />
+      </div>
+    `;
+  }
+
+  private _renderTranslationsTab(t: Translator): TemplateResult {
     const entries = Object.entries(this._translationEdits).sort(([a], [b]) =>
       a.localeCompare(b)
     );
 
     return html`
-      <p class="hint">${t.t("editor.language")}: ${this._config.language}</p>
+      <p class="hint">${t.t("editor.language")}: ${t.language}</p>
       ${entries.map(([key, value]) => html`
         <div class="translation-item">
           <header><code>${key}</code></header>
@@ -444,11 +471,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   }
 
   private _emitConfig(schema: HeatingSchema, extra?: Partial<HeatingVisualizerConfig>): void {
-    const config = normalizeConfig({
-      ...this._config,
-      ...extra,
-      schema,
-    });
+    // JSON round-trip drops undefined values, which the dashboard YAML serializer rejects.
+    const config = JSON.parse(
+      JSON.stringify(normalizeConfig({ ...this._config, ...extra, schema }))
+    ) as HeatingVisualizerConfig;
     this._config = config;
     this.requestUpdate();
     this.dispatchEvent(
@@ -535,14 +561,20 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _onLanguageChange(ev: Event): void {
     const language = (ev.target as HTMLSelectElement).value;
-    const t = createTranslator(language, this._config.translations);
-    this._translationEdits = { ...t.getEditableTranslations() };
-    this._emitConfig(this._cloneSchema(), { language });
+    const next: HeatingVisualizerConfig = { ...this._config };
+    if (language) {
+      next.language = language;
+    } else {
+      delete next.language;
+    }
+    this._config = next;
+    this._translationEdits = { ...this._translator().getEditableTranslations() };
+    this._emitConfig(this._cloneSchema());
   }
 
   private _onTranslationInput(key: string, value: string): void {
     this._translationEdits = { ...this._translationEdits, [key]: value };
-    const language = this._config.language ?? "en";
+    const language = this._translator().language;
     const translations = {
       ...this._config.translations,
       [language]: {
@@ -565,22 +597,49 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     this._emitConfig(schema);
   }
 
-  private _updateNodeState(
-    nodeId: string,
-    patch: Partial<NonNullable<SchemaNode["state"]>>
-  ): void {
+  private _setNodeState(nodeId: string, value: FormData): void {
+    const state = compact(value) as NodeStateBinding;
     const schema = this._cloneSchema();
-    schema.nodes = schema.nodes.map((n) => {
-      if (n.id !== nodeId) return n;
-      return {
-        ...n,
-        state: {
-          ...(n.state ?? {}),
-          ...patch,
-        },
-      };
-    });
+    schema.nodes = schema.nodes.map((n) =>
+      n.id === nodeId
+        ? { ...n, state: Object.keys(state).length ? state : undefined }
+        : n
+    );
     this._emitConfig(schema);
+  }
+
+  private _onOverlayFormChange(id: string, value: FormData): void {
+    const fields = compact(value);
+    const position = (fields.position ?? {}) as { x?: number; y?: number };
+    this._updateOverlay(id, {
+      entity_id: (fields.entity_id as string | undefined) ?? "",
+      name: fields.name as SchemaOverlay["name"],
+      template: fields.template as string | undefined,
+      position: { x: Number(position.x ?? 0), y: Number(position.y ?? 0) },
+    });
+  }
+
+  private _translator(): Translator {
+    return createTranslator(
+      this._config?.language ?? this._hass?.language,
+      this._config?.translations
+    );
+  }
+
+  // ha-form is lazy-loaded by HA; opening a built-in card editor registers it.
+  private async _loadHaForm(): Promise<void> {
+    try {
+      const helpers = await window.loadCardHelpers?.();
+      const card = helpers?.createCardElement({ type: "button" });
+      const cardClass = card?.constructor as
+        | { getConfigElement?: () => Promise<unknown> }
+        | undefined;
+      await cardClass?.getConfigElement?.();
+      await customElements.whenDefined("ha-form");
+      this._formReady = true;
+    } catch {
+      // Plain inputs remain as fallback.
+    }
   }
 
   private _onPortClick(ev: CustomEvent<PortRef>): void {
@@ -652,7 +711,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     return undefined;
   }
 
-  private _portLabel(t: ReturnType<typeof createTranslator>, ref: PortRef): string {
+  private _portLabel(t: Translator, ref: PortRef): string {
     const node = this._config.schema?.nodes.find((n) => n.id === ref.nodeId);
     if (!node) return ref.portId;
     const def = getDeviceDefinition(node.type);

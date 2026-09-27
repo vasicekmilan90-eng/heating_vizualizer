@@ -1,18 +1,27 @@
 import { css, html, LitElement, svg, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { HomeAssistant } from "../types/home-assistant.js";
+import type {
+  HassEntities,
+  HomeAssistantFormatters,
+  HomeAssistantInternationalization,
+} from "../types/home-assistant.js";
 import type { HeatingSchema, SchemaNode } from "../models/schema.js";
 import { getDeviceDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
 import { buildPipePath, getAbsolutePort } from "../utils/geometry.js";
-import { formatOverlayValue, resolveNodeVisualState, resolveOverlayStyle } from "../utils/entity.js";
+import {
+  formatOverlayName,
+  formatOverlayValue,
+  resolveNodeVisualState,
+  resolveOverlayStyle,
+} from "../utils/entity.js";
+import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import type { HeatingVisualizerConfig } from "../models/schema.js";
 
 @customElement("heating-schema-canvas")
 export class HeatingSchemaCanvas extends LitElement {
-  @property({ attribute: false }) public hass?: HomeAssistant;
   @property({ attribute: false }) public schema: HeatingSchema = {
     nodes: [],
     edges: [],
@@ -44,8 +53,7 @@ export class HeatingSchemaCanvas extends LitElement {
     }
     .device-label {
       fill: var(--primary-text-color, #e0e0e0);
-      font-size: 11px;
-      font-family: var(--ha-font-family, sans-serif);
+      font-size: var(--ha-font-size-xs, 11px);
       pointer-events: none;
     }
     .node {
@@ -68,8 +76,7 @@ export class HeatingSchemaCanvas extends LitElement {
     }
     .overlay-text {
       fill: var(--primary-text-color, #e0e0e0);
-      font-size: 12px;
-      font-family: var(--ha-font-family, monospace);
+      font-size: var(--ha-font-size-s, 12px);
     }
     .port-highlight {
       stroke: var(--primary-color, #03a9f4) !important;
@@ -78,6 +85,16 @@ export class HeatingSchemaCanvas extends LitElement {
   `;
 
   private _dragNodeId?: string;
+
+  private _states = new HassContextConsumer<HassEntities>(this, HA_CONTEXT.states);
+  private _formatters = new HassContextConsumer<HomeAssistantFormatters>(
+    this,
+    HA_CONTEXT.formatters
+  );
+  private _i18n = new HassContextConsumer<HomeAssistantInternationalization>(
+    this,
+    HA_CONTEXT.internationalization
+  );
 
   protected updated(changed: Map<string, unknown>): void {
     if (changed.has("editable")) {
@@ -106,7 +123,10 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _translator(): Translator {
-    return createTranslator(this.config?.language, this.config?.translations);
+    return createTranslator(
+      this.config?.language ?? this._i18n.value?.language,
+      this.config?.translations
+    );
   }
 
   private _computeBounds(nodes: SchemaNode[]): {
@@ -159,7 +179,7 @@ export class HeatingSchemaCanvas extends LitElement {
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const visualState = resolveNodeVisualState(this.hass, node.state);
+    const visualState = resolveNodeVisualState(this._states.value, node.state);
     const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState);
     if (!deviceSvg) return html``;
 
@@ -178,11 +198,15 @@ export class HeatingSchemaCanvas extends LitElement {
     overlay: HeatingSchema["overlays"][number],
     t: Translator
   ): TemplateResult {
-    const text = formatOverlayValue(this.hass, overlay);
-    const style = resolveOverlayStyle(this.hass, overlay);
+    const states = this._states.value;
+    const formatters = this._formatters.value;
+    const text = formatOverlayValue(states, formatters, overlay);
+    const style = resolveOverlayStyle(states, overlay);
     if (!style.visible) return html``;
 
-    const label = overlay.labelKey ? t.t(overlay.labelKey) : overlay.entity_id;
+    const label = overlay.labelKey
+      ? t.t(overlay.labelKey)
+      : formatOverlayName(states, formatters, overlay);
     const display = `${label}: ${text}`;
     const width = Math.max(80, display.length * 7 + 16);
 

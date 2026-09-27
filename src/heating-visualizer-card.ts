@@ -1,19 +1,32 @@
 import { css, html, LitElement, TemplateResult } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, LovelaceCard, LovelaceCardEditor } from "./types/home-assistant.js";
+import { customElement, state } from "lit/decorators.js";
+import type {
+  HomeAssistantInternationalization,
+  LovelaceCard,
+  LovelaceCardEditor,
+  LovelaceGridOptions,
+} from "./types/home-assistant.js";
 import {
   EMPTY_SCHEMA,
   normalizeConfig,
   type HeatingVisualizerConfig,
 } from "./models/schema.js";
 import { createTranslator } from "./i18n/index.js";
+import { HA_CONTEXT, HassContextConsumer } from "./utils/context.js";
 import "./renderer/schema-canvas.js";
 import "./editor/card-editor.js";
 
+const CARD_VERSION = "0.2.0";
+const DOCUMENTATION_URL = "https://github.com/vasicekmilan90-eng/heating_vizualizer";
+
 @customElement("heating-visualizer-card")
 export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
-  @property({ attribute: false }) public hass?: HomeAssistant;
   @state() private _config!: HeatingVisualizerConfig;
+
+  private _i18n = new HassContextConsumer<HomeAssistantInternationalization>(
+    this,
+    HA_CONTEXT.internationalization
+  );
 
   static styles = css`
     :host {
@@ -26,7 +39,6 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
       padding: 24px;
       text-align: center;
       opacity: 0.8;
-      font-family: var(--ha-font-family, sans-serif);
       color: var(--primary-text-color, #e0e0e0);
     }
   `;
@@ -39,7 +51,15 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
   }
 
   public getCardSize(): number {
-    return 1;
+    return 6;
+  }
+
+  // Rows are left undefined so the card height follows the SVG aspect ratio.
+  public getGridOptions(): LovelaceGridOptions {
+    return {
+      columns: 12,
+      min_columns: 6,
+    };
   }
 
   static getConfigElement(): LovelaceCardEditor {
@@ -48,10 +68,7 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
 
   static getStubConfig(): Record<string, unknown> {
     return {
-      type: "custom:heating-visualizer-card",
-      language: "cs",
       schema: EMPTY_SCHEMA,
-      translations: {},
     };
   }
 
@@ -59,7 +76,10 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
     if (!this._config) return html``;
 
     const schema = this._config.schema!;
-    const t = createTranslator(this._config.language, this._config.translations);
+    const t = createTranslator(
+      this._config.language ?? this._i18n.value?.language,
+      this._config.translations
+    );
 
     return html`
       <ha-card>
@@ -67,7 +87,6 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
           ? html`<div class="empty">${t.t("card.empty")}</div>`
           : html`
             <heating-schema-canvas
-              .hass="${this.hass}"
               .config="${this._config}"
               .schema="${schema}"
               .editable="${false}"
@@ -98,14 +117,11 @@ window.customCards.push({
   name: "Heating Visualizer",
   description: "Design and visualize heating system schemas with live sensor overlays.",
   preview: true,
+  documentationURL: DOCUMENTATION_URL,
 });
 
-// Expose for debugging and HA tooling (2026.x custom card convention)
-(window as unknown as { HeatingVisualizerCard: typeof HeatingVisualizerCard }).HeatingVisualizerCard =
-  HeatingVisualizerCard;
-
 console.info(
-  "%c HEATING-VISUALIZER-CARD %c v0.1.0 · HA 2026.7 ",
+  `%c HEATING-VISUALIZER-CARD %c v${CARD_VERSION} `,
   "color: white; background: #039be5; font-weight: bold;",
   "color: #039be5; background: white; font-weight: bold;"
 );

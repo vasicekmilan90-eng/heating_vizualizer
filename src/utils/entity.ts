@@ -1,21 +1,35 @@
-import type { HomeAssistant } from "../types/home-assistant.js";
+import type { HassEntities, HomeAssistantFormatters } from "../types/home-assistant.js";
 import type { NodeStateBinding, OverlayStateRule, SchemaOverlay } from "../models/schema.js";
 
 export function formatOverlayValue(
-  hass: HomeAssistant | undefined,
+  states: HassEntities | undefined,
+  formatters: HomeAssistantFormatters | undefined,
   overlay: SchemaOverlay
 ): string {
-  if (!hass || !overlay.entity_id) return "—";
+  if (!states || !overlay.entity_id) return "—";
 
-  const state = hass.states[overlay.entity_id];
+  const state = states[overlay.entity_id];
   if (!state) return "—";
 
   if (overlay.template) {
     return interpolateTemplate(overlay.template, state.state, state.attributes);
   }
 
+  if (formatters) return formatters.formatEntityState(state);
+
   const unit = state.attributes.unit_of_measurement as string | undefined;
   return unit ? `${state.state} ${unit}` : state.state;
+}
+
+export function formatOverlayName(
+  states: HassEntities | undefined,
+  formatters: HomeAssistantFormatters | undefined,
+  overlay: SchemaOverlay
+): string {
+  const state = states?.[overlay.entity_id];
+  if (state && formatters) return formatters.formatEntityName(state, overlay.name);
+  if (typeof overlay.name === "string") return overlay.name;
+  return overlay.entity_id;
 }
 
 function interpolateTemplate(
@@ -32,19 +46,19 @@ function interpolateTemplate(
 }
 
 export function resolveOverlayStyle(
-  hass: HomeAssistant | undefined,
+  states: HassEntities | undefined,
   overlay: SchemaOverlay
 ): { color?: string; className?: string; visible: boolean } {
   let color: string | undefined;
   let className: string | undefined;
   let visible = true;
 
-  if (!hass || !overlay.rules?.length) {
+  if (!states || !overlay.rules?.length) {
     return { color, className, visible };
   }
 
   for (const rule of overlay.rules) {
-    if (matchesRule(hass, rule)) {
+    if (matchesRule(states, rule)) {
       if (rule.effect.color) color = rule.effect.color;
       if (rule.effect.class) className = rule.effect.class;
       if (rule.effect.visible !== undefined) visible = rule.effect.visible;
@@ -54,8 +68,8 @@ export function resolveOverlayStyle(
   return { color, className, visible };
 }
 
-function matchesRule(hass: HomeAssistant, rule: OverlayStateRule): boolean {
-  const entity = hass.states[rule.entity];
+function matchesRule(states: HassEntities, rule: OverlayStateRule): boolean {
+  const entity = states[rule.entity];
   if (!entity) return false;
 
   if (rule.condition === "state") {
@@ -75,14 +89,14 @@ export interface NodeVisualState {
 }
 
 export function resolveNodeVisualState(
-  hass: HomeAssistant | undefined,
+  states: HassEntities | undefined,
   binding: NodeStateBinding | undefined
 ): NodeVisualState {
-  if (!hass || !binding?.entity_id) {
+  if (!states || !binding?.entity_id) {
     return { active: false };
   }
 
-  const entity = hass.states[binding.entity_id];
+  const entity = states[binding.entity_id];
   if (!entity) {
     return { active: false };
   }

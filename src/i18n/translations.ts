@@ -44,7 +44,10 @@ export const BUILTIN_TRANSLATIONS: TranslationsConfig = {
     "editor.node_state_mode_attribute": "Valve mode attribute",
     "editor.node_state_branch_a": "Valve branch A value",
     "editor.node_state_branch_b": "Valve branch B value",
+    "editor.language_auto": "Home Assistant language",
+    "editor.default_value": "Default: {0}",
     "overlay.entity": "Entity",
+    "overlay.name": "Name",
     "overlay.template": "Display template",
     "card.empty": "No schema configured. Edit this card to design your heating layout.",
   },
@@ -89,7 +92,10 @@ export const BUILTIN_TRANSLATIONS: TranslationsConfig = {
     "editor.node_state_mode_attribute": "Atribut režimu ventilu",
     "editor.node_state_branch_a": "Hodnota větve A",
     "editor.node_state_branch_b": "Hodnota větve B",
+    "editor.language_auto": "Jazyk Home Assistantu",
+    "editor.default_value": "Výchozí: {0}",
     "overlay.entity": "Entita",
+    "overlay.name": "Název",
     "overlay.template": "Šablona zobrazení",
     "card.empty": "Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma.",
   },
@@ -142,8 +148,8 @@ export class Translator {
 
   getEditableTranslations(): Record<string, string> {
     const merged: Record<string, string> = {
-      ...(BUILTIN_TRANSLATIONS[this._language] ?? {}),
       ...(BUILTIN_TRANSLATIONS[DEFAULT_LANGUAGE] ?? {}),
+      ...(BUILTIN_TRANSLATIONS[this._language] ?? {}),
       ...(this._userTranslations[this._language] ?? {}),
     };
     return merged;
@@ -154,5 +160,15 @@ export function createTranslator(
   language?: string,
   userTranslations?: TranslationsConfig
 ): Translator {
-  return new Translator(language ?? DEFAULT_LANGUAGE, userTranslations ?? {});
+  const translations = userTranslations ?? {};
+  return new Translator(resolveLanguage(language, translations), translations);
+}
+
+/** Maps HA language codes such as `en-GB` to an available translation. */
+function resolveLanguage(language: string | undefined, userTranslations: TranslationsConfig): string {
+  if (!language) return DEFAULT_LANGUAGE;
+  if (BUILTIN_TRANSLATIONS[language] || userTranslations[language]) return language;
+  const base = language.split("-")[0];
+  if (BUILTIN_TRANSLATIONS[base] || userTranslations[base]) return base;
+  return language;
 }

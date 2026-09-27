@@ -3,5 +3,5 @@
   "filename": "heating-visualizer-card.js",
   "content_in_root": true,
   "render_readme": true,
-  "homeassistant": "2026.7.0"
+  "homeassistant": "2026.9.0"
 }
