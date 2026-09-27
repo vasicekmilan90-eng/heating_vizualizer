@@ -43,9 +43,6 @@ export function renderHeatPump(
       <path d="M 48 50 L 72 50 M 60 38 L 60 62"
         stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round"
       />
-      <text x="60" y="8" text-anchor="middle" class="device-label">
-        ${t.t(def.labelKey)}
-      </text>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -74,7 +71,6 @@ function renderValve3Way(
       />
       <line x1="45" y1="50" x2="90" y2="25" stroke="${branchAColor}" stroke-width="3" />
       <line x1="45" y1="50" x2="90" y2="75" stroke="${branchBColor}" stroke-width="3" />
-      <text x="50" y="8" text-anchor="middle" class="device-label">${t.t(def.labelKey)}</text>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -101,7 +97,6 @@ function renderBoiler(
       />
       <path d="M 30 35 L 60 35 M 30 55 L 60 55 M 30 75 L 60 75"
         stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
-      <text x="45" y="8" text-anchor="middle" class="device-label">${t.t(def.labelKey)}</text>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -126,7 +121,6 @@ function renderJunction(
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
-      <text x="30" y="8" text-anchor="middle" class="device-label">${t.t(def.labelKey)}</text>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -154,7 +148,6 @@ function renderCirculationPump(
       <path d="M 32 52 A 14 14 0 0 1 58 38"
         fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
       <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
-      <text x="45" y="8" text-anchor="middle" class="device-label">${t.t(def.labelKey)}</text>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -181,7 +174,6 @@ function renderFloorHeating(
       />
       <path d="M 20 40 C 35 30, 50 50, 65 40 C 80 30, 95 50, 110 40 C 115 37, 120 37, 126 40"
         fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" />
-      <text x="70" y="8" text-anchor="middle" class="device-label">${t.t(def.labelKey)}</text>
       ${renderPorts(def, t)}
     </g>
   `;

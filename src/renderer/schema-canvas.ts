@@ -9,7 +9,7 @@ import type { HeatingSchema, SchemaNode } from "../models/schema.js";
 import { getDeviceDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
-import { buildPipePath, getAbsolutePort } from "../utils/geometry.js";
+import { buildPipePath, getAbsolutePort, getNodeBounds, normalizeRotation } from "../utils/geometry.js";
 import {
   formatOverlayName,
   formatOverlayValue,
@@ -147,10 +147,11 @@ export class HeatingSchemaCanvas extends LitElement {
     for (const node of nodes) {
       const def = getDeviceDefinition(node.type);
       if (!def) continue;
-      minX = Math.min(minX, node.position.x);
-      minY = Math.min(minY, node.position.y - 20);
-      maxX = Math.max(maxX, node.position.x + def.width);
-      maxY = Math.max(maxY, node.position.y + def.height + 10);
+      const rect = getNodeBounds(node, def);
+      minX = Math.min(minX, rect.x);
+      minY = Math.min(minY, rect.y - 20);
+      maxX = Math.max(maxX, rect.x + rect.width);
+      maxY = Math.max(maxY, rect.y + rect.height + 10);
     }
 
     const pad = 40;
@@ -183,13 +184,22 @@ export class HeatingSchemaCanvas extends LitElement {
     const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState);
     if (!deviceSvg) return html``;
 
+    const rotation = normalizeRotation(node.rotation);
+    const rect = getNodeBounds(node, def);
+    const labelY = rect.y - node.position.y - 4;
+
     return svg`
       <g
         class="node ${this._dragNodeId === node.id ? "dragging" : ""}"
         data-node-id="${node.id}"
         transform="translate(${node.position.x} ${node.position.y})"
       >
-        ${deviceSvg}
+        <g transform="rotate(${rotation} ${def.width / 2} ${def.height / 2})">
+          ${deviceSvg}
+        </g>
+        <text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">
+          ${t.t(def.labelKey)}
+        </text>
       </g>
     `;
   }

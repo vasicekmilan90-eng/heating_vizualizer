@@ -25,7 +25,7 @@ import {
 } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
-import { portRefsEqual } from "../utils/geometry.js";
+import { normalizeRotation, portRefsEqual } from "../utils/geometry.js";
 import "../renderer/schema-canvas.js";
 
 type EditorTab = "schema" | "overlays" | "translations";
@@ -293,6 +293,9 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         </button>
         ${this._selectedNodeId
           ? html`
+            <button type="button" @click="${(ev: Event) => this._onRotateSelectedClick(ev)}">
+              ↻ ${t.t("editor.rotate_selected")}
+            </button>
             <button type="button" class="danger" @click="${(ev: Event) => this._onDeleteSelectedClick(ev)}">
               ${t.t("editor.delete_selected")}
             </button>
@@ -503,6 +506,20 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     ev.preventDefault();
     ev.stopPropagation();
     this._deleteSelected();
+  }
+
+  private _onRotateSelectedClick(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const id = this._selectedNodeId;
+    if (!id) return;
+    const schema = this._cloneSchema();
+    schema.nodes = schema.nodes.map((n) => {
+      if (n.id !== id) return n;
+      const rotation = normalizeRotation((n.rotation ?? 0) + 90);
+      return { ...n, rotation: rotation || undefined };
+    });
+    this._emitConfig(schema);
   }
 
   private _addDevice(type: string): void {
