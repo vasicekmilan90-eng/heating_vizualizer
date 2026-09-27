@@ -53,11 +53,19 @@ const NODE_STATE_DEFAULTS: Record<string, string> = {
   branch_b_value: "b",
 };
 
-/** Devices that only display the value of their entity. */
-const VALUE_ONLY_TYPES = new Set(["pipe_sensor"]);
+const VALUE_ATTRIBUTE_FIELD: HaFormSchema = {
+  name: "value_attribute",
+  selector: { attribute: {} },
+  context: { filter_entity: "entity_id" },
+};
 
 const VALUE_LABELS: Record<string, string> = {
-  entity_id: "editor.node_value_entity",
+  ...NODE_STATE_LABELS,
+  value_attribute: "editor.node_value_attribute",
+};
+
+const VALUE_HELPERS: Record<string, string> = {
+  value_attribute: "editor.node_value_attribute_helper",
 };
 
 const MIXING_VALVE_LABELS: Record<string, string> = {
@@ -119,20 +127,42 @@ const OVERLAY_SCHEMA: HaFormSchema[] = [
   },
 ];
 
-function nodeStateSchema(nodeType: string): HaFormSchema[] {
-  if (VALUE_ONLY_TYPES.has(nodeType)) {
-    return [{ name: "entity_id", selector: { entity: {} } }];
+interface NodeFormSpec {
+  schema: HaFormSchema[];
+  labels: Record<string, string>;
+  helpers: Record<string, string>;
+}
+
+function nodeForm(nodeType: string): NodeFormSpec {
+  const entityField: HaFormSchema = { name: "entity_id", selector: { entity: {} } };
+  const activeField: HaFormSchema = {
+    name: "active_state",
+    selector: { state: {} },
+    context: { filter_entity: "entity_id" },
+  };
+  const valueDisplay = getDeviceDefinition(nodeType)?.valueDisplay;
+
+  if (valueDisplay === "only") {
+    return {
+      schema: [entityField, VALUE_ATTRIBUTE_FIELD],
+      labels: { ...VALUE_LABELS, entity_id: "editor.node_value_entity" },
+      helpers: VALUE_HELPERS,
+    };
+  }
+  if (valueDisplay === "with_state") {
+    return { schema: [entityField, activeField, VALUE_ATTRIBUTE_FIELD], labels: VALUE_LABELS, helpers: VALUE_HELPERS };
   }
   if (nodeType === "mixing_valve") {
-    return [
-      { name: "entity_id", selector: { entity: {} } },
-      { name: "mode_attribute", selector: { attribute: {} }, context: { filter_entity: "entity_id" } },
-    ];
+    return {
+      schema: [
+        entityField,
+        { name: "mode_attribute", selector: { attribute: {} }, context: { filter_entity: "entity_id" } },
+      ],
+      labels: MIXING_VALVE_LABELS,
+      helpers: MIXING_VALVE_HELPERS,
+    };
   }
-  const schema: HaFormSchema[] = [
-    { name: "entity_id", selector: { entity: {} } },
-    { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
-  ];
+  const schema: HaFormSchema[] = [entityField, activeField];
   if (nodeType === "valve_3way") {
     const branchContext = { filter_entity: "entity_id", filter_attribute: "mode_attribute" };
     schema.push(
@@ -141,7 +171,7 @@ function nodeStateSchema(nodeType: string): HaFormSchema[] {
       { name: "branch_b_value", selector: { state: {} }, context: branchContext }
     );
   }
-  return schema;
+  return { schema, labels: NODE_STATE_LABELS, helpers: {} };
 }
 
 function compact(value: FormData): FormData {
@@ -506,18 +536,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               <span>${t.t("editor.node_state_title")}</span>
               <span>${t.t(`devices.${selectedNode.type}.name`)}</span>
             </header>
-            ${this._renderForm(
-              t,
-              nodeStateSchema(selectedNode.type),
-              { ...(selectedNode.state ?? {}) },
-              selectedNode.type === "mixing_valve"
-                ? MIXING_VALVE_LABELS
-                : VALUE_ONLY_TYPES.has(selectedNode.type)
-                  ? VALUE_LABELS
-                  : NODE_STATE_LABELS,
-              (value) => this._setNodeState(selectedNode.id, value),
-              selectedNode.type === "mixing_valve" ? MIXING_VALVE_HELPERS : {}
-            )}
+            ${this._renderNodeStateForm(t, selectedNode)}
             ${this._renderChannels(t, selectedNode)}
             ${getDeviceDefinition(selectedNode.type)?.heater
               ? html`
@@ -537,6 +556,18 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         `
         : nothing}
     `;
+  }
+
+  private _renderNodeStateForm(t: Translator, node: SchemaNode): TemplateResult {
+    const form = nodeForm(node.type);
+    return this._renderForm(
+      t,
+      form.schema,
+      { ...(node.state ?? {}) },
+      form.labels,
+      (value) => this._setNodeState(node.id, value),
+      form.helpers
+    );
   }
 
   private _renderChannels(t: Translator, node: SchemaNode): TemplateResult | typeof nothing {

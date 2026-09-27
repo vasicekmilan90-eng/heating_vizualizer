@@ -1,33 +1,16 @@
 import { svg } from "lit";
-import type { DeviceDefinition, PortDefinition } from "../../models/schema.js";
+import type { DeviceDefinition } from "../../models/schema.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
-
-function renderPorts(def: DeviceDefinition, t: Translator): ReturnType<typeof svg>[] {
-  return def.ports.map((port: PortDefinition) => svg`
-    <circle
-      class="port port-${port.kind}"
-      data-port-id="${port.id}"
-      cx="${port.position.x}" cy="${port.position.y}" r="5"
-      fill="var(--card-background-color, #1c1c1c)"
-      stroke="${port.kind === "inlet" ? "#4fc3f7" : "#ff8a65"}"
-      stroke-width="2"
-    ><title>${t.t(port.labelKey, ...(port.labelArgs ?? []))}</title></circle>
-  `);
-}
-
-const SUPPLY_COLOR = "#ef5350";
-const RETURN_COLOR = "#42a5f5";
-
-/** Temperatures mapped onto the blue → red scale. */
-const TEMP_COLD = 20;
-const TEMP_HOT = 60;
-
-function temperatureColor(value: number | undefined): string {
-  if (value === undefined) return "var(--divider-color, #888)";
-  const f = Math.min(1, Math.max(0, (value - TEMP_COLD) / (TEMP_HOT - TEMP_COLD)));
-  return `hsl(${Math.round(220 * (1 - f))}, 75%, 50%)`;
-}
+import {
+  HEATER_ACTIVE_COLOR,
+  RETURN_COLOR,
+  SUPPLY_COLOR,
+  renderHeaterCoil,
+  renderPorts,
+  temperatureColor,
+} from "./common.js";
+import { renderExtraDevice } from "./extra.js";
 
 function renderBufferTank(
   def: DeviceDefinition,
@@ -204,28 +187,6 @@ function renderBoiler(
   `;
 }
 
-const HEATER_ACTIVE_COLOR = "#ff7043";
-
-/** Zig-zag heating element; glows when the bound entity is active. */
-function renderHeaterCoil(
-  x: number,
-  y: number,
-  width: number,
-  heater: NodeVisualState
-): ReturnType<typeof svg> {
-  const steps = 6;
-  const step = width / steps;
-  let d = `M ${x} ${y}`;
-  for (let i = 1; i <= steps; i++) {
-    d += ` L ${x + i * step} ${y + (i % 2 === 0 ? 0 : -8)}`;
-  }
-  const color = heater.active ? HEATER_ACTIVE_COLOR : "var(--divider-color, #888)";
-  return svg`
-    <path class="heater ${heater.active ? "active" : ""}" d="${d}" fill="none"
-      stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
-  `;
-}
-
 function renderElectricHeater(
   def: DeviceDefinition,
   t: Translator,
@@ -291,9 +252,11 @@ function renderCirculationPump(
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
-      <path d="M 32 52 A 14 14 0 0 1 58 38"
-        fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
-      <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
+      <g class="${state.active ? "spinning" : ""}">
+        <path d="M 32 52 A 14 14 0 0 1 58 38"
+          fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
+        <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
+      </g>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -467,6 +430,7 @@ export function renderDeviceByType(
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
+    case "dhw_circulation_pump":
       return renderCirculationPump(def, t, selected, state);
     case "floor_heating":
       return renderFloorHeating(def, t, selected, state);
@@ -482,7 +446,13 @@ export function renderDeviceByType(
       return renderOutdoorUnit(def, t, selected, state, channels);
     case "pipe_sensor":
       return renderInlineSensor(def, t, selected, state, "temperature");
+    case "flow_meter":
+      return renderInlineSensor(def, t, selected, state, "flow");
+    case "pressure_gauge":
+      return renderInlineSensor(def, t, selected, state, "pressure");
+    case "heat_meter":
+      return renderInlineSensor(def, t, selected, state, "energy");
     default:
-      return undefined;
+      return renderExtraDevice(type, def, t, selected, state);
   }
 }

@@ -16,7 +16,7 @@ import { HA_CONTEXT, HassContextConsumer } from "./utils/context.js";
 import "./renderer/schema-canvas.js";
 import "./editor/card-editor.js";
 
-const CARD_VERSION = "0.2.0";
+const CARD_VERSION = "0.3.0";
 const DOCUMENTATION_URL = "https://github.com/vasicekmilan90-eng/heating_vizualizer";
 
 @customElement("heating-visualizer-card")
