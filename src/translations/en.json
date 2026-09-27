@@ -193,6 +193,12 @@
     "secondary_supply": "secondary supply",
     "secondary_return": "secondary return"
   },
+  "templates": {
+    "heat_pump_floor": "Heat pump + floor heating",
+    "heat_pump_dhw_floor": "Heat pump + DHW tank + floor heating",
+    "heat_pump_buffer_radiators": "Heat pump + buffer tank + radiators",
+    "boiler_radiators": "Boiler + radiators"
+  },
   "editor": {
     "schema_tab": "Schema",
     "overlay_tab": "Overlays",
@@ -204,6 +210,8 @@
     "suggested_title": "Suggested add-ons",
     "suggested_hint": "Other entities of the same Home Assistant device.",
     "add_all": "Add all",
+    "template": "Template",
+    "insert_template": "Insert template",
     "empty_hint": "Add a device to start building your schema.",
     "devices_title": "Devices",
     "no_entity": "No entity",

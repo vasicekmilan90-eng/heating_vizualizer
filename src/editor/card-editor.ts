@@ -24,6 +24,7 @@ import {
 } from "../models/connections.js";
 import { normalizeConfig } from "../models/migrate.js";
 import { guessDeviceType, suggestAddons } from "../models/entity-mapping.js";
+import { instantiateTemplate, SCHEMA_TEMPLATES } from "../models/templates.js";
 import {
   connectionId,
   formatPortRef,
@@ -179,6 +180,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   @state() private _newAddonType?: AddonType;
   @state() private _entityToAdd?: string;
   @state() private _entityDeviceType?: string;
+  @state() private _templateId = SCHEMA_TEMPLATES[0].id;
 
   public set hass(hass: HomeAssistant | undefined) {
     this._hass = hass;
@@ -476,6 +478,21 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         <button type="button" class="primary" @click="${() => this._addDevice(this._newDeviceType)}">
           ${t.t("editor.add_device")}
         </button>
+      </div>
+      <div class="toolbar">
+        <select
+          aria-label="${t.t("editor.template")}"
+          @change="${(ev: Event) => {
+            this._templateId = (ev.target as HTMLSelectElement).value;
+          }}"
+        >
+          ${SCHEMA_TEMPLATES.map(
+            (template) => html`<option value="${template.id}" ?selected="${template.id === this._templateId}">
+              ${t.t(`templates.${template.id}`)}
+            </option>`
+          )}
+        </select>
+        <button type="button" @click="${this._insertTemplate}">${t.t("editor.insert_template")}</button>
       </div>
       ${this._renderAddFromEntity(t)}
 
@@ -1137,6 +1154,16 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     this._entityToAdd = undefined;
     this._entityDeviceType = undefined;
     this._openNode(id);
+  }
+
+  private _insertTemplate(): void {
+    const template = SCHEMA_TEMPLATES.find((tpl) => tpl.id === this._templateId);
+    if (!template) return;
+    this._update((schema) => {
+      const part = instantiateTemplate(template, schema, (localId) => generateId(localId));
+      schema.nodes.push(...part.nodes);
+      schema.connections.push(...part.connections);
+    });
   }
 
   private _addAddons(nodeId: string, addons: AddonConfig[]): void {
