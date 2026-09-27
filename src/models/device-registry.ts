@@ -30,23 +30,43 @@ export const VALVE_3WAY: DeviceDefinition = {
 export const BOILER: DeviceDefinition = {
   type: "boiler",
   labelKey: "devices.boiler.name",
-  width: 90,
+  width: 100,
   height: 140,
   heater: true,
   ports: [
     {
-      id: "cold_in",
-      labelKey: "devices.boiler.ports.cold_in",
+      id: "coil_in",
+      labelKey: "devices.boiler.ports.coil_in",
       kind: "inlet",
-      position: { x: 0, y: 110 },
+      position: { x: 0, y: 50 },
+    },
+    {
+      id: "coil_out",
+      labelKey: "devices.boiler.ports.coil_out",
+      kind: "outlet",
+      position: { x: 0, y: 100 },
     },
     {
       id: "hot_out",
       labelKey: "devices.boiler.ports.hot_out",
       kind: "outlet",
-      position: { x: 90, y: 30 },
+      position: { x: 100, y: 30 },
+    },
+    {
+      id: "cold_in",
+      labelKey: "devices.boiler.ports.cold_in",
+      kind: "inlet",
+      position: { x: 100, y: 118 },
     },
   ],
+  channels: {
+    kind: "sensor",
+    titleKey: "devices.boiler.channels",
+    itemKey: "devices.boiler.channel",
+    min: 0,
+    max: 2,
+    default: 1,
+  },
 };
 
 export const JUNCTION: DeviceDefinition = {

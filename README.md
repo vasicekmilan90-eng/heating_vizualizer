@@ -97,7 +97,7 @@ schema:
 | `heat_pump` | `hot_out`, `cold_in` | spinning fan, 0–4 value channels |
 | `heating_boiler` | `supply_out`, `return_in` | value |
 | `solar_collector` | `hot_out`, `cold_in` | value |
-| `boiler` (DHW tank) | `cold_in`, `hot_out` | electric heater |
+| `boiler` (DHW tank) | `coil_in`, `coil_out`, `hot_out`, `cold_in` | 0–2 temperature sensors, electric heater |
 | `buffer_tank` | `source_in`, `source_out`, `supply_out`, `return_in` | 1–5 temperature sensors, electric heater |
 | `hydraulic_separator`, `plate_heat_exchanger` | `primary_in`, `primary_out`, `secondary_out`, `secondary_in` | value (separator) |
 | `expansion_vessel` | `connection` | value (pressure) |

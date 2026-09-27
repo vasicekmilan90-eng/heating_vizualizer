@@ -133,7 +133,8 @@ function renderBoiler(
   t: Translator,
   selected: boolean,
   state: NodeVisualState,
-  heater: NodeVisualState | undefined
+  heater: NodeVisualState | undefined,
+  channels: NodeVisualState[]
 ): ReturnType<typeof svg> {
   const stroke = state.active
     ? "#4caf50"
@@ -141,16 +142,25 @@ function renderBoiler(
       ? "var(--primary-color, #03a9f4)"
       : "var(--divider-color, #888)";
   const strokeWidth = selected ? 2.5 : 1.5;
+  // Heat exchanger coil between coil_in (y=50) and coil_out (y=100).
+  const coil = "M 0 50 H 24 L 58 58 L 24 66 L 58 74 L 24 82 L 58 90 L 24 98 L 24 100 H 0";
+  const sensorY = [34, 114];
   return svg`
     <g class="device device-boiler">
+      <path d="M 88 30 H ${def.width} M 88 118 H ${def.width}" stroke="var(--divider-color, #888)" stroke-width="2" />
       <rect
-        x="10" y="10" width="70" height="120" rx="18"
+        x="12" y="8" width="76" height="124" rx="18"
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
-      <path d="M 30 35 L 60 35 M 30 55 L 60 55 M 30 75 L 60 75"
-        stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
-      ${heater ? renderHeaterCoil(24, 100, 42, heater) : svg``}
+      <path d="${coil}" fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.8" />
+      ${channels.slice(0, sensorY.length).map((channel, i) => svg`
+        <text x="50" y="${sensorY[i]}" text-anchor="middle" class="device-value"
+          style="${channel.numeric === undefined ? "" : `fill: ${temperatureColor(channel.numeric)}`}">
+          <title>${channel.label ?? ""}</title>${channel.value ?? "—"}
+        </text>
+      `)}
+      ${heater ? renderHeaterCoil(30, 126, 40, heater) : svg``}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -411,7 +421,7 @@ export function renderDeviceByType(
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
     case "boiler":
-      return renderBoiler(def, t, selected, state, extras.heater);
+      return renderBoiler(def, t, selected, state, extras.heater, channels);
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
