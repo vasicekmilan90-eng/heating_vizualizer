@@ -28,6 +28,11 @@ import {
 } from "../utils/entity.js";
 import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
+import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
+import type { ResolvedAddon } from "./devices/common.js";
+
+const BADGE_OFFSET = 6;
+const BADGE_MIN_WIDTH = 120;
 
 const GRID_SIZE = 10;
 const NUDGE_STEP = GRID_SIZE;
@@ -136,6 +141,9 @@ export class HeatingSchemaCanvas extends LitElement {
     .overlay-group {
       pointer-events: none;
     }
+    .addon-value {
+      font-size: var(--ha-font-size-xs, 11px);
+    }
     .overlay-bg {
       fill: var(--card-background-color, #1c1c1c);
       stroke: var(--divider-color, #555);
@@ -231,10 +239,11 @@ export class HeatingSchemaCanvas extends LitElement {
       const def = getNodeDefinition(node);
       if (!def) continue;
       const rect = getNodeBounds(node, def);
+      const badges = layoutBadges(badgeAddons(node.type, this._resolveAddons(node)), this._badgeWidth(rect));
       minX = Math.min(minX, rect.x);
       minY = Math.min(minY, rect.y - 20);
-      maxX = Math.max(maxX, rect.x + rect.width);
-      maxY = Math.max(maxY, rect.y + rect.height + 10);
+      maxX = Math.max(maxX, rect.x + Math.max(rect.width, badges.height ? this._badgeWidth(rect) : 0));
+      maxY = Math.max(maxY, rect.y + rect.height + 10 + (badges.height ? badges.height + BADGE_OFFSET : 0));
     }
 
     const pad = 40;
@@ -266,24 +275,33 @@ export class HeatingSchemaCanvas extends LitElement {
     `;
   }
 
+  private _resolveAddons(node: SchemaNode): ResolvedAddon[] {
+    const states = this._states.value;
+    const formatters = this._formatters.value;
+    return (node.addons ?? []).map((config) => ({
+      config,
+      state: { ...resolveNodeVisualState(states, config, formatters), label: config.name },
+    }));
+  }
+
+  private _badgeWidth(rect: Rect): number {
+    return Math.max(rect.width, BADGE_MIN_WIDTH);
+  }
+
   private _renderNode(node: SchemaNode, t: Translator): TemplateResult {
     const def = getNodeDefinition(node);
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const states = this._states.value;
-    const formatters = this._formatters.value;
-    const visualState = resolveNodeVisualState(states, node, formatters);
-    const addons = (node.addons ?? []).map((config) => ({
-      config,
-      state: { ...resolveNodeVisualState(states, config, formatters), label: config.name },
-    }));
+    const visualState = resolveNodeVisualState(this._states.value, node, this._formatters.value);
+    const addons = this._resolveAddons(node);
     const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, { addons });
     if (!deviceSvg) return html``;
 
     const rotation = normalizeRotation(node.rotation);
     const rect = getNodeBounds(node, def);
     const labelY = rect.y - node.position.y - 4;
+    const badges = badgeAddons(node.type, addons);
 
     return svg`
       <g
@@ -297,6 +315,15 @@ export class HeatingSchemaCanvas extends LitElement {
         <text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">
           ${node.name || t.t(def.labelKey)}
         </text>
+        ${badges.length
+          ? renderAddonBadges(
+              badges,
+              t,
+              rect.x - node.position.x,
+              rect.y - node.position.y + rect.height + BADGE_OFFSET,
+              this._badgeWidth(rect)
+            )
+          : nothing}
       </g>
     `;
   }
