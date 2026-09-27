@@ -367,12 +367,35 @@ export const GAS_BOILER = heatSource("gas_boiler");
 export const ELECTRIC_BOILER = heatSource("electric_boiler");
 export const SOLID_FUEL_BOILER = heatSource("solid_fuel_boiler");
 
+export const SOLAR_COLLECTOR: DeviceDefinition = {
+  type: "solar_collector",
+  labelKey: "devices.solar_collector.name",
+  width: 150,
+  height: 100,
+  valueDisplay: "with_state",
+  ports: [
+    {
+      id: "hot_out",
+      labelKey: "devices.solar_collector.ports.hot_out",
+      kind: "outlet",
+      position: { x: 150, y: 22 },
+    },
+    {
+      id: "cold_in",
+      labelKey: "devices.solar_collector.ports.cold_in",
+      kind: "inlet",
+      position: { x: 150, y: 84 },
+    },
+  ],
+};
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
   OUTDOOR_UNIT,
   GAS_BOILER,
   ELECTRIC_BOILER,
   SOLID_FUEL_BOILER,
+  SOLAR_COLLECTOR,
   BOILER,
   BUFFER_TANK,
   VALVE_3WAY,

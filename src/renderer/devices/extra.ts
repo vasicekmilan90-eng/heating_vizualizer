@@ -68,6 +68,30 @@ function renderHeatSource(
   `;
 }
 
+const SOLAR_ACTIVE_COLOR = "#ffb300";
+
+function renderSolarCollector(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState
+): SvgResult {
+  const stroke = frameStroke(state, selected, SOLAR_ACTIVE_COLOR);
+  const value = numericValue(state);
+  return svg`
+    <g class="device device-solar-collector">
+      <path d="M 124 22 L ${def.width} 22 M 100 84 L ${def.width} 84" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <path d="M 10 84 L 36 22 L 124 22 L 100 84 Z" fill="${CARD_FILL}"
+        stroke="${stroke}" stroke-width="${frameWidth(selected)}" stroke-linejoin="round" />
+      <path d="M 58 22 L 32 84 M 80 22 L 54 84 M 102 22 L 76 84 M 23 53 L 112 53"
+        stroke="${NEUTRAL_STROKE}" stroke-width="1" />
+      <circle cx="20" cy="14" r="6" fill="${state.active ? SOLAR_ACTIVE_COLOR : "none"}" stroke="${SOLAR_ACTIVE_COLOR}" stroke-width="1.5" />
+      ${value ? svg`<text x="67" y="${def.height - 2}" text-anchor="middle" class="device-value">${value}</text>` : svg``}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -83,6 +107,8 @@ export function renderExtraDevice(
       return renderHeatSource(def, t, selected, state, "coil");
     case "solid_fuel_boiler":
       return renderHeatSource(def, t, selected, state, "logs");
+    case "solar_collector":
+      return renderSolarCollector(def, t, selected, state);
     default:
       return undefined;
   }
