@@ -64,6 +64,11 @@ const CHANNEL_SCHEMA: HaFormSchema[] = [
   { name: "active_state", selector: { state: {} }, context: { filter_entity: "entity_id" } },
 ];
 
+const SENSOR_CHANNEL_SCHEMA: HaFormSchema[] = [
+  { name: "name", selector: { text: {} } },
+  { name: "entity_id", selector: { entity: {} } },
+];
+
 /** Channels padded to the count the device is drawn with. */
 function nodeChannels(node: SchemaNode, spec: ChannelSpec): ChannelBinding[] {
   const channels = (node.channels ?? []).map((c) => ({ ...c }));
@@ -511,7 +516,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             <strong>${channel.name || t.t(spec.itemKey, String(index + 1))}</strong>
             ${this._renderForm(
               t,
-              CHANNEL_SCHEMA,
+              spec.kind === "sensor" ? SENSOR_CHANNEL_SCHEMA : CHANNEL_SCHEMA,
               { ...channel },
               CHANNEL_LABELS,
               (value) => this._setChannel(node.id, index, value)

@@ -192,6 +192,7 @@ export const MANIFOLD: DeviceDefinition = {
     },
   ],
   channels: {
+    kind: "switch",
     titleKey: "devices.manifold.channels",
     itemKey: "devices.manifold.channel",
     min: 1,
@@ -199,6 +200,47 @@ export const MANIFOLD: DeviceDefinition = {
     default: MANIFOLD_DEFAULT_LOOPS,
   },
   resolve: (node) => manifoldDefinition(node.channels?.length || MANIFOLD_DEFAULT_LOOPS),
+};
+
+export const BUFFER_TANK: DeviceDefinition = {
+  type: "buffer_tank",
+  labelKey: "devices.buffer_tank.name",
+  width: 100,
+  height: 186,
+  ports: [
+    {
+      id: "source_in",
+      labelKey: "devices.buffer_tank.ports.source_in",
+      kind: "inlet",
+      position: { x: 0, y: 40 },
+    },
+    {
+      id: "source_out",
+      labelKey: "devices.buffer_tank.ports.source_out",
+      kind: "outlet",
+      position: { x: 0, y: 150 },
+    },
+    {
+      id: "supply_out",
+      labelKey: "devices.buffer_tank.ports.supply_out",
+      kind: "outlet",
+      position: { x: 100, y: 40 },
+    },
+    {
+      id: "return_in",
+      labelKey: "devices.buffer_tank.ports.return_in",
+      kind: "inlet",
+      position: { x: 100, y: 150 },
+    },
+  ],
+  channels: {
+    kind: "sensor",
+    titleKey: "devices.buffer_tank.channels",
+    itemKey: "devices.buffer_tank.channel",
+    min: 1,
+    max: 5,
+    default: 3,
+  },
 };
 
 export const DEVICE_TYPES: string[] = [
@@ -209,6 +251,7 @@ export const DEVICE_TYPES: string[] = [
   CIRCULATION_PUMP.type,
   FLOOR_HEATING.type,
   MANIFOLD.type,
+  BUFFER_TANK.type,
 ];
 
 const REGISTRY = new Map<string, DeviceDefinition>([
@@ -219,6 +262,7 @@ const REGISTRY = new Map<string, DeviceDefinition>([
   [CIRCULATION_PUMP.type, CIRCULATION_PUMP],
   [FLOOR_HEATING.type, FLOOR_HEATING],
   [MANIFOLD.type, MANIFOLD],
+  [BUFFER_TANK.type, BUFFER_TANK],
 ]);
 
 export function getDeviceDefinition(type: string): DeviceDefinition | undefined {

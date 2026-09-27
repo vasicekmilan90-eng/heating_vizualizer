@@ -19,6 +19,61 @@ function renderPorts(def: DeviceDefinition, t: Translator): ReturnType<typeof sv
 const SUPPLY_COLOR = "#ef5350";
 const RETURN_COLOR = "#42a5f5";
 
+/** Temperatures mapped onto the blue → red scale. */
+const TEMP_COLD = 20;
+const TEMP_HOT = 60;
+
+function temperatureColor(value: number | undefined): string {
+  if (value === undefined) return "var(--divider-color, #888)";
+  const f = Math.min(1, Math.max(0, (value - TEMP_COLD) / (TEMP_HOT - TEMP_COLD)));
+  return `hsl(${Math.round(220 * (1 - f))}, 75%, 50%)`;
+}
+
+function renderBufferTank(
+  def: DeviceDefinition,
+  t: Translator,
+  selected: boolean,
+  state: NodeVisualState,
+  channels: NodeVisualState[]
+): ReturnType<typeof svg> {
+  const stroke = state.active
+    ? "#4caf50"
+    : selected
+      ? "var(--primary-color, #03a9f4)"
+      : "var(--divider-color, #888)";
+  const strokeWidth = selected ? 2.5 : 1.5;
+  const top = 16;
+  const bottom = def.height - 10;
+  const count = channels.length;
+  const sensorY = channels.map((_, i) =>
+    count === 1 ? (top + bottom) / 2 : top + 18 + (i * (bottom - top - 36)) / (count - 1)
+  );
+
+  return svg`
+    <g class="device device-buffer-tank">
+      ${def.ports.map((p) => svg`
+        <line x1="${p.position.x}" y1="${p.position.y}" x2="${p.position.x === 0 ? 14 : 86}" y2="${p.position.y}"
+          stroke="var(--divider-color, #888)" stroke-width="2" />
+      `)}
+      <rect x="14" y="10" width="72" height="${def.height - 14}" rx="10"
+        fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      ${channels.map((channel, i) => {
+        const y0 = i === 0 ? top : (sensorY[i - 1] + sensorY[i]) / 2;
+        const y1 = i === count - 1 ? bottom : (sensorY[i] + sensorY[i + 1]) / 2;
+        const color = temperatureColor(channel.numeric);
+        return svg`
+          <rect x="17" y="${y0}" width="66" height="${y1 - y0}" fill="${color}" opacity="0.3" />
+          <circle cx="18" cy="${sensorY[i]}" r="3" fill="${color}" />
+          <text x="52" y="${sensorY[i] + 4}" text-anchor="middle" class="device-value">
+            ${channel.value ?? "—"}
+          </text>
+        `;
+      })}
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 function renderManifold(
   def: DeviceDefinition,
   t: Translator,
@@ -245,6 +300,8 @@ export function renderDeviceByType(
       return renderFloorHeating(def, t, selected, state);
     case "manifold":
       return renderManifold(def, t, selected, state, channels);
+    case "buffer_tank":
+      return renderBufferTank(def, t, selected, state, channels);
     default:
       return undefined;
   }

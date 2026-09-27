@@ -14,6 +14,8 @@ export interface PortDefinition {
 
 /** Repeated sub-elements of a device, e.g. manifold loops with their actuators. */
 export interface ChannelSpec {
+  /** `switch` channels show on/off state, `sensor` channels show the entity value. */
+  kind: "switch" | "sensor";
   titleKey: string;
   itemKey: string;
   min: number;

@@ -81,6 +81,12 @@ export class HeatingSchemaCanvas extends LitElement {
       font-size: var(--ha-font-size-xs, 11px);
       pointer-events: none;
     }
+    .device-value {
+      fill: var(--primary-text-color, #e0e0e0);
+      font-size: var(--ha-font-size-s, 12px);
+      font-weight: var(--ha-font-weight-medium, 500);
+      pointer-events: none;
+    }
     .node {
       cursor: default;
     }
@@ -224,8 +230,11 @@ export class HeatingSchemaCanvas extends LitElement {
 
     const selected = this.selectedNodeId === node.id;
     const states = this._states.value;
-    const visualState = resolveNodeVisualState(states, node.state);
-    const channelStates = (node.channels ?? []).map((c) => resolveNodeVisualState(states, c));
+    const formatters = this._formatters.value;
+    const visualState = resolveNodeVisualState(states, node.state, formatters);
+    const channelStates = (node.channels ?? []).map((c) =>
+      resolveNodeVisualState(states, c, formatters)
+    );
     const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, channelStates);
     if (!deviceSvg) return html``;
 

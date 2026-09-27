@@ -100,11 +100,15 @@ function matchesRule(states: HassEntities, rule: OverlayStateRule, fallbackEntit
 export interface NodeVisualState {
   active: boolean;
   valveBranch?: "a" | "b";
+  /** Localized state including unit, e.g. "45.2 °C". */
+  value?: string;
+  numeric?: number;
 }
 
 export function resolveNodeVisualState(
   states: HassEntities | undefined,
-  binding: NodeStateBinding | undefined
+  binding: NodeStateBinding | undefined,
+  formatters?: HomeAssistantFormatters
 ): NodeVisualState {
   if (!states || !binding?.entity_id) {
     return { active: false };
@@ -114,6 +118,12 @@ export function resolveNodeVisualState(
   if (!entity) {
     return { active: false };
   }
+
+  const numeric = Number(entity.state);
+  const unit = entity.attributes.unit_of_measurement as string | undefined;
+  const value = formatters
+    ? formatters.formatEntityState(entity)
+    : unit ? `${entity.state} ${unit}` : entity.state;
 
   const activeState = binding.active_state ?? "on";
   const active = entity.state === activeState || (activeState === "on" && entity.state === "heat");
@@ -127,5 +137,10 @@ export function resolveNodeVisualState(
   if (modeValue === branchA) valveBranch = "a";
   if (modeValue === branchB) valveBranch = "b";
 
-  return { active, valveBranch };
+  return {
+    active,
+    valveBranch,
+    value,
+    numeric: entity.state.trim() !== "" && Number.isFinite(numeric) ? numeric : undefined,
+  };
 }
