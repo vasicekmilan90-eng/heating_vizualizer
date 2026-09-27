@@ -34,8 +34,16 @@ export interface HomeAssistantInternationalization {
   localize(key: string, ...args: unknown[]): string;
 }
 
+/** Entry of `hass.entities` (entity registry display data). */
+export interface EntityRegistryDisplayEntry {
+  entity_id: string;
+  device_id?: string | null;
+  area_id?: string | null;
+}
+
 export interface HomeAssistant extends HomeAssistantFormatters {
   states: HassEntities;
+  entities?: Record<string, EntityRegistryDisplayEntry>;
   language: string;
   localize(key: string, ...args: unknown[]): string;
 }
@@ -61,35 +69,3 @@ export interface LovelaceCardEditor extends HTMLElement {
   hass?: HomeAssistant;
   setConfig(config: HeatingVisualizerConfig): void;
 }
-
-/** Subset of the `ha-form` schema used by the editor. */
-export interface HaFormSelectorSchema {
-  name: string;
-  selector: Record<string, unknown>;
-  required?: boolean;
-  context?: Record<string, string>;
-  /** Conditional visibility, available in ha-form since HA 2026.8. */
-  visible?: { field: string; value: unknown };
-}
-
-export interface HaFormGridSchema {
-  type: "grid";
-  name: string;
-  flatten?: boolean;
-  column_min_width?: string;
-  schema: HaFormSelectorSchema[];
-}
-
-export type HaFormSchema = HaFormSelectorSchema | HaFormGridSchema;
-
-interface LovelaceCardHelpers {
-  createCardElement(config: Record<string, unknown>): HTMLElement;
-}
-
-declare global {
-  interface Window {
-    loadCardHelpers?: () => Promise<LovelaceCardHelpers>;
-  }
-}
-
-export {};

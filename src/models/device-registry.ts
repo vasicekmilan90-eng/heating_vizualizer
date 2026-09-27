@@ -1,4 +1,18 @@
+import type { AddonSpec } from "./addons.js";
 import type { DeviceDefinition, PortDefinition, SchemaNode } from "./schema.js";
+
+export const TANK_TEMPERATURE_SLOTS = ["top", "upper", "middle", "lower", "bottom"];
+export const BOILER_TEMPERATURE_SLOTS = ["top", "middle", "bottom"];
+
+const ALARM: AddonSpec = { type: "alarm", max: 1 };
+const MODE: AddonSpec = { type: "mode", max: 1 };
+const SETPOINT: AddonSpec = { type: "setpoint", max: 1 };
+const values = (max: number): AddonSpec => ({ type: "value", max });
+const temperatures = (...slots: string[]): AddonSpec => ({ type: "temperature", max: slots.length, slots });
+
+function hasAddon(node: SchemaNode, type: string): boolean {
+  return node.addons?.some((a) => a.type === type) ?? false;
+}
 
 export const VALVE_3WAY: DeviceDefinition = {
   type: "valve_3way",
@@ -25,14 +39,17 @@ export const VALVE_3WAY: DeviceDefinition = {
       position: { x: 100, y: 75 },
     },
   ],
+  addons: [values(1), ALARM],
 };
+
+const BOILER_HEIGHT = 140;
+const BOILER_EXCHANGER_HEIGHT = 180;
 
 export const BOILER: DeviceDefinition = {
   type: "boiler",
   labelKey: "devices.boiler.name",
   width: 100,
-  height: 140,
-  heater: true,
+  height: BOILER_HEIGHT,
   ports: [
     {
       id: "coil_in",
@@ -59,14 +76,29 @@ export const BOILER: DeviceDefinition = {
       position: { x: 100, y: 118 },
     },
   ],
-  channels: {
-    kind: "sensor",
-    titleKey: "devices.boiler.channels",
-    itemKey: "devices.boiler.channel",
-    min: 0,
-    max: 2,
-    default: 1,
-  },
+  addons: [
+    temperatures(...BOILER_TEMPERATURE_SLOTS),
+    values(2),
+    { type: "electric_heater", max: 2 },
+    { type: "pump", max: 1 },
+    MODE,
+    SETPOINT,
+    ALARM,
+    { type: "heat_exchanger", max: 1 },
+  ],
+  // A second heat exchanger (e.g. solar) adds its own connections below the first one.
+  resolve: (node) =>
+    hasAddon(node, "heat_exchanger")
+      ? {
+          ...BOILER,
+          height: BOILER_EXCHANGER_HEIGHT,
+          ports: [
+            ...BOILER.ports.map((p) => (p.id === "cold_in" ? { ...p, position: { x: 100, y: 158 } } : p)),
+            { id: "coil2_in", labelKey: "devices.boiler.ports.coil2_in", kind: "inlet", position: { x: 0, y: 122 } },
+            { id: "coil2_out", labelKey: "devices.boiler.ports.coil2_out", kind: "outlet", position: { x: 0, y: 160 } },
+          ],
+        }
+      : BOILER,
 };
 
 export const JUNCTION: DeviceDefinition = {
@@ -115,6 +147,7 @@ export const CIRCULATION_PUMP: DeviceDefinition = {
       position: { x: 90, y: 45 },
     },
   ],
+  addons: [values(3), MODE, ALARM],
 };
 
 export const FLOOR_HEATING: DeviceDefinition = {
@@ -136,12 +169,14 @@ export const FLOOR_HEATING: DeviceDefinition = {
       position: { x: 140, y: 45 },
     },
   ],
+  addons: [temperatures("room", "floor"), { type: "actuator", max: 1 }, SETPOINT, { type: "window", max: 1 }],
 };
 
 export const MANIFOLD_LOOP_SPACING = 36;
 export const MANIFOLD_LOOP_START = 50;
 const MANIFOLD_HEIGHT = 130;
-const MANIFOLD_DEFAULT_LOOPS = 4;
+export const MANIFOLD_DEFAULT_LOOPS = 4;
+const MANIFOLD_MAX_LOOPS = 12;
 
 function manifoldDefinition(loops: number): DeviceDefinition {
   const loopPorts: PortDefinition[] = [];
@@ -191,15 +226,14 @@ export const MANIFOLD: DeviceDefinition = {
       position: { x: 0, y: 100 },
     },
   ],
-  channels: {
-    kind: "switch",
-    titleKey: "devices.manifold.channels",
-    itemKey: "devices.manifold.channel",
-    min: 1,
-    max: 12,
-    default: MANIFOLD_DEFAULT_LOOPS,
-  },
-  resolve: (node) => manifoldDefinition(node.channels?.length || MANIFOLD_DEFAULT_LOOPS),
+  addons: [
+    { type: "loop", max: MANIFOLD_MAX_LOOPS },
+    temperatures("supply", "return"),
+    values(2),
+    { type: "pump", max: 1 },
+  ],
+  resolve: (node) =>
+    manifoldDefinition(Math.max(1, node.addons?.filter((a) => a.type === "loop").length ?? 0)),
 };
 
 export const BUFFER_TANK: DeviceDefinition = {
@@ -207,7 +241,6 @@ export const BUFFER_TANK: DeviceDefinition = {
   labelKey: "devices.buffer_tank.name",
   width: 100,
   height: 186,
-  heater: true,
   ports: [
     {
       id: "source_in",
@@ -234,14 +267,24 @@ export const BUFFER_TANK: DeviceDefinition = {
       position: { x: 100, y: 150 },
     },
   ],
-  channels: {
-    kind: "sensor",
-    titleKey: "devices.buffer_tank.channels",
-    itemKey: "devices.buffer_tank.channel",
-    min: 1,
-    max: 5,
-    default: 3,
-  },
+  addons: [
+    temperatures(...TANK_TEMPERATURE_SLOTS),
+    values(2),
+    { type: "electric_heater", max: 2 },
+    ALARM,
+    { type: "heat_exchanger", max: 1 },
+  ],
+  resolve: (node) =>
+    hasAddon(node, "heat_exchanger")
+      ? {
+          ...BUFFER_TANK,
+          ports: [
+            ...BUFFER_TANK.ports,
+            { id: "coil_in", labelKey: "devices.buffer_tank.ports.coil_in", kind: "inlet", position: { x: 0, y: 80 } },
+            { id: "coil_out", labelKey: "devices.buffer_tank.ports.coil_out", kind: "outlet", position: { x: 0, y: 118 } },
+          ],
+        }
+      : BUFFER_TANK,
 };
 
 export const MIXING_VALVE: DeviceDefinition = {
@@ -269,6 +312,7 @@ export const MIXING_VALVE: DeviceDefinition = {
       position: { x: 100, y: 70 },
     },
   ],
+  addons: [temperatures("mixed", "return"), values(1), SETPOINT, ALARM],
 };
 
 export const ELECTRIC_HEATER: DeviceDefinition = {
@@ -290,6 +334,7 @@ export const ELECTRIC_HEATER: DeviceDefinition = {
       position: { x: 120, y: 30 },
     },
   ],
+  addons: [temperatures("inlet", "outlet"), values(2), MODE, ALARM],
 };
 
 export const HEAT_PUMP: DeviceDefinition = {
@@ -311,14 +356,17 @@ export const HEAT_PUMP: DeviceDefinition = {
       position: { x: 170, y: 90 },
     },
   ],
-  channels: {
-    kind: "sensor",
-    titleKey: "devices.heat_pump.channels",
-    itemKey: "devices.heat_pump.channel",
-    min: 0,
-    max: 4,
-    default: 0,
-  },
+  addons: [
+    temperatures("supply", "return", "outdoor", "evaporator"),
+    values(6),
+    { type: "electric_heater", max: 3 },
+    { type: "pump", max: 1 },
+    { type: "fan", max: 1 },
+    MODE,
+    SETPOINT,
+    { type: "defrost", max: 1 },
+    ALARM,
+  ],
 };
 
 function inlineSensor(type: string): DeviceDefinition {
@@ -346,6 +394,7 @@ export const OUTDOOR_TEMPERATURE: DeviceDefinition = {
   height: 50,
   valueDisplay: "only",
   ports: [],
+  addons: [values(1)],
 };
 
 /** Boiler-like heat source with supply/return on the right side. */
@@ -374,7 +423,10 @@ function heatSource(type: string): DeviceDefinition {
 }
 
 // Fuel type is intentionally not modelled: Home Assistant cannot observe it.
-export const HEATING_BOILER = heatSource("heating_boiler");
+export const HEATING_BOILER: DeviceDefinition = {
+  ...heatSource("heating_boiler"),
+  addons: [temperatures("supply", "return"), values(4), { type: "pump", max: 1 }, MODE, SETPOINT, ALARM],
+};
 
 export const SOLAR_COLLECTOR: DeviceDefinition = {
   type: "solar_collector",
@@ -396,6 +448,7 @@ export const SOLAR_COLLECTOR: DeviceDefinition = {
       position: { x: 150, y: 84 },
     },
   ],
+  addons: [temperatures("collector"), values(2), { type: "pump", max: 1 }, ALARM],
 };
 
 /** Primary circuit on the left, secondary circuit on the right. */
@@ -420,11 +473,17 @@ function fourPort(type: string, width: number, height: number): DeviceDefinition
   };
 }
 
+const CIRCUIT_TEMPERATURES = temperatures("primary_supply", "primary_return", "secondary_supply", "secondary_return");
+
 export const HYDRAULIC_SEPARATOR: DeviceDefinition = {
   ...fourPort("hydraulic_separator", 80, 160),
   valueDisplay: "only",
+  addons: [CIRCUIT_TEMPERATURES, values(2)],
 };
-export const PLATE_HEAT_EXCHANGER = fourPort("plate_heat_exchanger", 100, 120);
+export const PLATE_HEAT_EXCHANGER: DeviceDefinition = {
+  ...fourPort("plate_heat_exchanger", 100, 120),
+  addons: [CIRCUIT_TEMPERATURES, values(2)],
+};
 
 export const EXPANSION_VESSEL: DeviceDefinition = {
   type: "expansion_vessel",
@@ -440,6 +499,7 @@ export const EXPANSION_VESSEL: DeviceDefinition = {
       position: { x: 35, y: 110 },
     },
   ],
+  addons: [values(1), ALARM],
 };
 
 export const SAFETY_VALVE: DeviceDefinition = {
@@ -461,6 +521,7 @@ export const SAFETY_VALVE: DeviceDefinition = {
       position: { x: 70, y: 56 },
     },
   ],
+  addons: [ALARM],
 };
 
 export const ZONE_VALVE: DeviceDefinition = {
@@ -472,6 +533,7 @@ export const ZONE_VALVE: DeviceDefinition = {
     { id: "in", labelKey: "devices.inline.ports.in", kind: "inlet", position: { x: 0, y: 50 } },
     { id: "out", labelKey: "devices.inline.ports.out", kind: "outlet", position: { x: 80, y: 50 } },
   ],
+  addons: [temperatures("room"), ALARM],
 };
 
 /** Room terminal unit with supply/return at the bottom corners. */
@@ -489,8 +551,21 @@ function terminalUnit(type: string): DeviceDefinition {
   };
 }
 
-export const RADIATOR = terminalUnit("radiator");
-export const FANCOIL = terminalUnit("fancoil");
+export const RADIATOR: DeviceDefinition = {
+  ...terminalUnit("radiator"),
+  addons: [temperatures("room"), { type: "actuator", max: 1 }, SETPOINT, ALARM, { type: "window", max: 1 }],
+};
+export const FANCOIL: DeviceDefinition = {
+  ...terminalUnit("fancoil"),
+  addons: [
+    temperatures("room", "supply"),
+    { type: "actuator", max: 1 },
+    { type: "fan", max: 1 },
+    MODE,
+    SETPOINT,
+    ALARM,
+  ],
+};
 
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
@@ -524,7 +599,7 @@ export function getDeviceDefinition(type: string): DeviceDefinition | undefined 
   return REGISTRY.get(type);
 }
 
-/** Definition with node-specific geometry (channel count etc.). */
+/** Definition with node-specific geometry (loop count, extra heat exchanger, …). */
 export function getNodeDefinition(node: SchemaNode): DeviceDefinition | undefined {
   const def = REGISTRY.get(node.type);
   return def?.resolve ? def.resolve(node) : def;

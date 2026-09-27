@@ -5,9 +5,7 @@
       "ports": {
         "cold_in": "Vratka topné vody",
         "hot_out": "Výstup topné vody"
-      },
-      "channels": "Zobrazené hodnoty",
-      "channel": "Hodnota {0}"
+      }
     },
     "valve_3way": {
       "name": "Třícestný ventil",
@@ -23,10 +21,10 @@
         "cold_in": "Studená voda – vstup",
         "hot_out": "Teplá voda – výstup",
         "coil_in": "Výměník – přívod od zdroje",
-        "coil_out": "Výměník – vratka ke zdroji"
-      },
-      "channels": "Teplotní čidla (nahoře, dole)",
-      "channel": "Čidlo {0}"
+        "coil_out": "Výměník – vratka ke zdroji",
+        "coil2_in": "Druhý výměník – přívod",
+        "coil2_out": "Druhý výměník – vratka"
+      }
     },
     "junction": {
       "name": "Uzel",
@@ -57,9 +55,7 @@
         "return_out": "Vratka",
         "loop_out": "Okruh {0} – přívod",
         "loop_in": "Okruh {0} – vratka"
-      },
-      "channels": "Okruhy (termopohony)",
-      "channel": "Okruh {0}"
+      }
     },
     "buffer_tank": {
       "name": "Akumulační nádrž",
@@ -67,10 +63,10 @@
         "source_in": "Od zdroje tepla",
         "source_out": "Zpět ke zdroji tepla",
         "supply_out": "Do topného systému",
-        "return_in": "Vratka z topného systému"
-      },
-      "channels": "Teplotní čidla (shora dolů)",
-      "channel": "Čidlo {0}"
+        "return_in": "Vratka z topného systému",
+        "coil_in": "Výměník – přívod",
+        "coil_out": "Výměník – vratka"
+      }
     },
     "mixing_valve": {
       "name": "Směšovací ventil",
@@ -158,44 +154,107 @@
       "name": "Venkovní teplota"
     }
   },
+  "addons": {
+    "temperature": { "name": "Teplotní čidlo" },
+    "value": { "name": "Hodnota" },
+    "electric_heater": { "name": "Elektrická topná spirála" },
+    "pump": { "name": "Čerpadlo" },
+    "actuator": { "name": "Pohon" },
+    "fan": { "name": "Ventilátor" },
+    "mode": { "name": "Provozní režim" },
+    "setpoint": { "name": "Požadovaná teplota" },
+    "defrost": { "name": "Odmrazování" },
+    "alarm": { "name": "Porucha" },
+    "window": { "name": "Okno" },
+    "heat_exchanger": {
+      "name": "Výměník",
+      "hint": "Přidá do výkresu výměník a jeho připojení."
+    },
+    "loop": { "name": "Okruh" }
+  },
+  "slots": {
+    "top": "nahoře",
+    "upper": "horní část",
+    "middle": "uprostřed",
+    "lower": "dolní část",
+    "bottom": "dole",
+    "supply": "přívod",
+    "return": "vratka",
+    "outdoor": "venkovní",
+    "evaporator": "výparník",
+    "room": "místnost",
+    "floor": "podlaha",
+    "mixed": "smíšená voda",
+    "inlet": "vstup",
+    "outlet": "výstup",
+    "collector": "kolektor",
+    "primary_supply": "primár – přívod",
+    "primary_return": "primár – vratka",
+    "secondary_supply": "sekundár – přívod",
+    "secondary_return": "sekundár – vratka"
+  },
   "editor": {
-    "node_name": "Název",
-    "node_name_helper": "Prázdné = název typu zařízení",
-    "heater_title": "Elektrická topná spirála",
-    "node_value_entity": "Entita hodnoty",
-    "node_value_attribute": "Zobrazený atribut",
-    "node_value_attribute_helper": "Prázdné = stav entity, např. current_temperature",
-    "node_state_position_entity": "Entita pohonu",
-    "node_state_position_attribute": "Atribut polohy (%)",
-    "node_state_position_helper": "Prázdné = current_position nebo stav entity",
-    "channel_name": "Název",
-    "title": "Editor schématu",
-    "add_device": "Přidat zařízení",
-    "device_type": "Typ zařízení",
-    "add_selected_device": "Přidat vybrané zařízení",
-    "add_heat_pump": "Tepelné čerpadlo",
-    "delete_selected": "Smazat vybrané",
-    "rotate_selected": "Otočit",
-    "empty_hint": "Přidejte zařízení a začněte sestavovat schéma.",
     "schema_tab": "Schéma",
     "overlay_tab": "Popisky",
-    "overlays_empty": "Zatím žádné popisky. Přepněte na záložku Popisky.",
-    "add_overlay": "Přidat popisek",
+    "device_type": "Typ zařízení",
+    "add_device": "Přidat zařízení",
+    "empty_hint": "Přidejte zařízení a začněte sestavovat schéma.",
+    "devices_title": "Zařízení",
+    "no_entity": "Bez entity",
+    "ports_connected": "připojeno {0}/{1}",
+    "addon_count": "doplňky: {0}",
+    "back": "Zpět",
+    "name": "Název",
+    "name_helper": "Prázdné = název typu zařízení",
+    "entity": "Entita",
+    "active_state": "Aktivní stav",
+    "active_state_helper": "Prázdné = podle hvac_action, jinak on / heat / open",
+    "value_attribute": "Zobrazený atribut",
+    "value_attribute_helper": "Prázdné = stav entity, např. current_temperature",
+    "actuator_entity": "Entita pohonu",
+    "position_attribute": "Atribut polohy (%)",
+    "position_attribute_helper": "Prázdné = current_position nebo stav entity",
+    "valve_attribute": "Atribut polohy ventilu",
+    "valve_attribute_helper": "Výchozí: position",
+    "branch_a": "Hodnota pro větev A",
+    "branch_a_helper": "Výchozí: a",
+    "branch_b": "Hodnota pro větev B",
+    "branch_b_helper": "Výchozí: b",
+    "loop_temperature": "Entita teploty místnosti",
+    "addons_title": "Doplňky",
+    "addons_empty": "Zatím žádné doplňky.",
+    "addon_type": "Typ doplňku",
+    "add_addon": "Přidat doplněk",
+    "remove_addon": "Odebrat doplněk",
+    "remaining": "zbývá {0}",
+    "slot": "Umístění",
+    "addon_name_helper": "Prázdné = typ doplňku a umístění",
+    "connections_title": "Propojení",
+    "not_connected": "Nepřipojeno",
+    "connect_to": "Připojit k",
+    "disconnect": "Odpojit",
     "connection_pending": "Napojování z {0} — klikněte na kompatibilní port",
-    "node_state_title": "Stavové napojení vybraného zařízení",
-    "node_state_entity": "Entita stavu",
-    "node_state_active": "Aktivní stav",
-    "node_state_mode_attribute": "Atribut režimu ventilu",
-    "node_state_branch_a": "Hodnota větve A",
-    "node_state_branch_b": "Hodnota větve B",
-    "default_value": "Výchozí: {0}"
+    "delete_connection": "Smazat vybrané propojení",
+    "invalid_connections": "Propojení s neexistujícím nebo nekompatibilním portem: {0}",
+    "remove_invalid": "Odstranit",
+    "position_title": "Poloha",
+    "rotate": "Otočit",
+    "delete_device": "Smazat zařízení",
+    "add_overlay": "Přidat popisek",
+    "overlays_empty": "Zatím žádné popisky.",
+    "overlay_n": "Popisek {0}",
+    "remove_overlay": "Odebrat popisek"
   },
   "overlay": {
     "entity": "Entita",
     "name": "Název",
+    "name_helper": "Prázdné = název entity",
+    "name_yaml": "Název je nastaven v YAML.",
     "template": "Šablona zobrazení",
+    "template_helper": "Zástupné symboly: {{ state }}, {{ attr('atribut') }}. Prázdné = formátovaný stav",
     "rules": "Podmíněná pravidla",
     "add_rule": "Přidat pravidlo",
+    "remove_rule": "Odebrat pravidlo",
     "rule": {
       "condition": "Podmínka",
       "condition_state": "Stav je roven",
@@ -206,6 +265,7 @@
       "above": "Nad",
       "below": "Pod",
       "color": "Barva textu",
+      "color_helper": "Název barvy Home Assistantu nebo libovolná barva CSS",
       "hide": "Skrýt popisek"
     }
   },

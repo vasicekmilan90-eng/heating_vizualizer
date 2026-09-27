@@ -43,7 +43,7 @@ describe("geometry", () => {
       id: "m",
       type: "manifold",
       position: { x: 0, y: 0 },
-      channels: [{}, {}, {}, {}, {}, {}],
+      addons: Array.from({ length: 6 }, () => ({ type: "loop" as const })),
     };
     const ports = getNodeDefinition(manifold)!.ports.map((p) => p.id);
     expect(ports).toContain("loop_6_out");

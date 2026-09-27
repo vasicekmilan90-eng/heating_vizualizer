@@ -25,7 +25,7 @@ describe("translations", () => {
   });
 
   it("replaces placeholders", () => {
-    expect(createTranslator("en").t("devices.manifold.channel", "3")).toBe("Loop 3");
+    expect(createTranslator("en").t("devices.manifold.ports.loop_out", "3")).toBe("Loop 3 supply");
   });
 
   it("keeps every language file complete", () => {

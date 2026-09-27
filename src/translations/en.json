@@ -5,9 +5,7 @@
       "ports": {
         "cold_in": "Heating water return",
         "hot_out": "Heating water out"
-      },
-      "channels": "Displayed values",
-      "channel": "Value {0}"
+      }
     },
     "valve_3way": {
       "name": "3-way valve",
@@ -23,10 +21,10 @@
         "cold_in": "Cold water inlet",
         "hot_out": "Hot water outlet",
         "coil_in": "Heat exchanger supply",
-        "coil_out": "Heat exchanger return"
-      },
-      "channels": "Temperature sensors (top, bottom)",
-      "channel": "Sensor {0}"
+        "coil_out": "Heat exchanger return",
+        "coil2_in": "Second heat exchanger supply",
+        "coil2_out": "Second heat exchanger return"
+      }
     },
     "junction": {
       "name": "Junction",
@@ -57,9 +55,7 @@
         "return_out": "Return",
         "loop_out": "Loop {0} supply",
         "loop_in": "Loop {0} return"
-      },
-      "channels": "Loops (actuators)",
-      "channel": "Loop {0}"
+      }
     },
     "buffer_tank": {
       "name": "Buffer tank",
@@ -67,10 +63,10 @@
         "source_in": "From heat source",
         "source_out": "Back to heat source",
         "supply_out": "To heating system",
-        "return_in": "Return from heating system"
-      },
-      "channels": "Temperature sensors (top → bottom)",
-      "channel": "Sensor {0}"
+        "return_in": "Return from heating system",
+        "coil_in": "Heat exchanger supply",
+        "coil_out": "Heat exchanger return"
+      }
     },
     "mixing_valve": {
       "name": "Mixing valve",
@@ -158,44 +154,107 @@
       "name": "Outdoor temperature"
     }
   },
+  "addons": {
+    "temperature": { "name": "Temperature sensor" },
+    "value": { "name": "Value" },
+    "electric_heater": { "name": "Electric heater" },
+    "pump": { "name": "Pump" },
+    "actuator": { "name": "Actuator" },
+    "fan": { "name": "Fan" },
+    "mode": { "name": "Operating mode" },
+    "setpoint": { "name": "Setpoint" },
+    "defrost": { "name": "Defrost" },
+    "alarm": { "name": "Alarm" },
+    "window": { "name": "Window" },
+    "heat_exchanger": {
+      "name": "Heat exchanger",
+      "hint": "Adds the heat exchanger and its connections to the drawing."
+    },
+    "loop": { "name": "Loop" }
+  },
+  "slots": {
+    "top": "top",
+    "upper": "upper",
+    "middle": "middle",
+    "lower": "lower",
+    "bottom": "bottom",
+    "supply": "supply",
+    "return": "return",
+    "outdoor": "outdoor",
+    "evaporator": "evaporator",
+    "room": "room",
+    "floor": "floor",
+    "mixed": "mixed water",
+    "inlet": "inlet",
+    "outlet": "outlet",
+    "collector": "collector",
+    "primary_supply": "primary supply",
+    "primary_return": "primary return",
+    "secondary_supply": "secondary supply",
+    "secondary_return": "secondary return"
+  },
   "editor": {
-    "node_name": "Name",
-    "node_name_helper": "Empty = device type name",
-    "heater_title": "Electric heating element",
-    "node_value_entity": "Value entity",
-    "node_value_attribute": "Displayed attribute",
-    "node_value_attribute_helper": "Empty = entity state, e.g. current_temperature",
-    "node_state_position_entity": "Actuator entity",
-    "node_state_position_attribute": "Position attribute (%)",
-    "node_state_position_helper": "Empty = current_position or the entity state",
-    "channel_name": "Name",
-    "title": "Schema editor",
-    "add_device": "Add device",
-    "device_type": "Device type",
-    "add_selected_device": "Add selected device",
-    "add_heat_pump": "Heat pump",
-    "delete_selected": "Delete selected",
-    "rotate_selected": "Rotate",
-    "empty_hint": "Add a device to start building your schema.",
     "schema_tab": "Schema",
     "overlay_tab": "Overlays",
-    "overlays_empty": "No overlays yet. Switch to overlay tab to add sensor labels.",
-    "add_overlay": "Add overlay",
+    "device_type": "Device type",
+    "add_device": "Add device",
+    "empty_hint": "Add a device to start building your schema.",
+    "devices_title": "Devices",
+    "no_entity": "No entity",
+    "ports_connected": "{0}/{1} connected",
+    "addon_count": "{0} add-ons",
+    "back": "Back",
+    "name": "Name",
+    "name_helper": "Empty = device type name",
+    "entity": "Entity",
+    "active_state": "Active state",
+    "active_state_helper": "Empty = hvac_action, otherwise on / heat / open",
+    "value_attribute": "Displayed attribute",
+    "value_attribute_helper": "Empty = entity state, e.g. current_temperature",
+    "actuator_entity": "Actuator entity",
+    "position_attribute": "Position attribute (%)",
+    "position_attribute_helper": "Empty = current_position or the entity state",
+    "valve_attribute": "Valve position attribute",
+    "valve_attribute_helper": "Default: position",
+    "branch_a": "Value for branch A",
+    "branch_a_helper": "Default: a",
+    "branch_b": "Value for branch B",
+    "branch_b_helper": "Default: b",
+    "loop_temperature": "Room temperature entity",
+    "addons_title": "Add-ons",
+    "addons_empty": "No add-ons yet.",
+    "addon_type": "Add-on type",
+    "add_addon": "Add add-on",
+    "remove_addon": "Remove add-on",
+    "remaining": "{0} left",
+    "slot": "Position",
+    "addon_name_helper": "Empty = add-on type and position",
+    "connections_title": "Connections",
+    "not_connected": "Not connected",
+    "connect_to": "Connect to",
+    "disconnect": "Disconnect",
     "connection_pending": "Connecting from {0} — click a compatible port",
-    "node_state_title": "Selected device state binding",
-    "node_state_entity": "State entity",
-    "node_state_active": "Active state",
-    "node_state_mode_attribute": "Valve mode attribute",
-    "node_state_branch_a": "Valve branch A value",
-    "node_state_branch_b": "Valve branch B value",
-    "default_value": "Default: {0}"
+    "delete_connection": "Delete selected connection",
+    "invalid_connections": "{0} connections point to missing or incompatible ports.",
+    "remove_invalid": "Remove",
+    "position_title": "Position",
+    "rotate": "Rotate",
+    "delete_device": "Delete device",
+    "add_overlay": "Add overlay",
+    "overlays_empty": "No overlays yet.",
+    "overlay_n": "Overlay {0}",
+    "remove_overlay": "Remove overlay"
   },
   "overlay": {
     "entity": "Entity",
     "name": "Name",
+    "name_helper": "Empty = entity name",
+    "name_yaml": "The name is configured in YAML.",
     "template": "Display template",
+    "template_helper": "Placeholders: {{ state }}, {{ attr('attribute') }}. Empty = formatted state",
     "rules": "Conditional rules",
     "add_rule": "Add rule",
+    "remove_rule": "Remove rule",
     "rule": {
       "condition": "Condition",
       "condition_state": "State equals",
@@ -206,6 +265,7 @@
       "above": "Above",
       "below": "Below",
       "color": "Text color",
+      "color_helper": "Home Assistant color name or any CSS color",
       "hide": "Hide overlay"
     }
   },

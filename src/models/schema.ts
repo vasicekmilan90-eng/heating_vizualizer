@@ -1,4 +1,7 @@
 import type { EntityNameConfig } from "../types/home-assistant.js";
+import type { AddonSpec, AddonType } from "./addons.js";
+
+export const SCHEMA_VERSION = 2;
 
 export type PortKind = "inlet" | "outlet";
 
@@ -12,48 +15,20 @@ export interface PortDefinition {
   position: { x: number; y: number };
 }
 
-/** Repeated sub-elements of a device, e.g. manifold loops with their actuators. */
-export interface ChannelSpec {
-  /** `switch` channels show on/off state, `sensor` channels show the entity value. */
-  kind: "switch" | "sensor";
-  titleKey: string;
-  itemKey: string;
-  min: number;
-  max: number;
-  default: number;
-}
-
 export interface DeviceDefinition {
   type: string;
   labelKey: string;
   width: number;
   height: number;
   ports: PortDefinition[];
-  channels?: ChannelSpec;
-  /** Device can contain an electric heating element with its own entity. */
-  heater?: boolean;
+  addons?: AddonSpec[];
   /** Device shows its entity value: `only` = value display, `with_state` = value plus on/off. */
   valueDisplay?: "only" | "with_state";
-  /** Builds the node-specific geometry, e.g. from the channel count. */
+  /** Builds the node-specific geometry, e.g. from the number of loops. */
   resolve?: (node: SchemaNode) => DeviceDefinition;
 }
 
-export interface SchemaNode {
-  id: string;
-  type: string;
-  /** Custom label; defaults to the translated device type name. */
-  name?: string;
-  position: { x: number; y: number };
-  rotation?: number;
-  state?: NodeStateBinding;
-  channels?: ChannelBinding[];
-  heater?: NodeStateBinding;
-}
-
-export interface ChannelBinding extends NodeStateBinding {
-  name?: string;
-}
-
+/** Entity binding shared by devices and add-ons. */
 export interface NodeStateBinding {
   entity_id?: string;
   active_state?: string;
@@ -64,15 +39,47 @@ export interface NodeStateBinding {
   branch_b_value?: string;
 }
 
+export interface AddonConfig extends NodeStateBinding {
+  type: AddonType;
+  slot?: string;
+  name?: string;
+  /** Loops only: optional room temperature. */
+  temperature_entity_id?: string;
+}
+
+export interface SchemaNode extends NodeStateBinding {
+  id: string;
+  type: string;
+  /** Custom label; defaults to the translated device type name. */
+  name?: string;
+  position: { x: number; y: number };
+  rotation?: number;
+  addons?: AddonConfig[];
+}
+
 export interface PortRef {
   nodeId: string;
   portId: string;
 }
 
-export interface SchemaEdge {
-  id: string;
-  from: PortRef;
-  to: PortRef;
+/** Pipe from an outlet to an inlet, both written as `node_id.port_id`. */
+export interface Connection {
+  from: string;
+  to: string;
+}
+
+export function formatPortRef(ref: PortRef): string {
+  return `${ref.nodeId}.${ref.portId}`;
+}
+
+export function parsePortRef(value: string): PortRef | undefined {
+  const dot = value.lastIndexOf(".");
+  if (dot <= 0 || dot === value.length - 1) return undefined;
+  return { nodeId: value.slice(0, dot), portId: value.slice(dot + 1) };
+}
+
+export function connectionId(connection: Connection): string {
+  return `${connection.from}>${connection.to}`;
 }
 
 export type OverlayConditionType = "state" | "numeric";
@@ -104,52 +111,28 @@ export interface SchemaOverlay {
 
 export interface HeatingSchema {
   nodes: SchemaNode[];
-  edges: SchemaEdge[];
+  connections: Connection[];
   overlays: SchemaOverlay[];
 }
 
-export interface HeatingVisualizerConfig {
+export interface HeatingVisualizerConfig extends Partial<HeatingSchema> {
   type: string;
-  schema?: HeatingSchema;
+  schema_version?: number;
   /** Keys managed by the dashboard (grid_options, visibility, view_layout, …). */
   [key: string]: unknown;
 }
 
 export const EMPTY_SCHEMA: HeatingSchema = {
   nodes: [],
-  edges: [],
+  connections: [],
   overlays: [],
 };
 
-/** Device types merged in 0.3.1; port ids are identical, so pipes keep working. */
-const LEGACY_TYPES: Record<string, string> = {
-  outdoor_unit: "heat_pump",
-  gas_boiler: "heating_boiler",
-  electric_boiler: "heating_boiler",
-  solid_fuel_boiler: "heating_boiler",
-  flow_meter: "pipe_sensor",
-  pressure_gauge: "pipe_sensor",
-  heat_meter: "pipe_sensor",
-  dhw_circulation_pump: "circulation_pump",
-};
-
-export function normalizeSchema(schema?: Partial<HeatingSchema>): HeatingSchema {
+export function schemaOf(config: HeatingVisualizerConfig): HeatingSchema {
   return {
-    nodes: (schema?.nodes ?? []).map((node) =>
-      LEGACY_TYPES[node.type] ? { ...node, type: LEGACY_TYPES[node.type] } : node
-    ),
-    edges: [...(schema?.edges ?? [])],
-    overlays: [...(schema?.overlays ?? [])],
-  };
-}
-
-export function normalizeConfig(
-  config: Partial<HeatingVisualizerConfig>
-): HeatingVisualizerConfig {
-  return {
-    ...config,
-    type: "custom:heating-visualizer-card",
-    schema: normalizeSchema(config.schema),
+    nodes: config.nodes ?? [],
+    connections: config.connections ?? [],
+    overlays: config.overlays ?? [],
   };
 }
 

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { normalizeConfig } from "../src/models/schema.js";
 import type { HassEntities, HassEntity } from "../src/types/home-assistant.js";
 import { computeCssColor, resolveNodeVisualState, resolveOverlayStyle } from "../src/utils/entity.js";
 
@@ -52,21 +51,5 @@ describe("resolveOverlayStyle", () => {
 
   it("passes CSS colors through", () => {
     expect(computeCssColor("#ff0000")).toBe("#ff0000");
-  });
-});
-
-describe("normalizeConfig", () => {
-  it("maps merged legacy device types and keeps dashboard keys", () => {
-    const config = normalizeConfig({
-      type: "custom:heating-visualizer-card",
-      grid_options: { columns: 6 },
-      schema: {
-        nodes: [{ id: "u", type: "outdoor_unit", position: { x: 0, y: 0 } }],
-        edges: [],
-        overlays: [],
-      },
-    });
-    expect(config.schema?.nodes[0].type).toBe("heat_pump");
-    expect(config.grid_options).toEqual({ columns: 6 });
   });
 });
