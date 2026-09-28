@@ -28,6 +28,8 @@ export interface DeviceDefinition {
   volume?: boolean;
   /** Alternative port layouts stored in the node's `variant`; the first one is the default. */
   variants?: string[];
+  /** Small fittings show their name only when the user set one. */
+  hideLabel?: boolean;
   /** Builds the node-specific geometry, e.g. from the number of loops. */
   resolve?: (node: SchemaNode) => DeviceDefinition;
 }
@@ -144,6 +146,10 @@ export interface HeatingVisualizerConfig extends Partial<HeatingSchema> {
   schema_version?: number;
   /** Defaults to `orthogonal`. */
   pipe_style?: PipeStyle;
+  /** Color pipes by medium; defaults to true. */
+  pipe_colors?: boolean;
+  /** Animate flowing water; defaults to true. */
+  flow_animation?: boolean;
   /** Keys managed by the dashboard (grid_options, visibility, view_layout, …). */
   [key: string]: unknown;
 }

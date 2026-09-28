@@ -13,26 +13,26 @@ const temperatures = (...slots: string[]): AddonSpec => ({ type: "temperature", 
 export const VALVE_3WAY: DeviceDefinition = {
   type: "valve_3way",
   labelKey: "devices.valve_3way.name",
-  width: 100,
-  height: 100,
+  width: 80,
+  height: 80,
   ports: [
     {
       id: "in",
       labelKey: "devices.valve_3way.ports.in",
       kind: "inlet",
-      position: { x: 0, y: 50 },
+      position: { x: 0, y: 40 },
     },
     {
       id: "out_a",
       labelKey: "devices.valve_3way.ports.out_a",
       kind: "outlet",
-      position: { x: 100, y: 25 },
+      position: { x: 80, y: 40 },
     },
     {
       id: "out_b",
       labelKey: "devices.valve_3way.ports.out_b",
       kind: "outlet",
-      position: { x: 100, y: 75 },
+      position: { x: 40, y: 80 },
     },
   ],
   addons: [values(1), ALARM],
@@ -123,41 +123,41 @@ export const TANK: DeviceDefinition = {
   },
 };
 
+const JUNCTION_SIZE = 30;
+const JUNCTION_MID = JUNCTION_SIZE / 2;
+
+/** Compact T-piece; its name is only shown when set. */
 export const JUNCTION: DeviceDefinition = {
   type: "junction",
   labelKey: "devices.junction.name",
-  width: 60,
-  height: 60,
+  width: JUNCTION_SIZE,
+  height: JUNCTION_SIZE,
+  hideLabel: true,
   variants: ["split", "merge"],
   ports: [
-    {
-      id: "in",
-      labelKey: "devices.junction.ports.in",
-      kind: "inlet",
-      position: { x: 0, y: 30 },
-    },
-    {
-      id: "out_top",
-      labelKey: "devices.junction.ports.out_top",
-      kind: "outlet",
-      position: { x: 60, y: 15 },
-    },
+    { id: "in", labelKey: "devices.junction.ports.in", kind: "inlet", position: { x: 0, y: JUNCTION_MID } },
+    { id: "out_top", labelKey: "devices.junction.ports.out_top", kind: "outlet", position: { x: JUNCTION_MID, y: 0 } },
     {
       id: "out_bottom",
       labelKey: "devices.junction.ports.out_bottom",
       kind: "outlet",
-      position: { x: 60, y: 45 },
+      position: { x: JUNCTION_MID, y: JUNCTION_SIZE },
     },
   ],
-  // Merging two returns into one pipe: two inlets on the left, one outlet on the right.
+  // Merging two returns into one pipe: inlets from above and below, outlet to the right.
   resolve: (node) =>
     node.variant === "merge"
       ? {
           ...JUNCTION,
           ports: [
-            { id: "in_top", labelKey: "devices.junction.ports.in_top", kind: "inlet", position: { x: 0, y: 15 } },
-            { id: "in_bottom", labelKey: "devices.junction.ports.in_bottom", kind: "inlet", position: { x: 0, y: 45 } },
-            { id: "out", labelKey: "devices.junction.ports.out", kind: "outlet", position: { x: 60, y: 30 } },
+            { id: "in_top", labelKey: "devices.junction.ports.in_top", kind: "inlet", position: { x: JUNCTION_MID, y: 0 } },
+            {
+              id: "in_bottom",
+              labelKey: "devices.junction.ports.in_bottom",
+              kind: "inlet",
+              position: { x: JUNCTION_MID, y: JUNCTION_SIZE },
+            },
+            { id: "out", labelKey: "devices.junction.ports.out", kind: "outlet", position: { x: JUNCTION_SIZE, y: JUNCTION_MID } },
           ],
         }
       : JUNCTION,

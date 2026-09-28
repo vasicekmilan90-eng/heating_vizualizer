@@ -19,13 +19,13 @@ describe("geometry", () => {
 
   it("places ports without rotation", () => {
     const port = getAbsolutePort(node(), "in");
-    expect(port).toMatchObject({ x: 100, y: 150, direction: { x: -1, y: 0 } });
+    expect(port).toMatchObject({ x: 100, y: 140, direction: { x: -1, y: 0 } });
   });
 
   it("rotates ports and their direction around the device center", () => {
-    // valve_3way is 100x100, inlet on the left edge; after 90° it sits on the top edge.
+    // valve_3way is 80x80, inlet on the left edge; after 90° it sits on the top edge.
     const port = getAbsolutePort(node(90), "in");
-    expect(port?.x).toBeCloseTo(150);
+    expect(port?.x).toBeCloseTo(140);
     expect(port?.y).toBeCloseTo(100);
     expect(port?.direction).toEqual({ x: 0, y: -1 });
   });

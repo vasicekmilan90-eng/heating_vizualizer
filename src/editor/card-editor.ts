@@ -295,6 +295,17 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       flex: 1;
       min-width: 160px;
     }
+    .check {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      color: var(--primary-text-color);
+    }
+    .check input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary-color);
+    }
     .header {
       display: flex;
       gap: 8px;
@@ -473,6 +484,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         .editable="${true}"
         .drawing="${this._drawing}"
         .pipeStyle="${this._pipeStyle()}"
+        .pipeColors="${this._config?.pipe_colors !== false}"
+        .flowAnimation="${this._config?.flow_animation !== false}"
         .selectedNodeId="${this._selectedNodeId}"
         .selectedEdgeId="${this._selectedEdgeId}"
         .selectedPort="${this._pendingPort}"
@@ -547,6 +560,16 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
                 </option>`
               )}
             </select>
+            ${(["pipe_colors", "flow_animation"] as const).map(
+              (key) => html`<label class="check">
+                <input
+                  type="checkbox"
+                  .checked="${this._config?.[key] !== false}"
+                  @change="${(ev: Event) => this._setDisplayOption(key, (ev.target as HTMLInputElement).checked)}"
+                />
+                ${t.t(`editor.${key}`)}
+              </label>`
+            )}
           </div>`
         : nothing}
       ${this._renderAddFromEntity(t)}
@@ -1054,6 +1077,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       <heating-schema-canvas
         .schema="${schema}"
         .pipeStyle="${this._pipeStyle()}"
+        .pipeColors="${this._config?.pipe_colors !== false}"
+        .flowAnimation="${this._config?.flow_animation !== false}"
         .editable="${false}"
       ></heating-schema-canvas>
       ${schema.overlays.length ? nothing : html`<p class="hint">${t.t("editor.overlays_empty")}</p>`}
@@ -1269,6 +1294,12 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _pipeStyle(): PipeStyle {
     return this._config?.pipe_style ?? "orthogonal";
+  }
+
+  private _setDisplayOption(key: "pipe_colors" | "flow_animation", enabled: boolean): void {
+    if (!this._config) return;
+    // On is the default and is left out of the YAML.
+    this._emit({ ...this._config, [key]: enabled ? undefined : false });
   }
 
   private _setPipeStyle(style: PipeStyle): void {
