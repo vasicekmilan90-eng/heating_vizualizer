@@ -31,7 +31,8 @@ import { actionTarget, canTap, hasAction, type ActionHandlerConfig, type ActionK
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
 import type { ResolvedAddon } from "./devices/common.js";
-import { activeFromAddons } from "./devices/common.js";
+import { activeFromAddons, withNumericActivity } from "./devices/common.js";
+import { ADDON_TYPES } from "../models/addons.js";
 import { nodeDescription } from "./a11y.js";
 
 const BADGE_OFFSET = 6;
@@ -316,11 +317,14 @@ export class HeatingSchemaCanvas extends LitElement {
   private _resolveAddons(node: SchemaNode): ResolvedAddon[] {
     const states = this._states.value;
     const formatters = this._formatters.value;
-    return (node.addons ?? []).map((config, index) => ({
-      config,
-      index,
-      state: { ...resolveNodeVisualState(states, config, formatters), label: config.name },
-    }));
+    return (node.addons ?? []).map((config, index) => {
+      const state = { ...resolveNodeVisualState(states, config, formatters), label: config.name };
+      return {
+        config,
+        index,
+        state: ADDON_TYPES[config.type]?.display === "binary" ? withNumericActivity(config, state) : state,
+      };
+    });
   }
 
   private _isActionable(target: Parameters<typeof actionTarget>[1]): boolean {

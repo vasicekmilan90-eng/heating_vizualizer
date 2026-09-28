@@ -37,10 +37,26 @@ export function heaterState(extras: DeviceExtras): NodeVisualState | undefined {
   return { active: heaters.some((h) => h.active) };
 }
 
+/** All electric heaters of a device; without entity they are drawn as off. */
 export function heaterStates(extras: DeviceExtras): NodeVisualState[] {
-  return (extras.addons ?? [])
-    .filter((a) => a.config.type === "electric_heater" && a.config.entity_id)
-    .map((a) => a.state);
+  return (extras.addons ?? []).filter((a) => a.config.type === "electric_heater").map((a) => a.state);
+}
+
+const SPIN_MIN_S = 0.25;
+const SPIN_MAX_S = 4;
+
+/** Animation period from a speed: percent, or rpm shown at a tenth of the real speed so it stays visible. */
+export function spinDuration(state: NodeVisualState): number | undefined {
+  const value = state.numeric;
+  if (value === undefined || value <= 0) return undefined;
+  const revPerSecond = state.unit === "%" ? 0.25 + (1.75 * Math.min(value, 100)) / 100 : value / 600;
+  return Math.round(Math.min(SPIN_MAX_S, Math.max(SPIN_MIN_S, 1 / revPerSecond)) * 100) / 100;
+}
+
+/** On/off add-ons bound to a number (rpm, W, %) run while the number is above zero. */
+export function withNumericActivity(config: AddonConfig, state: NodeVisualState): NodeVisualState {
+  if (config.active_state !== undefined || state.numeric === undefined) return state;
+  return { ...state, active: state.numeric > 0 };
 }
 
 export function isAddonActive(extras: DeviceExtras, type: AddonType): boolean {

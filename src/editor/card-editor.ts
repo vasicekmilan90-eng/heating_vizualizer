@@ -3,12 +3,14 @@ import { customElement, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCardEditor } from "../types/home-assistant.js";
 import { ADDON_TYPES, addonLimit, type AddonSpec, type AddonType } from "../models/addons.js";
 import {
-  DEVICE_TYPES,
+  DEVICE_PRESETS,
   getDeviceDefinition,
   getNodeDefinition,
+  getPreset,
   HEAT_PUMP,
   MANIFOLD,
   MANIFOLD_DEFAULT_LOOPS,
+  TANK_DEFAULT_VOLUME,
 } from "../models/device-registry.js";
 import {
   candidatePorts,
@@ -504,9 +506,9 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             this._newDeviceType = (ev.target as HTMLSelectElement).value;
           }}"
         >
-          ${DEVICE_TYPES.map(
-            (type) => html`<option value="${type}" ?selected="${type === this._newDeviceType}">
-              ${t.t(`devices.${type}.name`)}
+          ${DEVICE_PRESETS.map(
+            (preset) => html`<option value="${preset.id}" ?selected="${preset.id === this._newDeviceType}">
+              ${t.t(preset.labelKey)}
             </option>`
           )}
         </select>
@@ -599,9 +601,9 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
                 }}"
               >
                 ${type ? nothing : html`<option value="" selected>${t.t("editor.choose_type")}</option>`}
-                ${DEVICE_TYPES.map(
-                  (option) => html`<option value="${option}" ?selected="${option === type}">
-                    ${t.t(`devices.${option}.name`)}
+                ${DEVICE_PRESETS.map(
+                  (preset) => html`<option value="${preset.id}" ?selected="${preset.id === type}">
+                    ${t.t(preset.labelKey)}
                   </option>`
                 )}
               </select>
@@ -655,6 +657,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _renderNodeView(t: Translator, schema: HeatingSchema, node: SchemaNode): TemplateResult {
     const binding = node as Binding;
+    const def = getNodeDefinition(node);
     return html`
       ${this._renderHeader(t, this._nodeName(t, node), () => this._openList())}
       ${this._renderCanvas(t, schema)}
@@ -663,10 +666,32 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         <hv-field
           .label="${t.t("editor.name")}"
           .helper="${t.t("editor.name_helper")}"
-          .placeholder="${t.t(`devices.${node.type}.name`)}"
+          .placeholder="${t.t(def?.labelKey ?? `devices.${node.type}.name`)}"
           .value="${node.name}"
           @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { name: asText(ev) })}"
         ></hv-field>
+        ${def?.variants
+          ? html`<hv-field
+              kind="select"
+              .label="${t.t("editor.variant")}"
+              .options="${def.variants.map((value) => ({ value, label: t.t(`devices.${node.type}.variants.${value}`) }))}"
+              .value="${node.variant ?? def.variants[0]}"
+              @hv-change="${(ev: FieldEvent) => this._setVariant(node.id, asText(ev), def.variants?.[0])}"
+            ></hv-field>`
+          : nothing}
+        ${def?.volume
+          ? html`<hv-field
+              kind="number"
+              .label="${t.t("editor.volume")}"
+              .helper="${t.t("editor.volume_helper")}"
+              .placeholder="${String(TANK_DEFAULT_VOLUME)}"
+              .value="${node.volume}"
+              @hv-change="${(ev: FieldEvent) => {
+                const volume = asNumber(ev);
+                this._patchNode(node.id, { volume: volume && volume > 0 ? volume : undefined });
+              }}"
+            ></hv-field>`
+          : nothing}
         <hv-field
           kind="combo"
           strict
@@ -1180,7 +1205,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   // ------------------------------------------------------------------- labels
 
   private _nodeName(t: Translator, node: SchemaNode): string {
-    return node.name || t.t(`devices.${node.type}.name`);
+    return node.name || t.t(getNodeDefinition(node)?.labelKey ?? `devices.${node.type}.name`);
   }
 
   private _addonName(t: Translator, node: SchemaNode, addon: AddonConfig, index: number): string {
@@ -1266,6 +1291,15 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     });
   }
 
+  private _setVariant(nodeId: string, variant: string | undefined, defaultVariant: string | undefined): void {
+    this._update((schema) => {
+      const node = schema.nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      node.variant = variant === defaultVariant ? undefined : variant;
+      schema.connections = pruneNodeConnections(schema, nodeId);
+    });
+  }
+
   private _nudge(node: SchemaNode, dx: number, dy: number): void {
     this._moveNode(node.id, { x: node.position.x + dx * NUDGE_STEP, y: node.position.y + dy * NUDGE_STEP });
   }
@@ -1282,8 +1316,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     });
   }
 
-  private _addDevice(type: string, entityId?: string): void {
-    if (!getDeviceDefinition(type)) return;
+  private _addDevice(presetId: string, entityId?: string): void {
+    const preset = getPreset(presetId);
+    if (!preset || !getDeviceDefinition(preset.type)) return;
+    const { type } = preset;
     const id = generateId(type);
     this._update((schema) => {
       const count = schema.nodes.length;
@@ -1297,6 +1333,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           x: NEW_NODE_GRID.originX + (count % NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepX,
           y: NEW_NODE_GRID.originY + Math.floor(count / NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepY,
         },
+        addons: preset.addons?.map((a) => ({ ...a })),
       };
       if (type === MANIFOLD.type) {
         node.addons = Array.from({ length: MANIFOLD_DEFAULT_LOOPS }, () => ({ type: "loop" as const }));

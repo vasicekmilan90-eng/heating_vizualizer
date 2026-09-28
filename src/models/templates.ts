@@ -37,7 +37,7 @@ export const SCHEMA_TEMPLATES: SchemaTemplate[] = [
     nodes: [
       { id: "hp", type: "heat_pump", x: 0, y: 140 },
       { id: "valve", type: "valve_3way", x: 240, y: 130 },
-      { id: "dhw", type: "boiler", x: 420, y: 0 },
+      { id: "dhw", type: "tank", x: 420, y: 0, addons: [{ type: "heat_exchanger" }, { type: "dhw" }] },
       { id: "pump", type: "circulation_pump", x: 420, y: 220 },
       { id: "manifold", type: "manifold", x: 580, y: 220, addons: loops() },
     ],
@@ -54,7 +54,13 @@ export const SCHEMA_TEMPLATES: SchemaTemplate[] = [
     id: "heat_pump_buffer_radiators",
     nodes: [
       { id: "hp", type: "heat_pump", x: 0, y: 40 },
-      { id: "buffer", type: "buffer_tank", x: 260, y: 0 },
+      {
+        id: "buffer",
+        type: "tank",
+        x: 260,
+        y: 0,
+        addons: [{ type: "direct_source" }, { type: "direct_heating" }],
+      },
       { id: "pump", type: "circulation_pump", x: 440, y: 0 },
       { id: "radiator", type: "radiator", x: 600, y: 20 },
     ],

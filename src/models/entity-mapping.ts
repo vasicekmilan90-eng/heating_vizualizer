@@ -1,6 +1,6 @@
 import type { HassEntity, HomeAssistant } from "../types/home-assistant.js";
 import { addonLimit, type AddonType } from "./addons.js";
-import { getDeviceDefinition } from "./device-registry.js";
+import { getDeviceDefinition, presetOf } from "./device-registry.js";
 import type { AddonConfig, SchemaNode } from "./schema.js";
 
 /** Lower-case words of the entity id and name without diacritics, e.g. ` tc vratka teplota `. */
@@ -29,11 +29,11 @@ function deviceClassOf(entity: HassEntity): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-/** Keyword → device type, checked in order; English and Czech (without diacritics). */
+/** Keyword → device preset (see `DEVICE_PRESETS`), checked in order; English and Czech (without diacritics). */
 const DEVICE_KEYWORDS: [string, string][] = [
   ["heat ?pump|heatpump|tepeln\\w* cerpadl|tc ", "heat_pump"],
-  ["buffer|akumul|nadrz", "buffer_tank"],
-  ["boiler|dhw|hot ?water|tuv|bojler|zasobnik", "boiler"],
+  ["buffer|akumul|nadrz", "tank_buffer"],
+  ["boiler|dhw|hot ?water|tuv|bojler|zasobnik", "tank_dhw"],
   ["kotel|furnace|gas ", "heating_boiler"],
   ["solar|kolektor", "solar_collector"],
   ["manifold|rozdelovac", "manifold"],
@@ -51,7 +51,7 @@ const PIPE_SENSOR_CLASSES = new Set(["temperature", "pressure", "volume_flow_rat
 /** Words like "pump" or "outdoor" also appear in names of other devices' entities, so they do not claim ownership. */
 const GENERIC_KEYWORD_TYPES = new Set(["circulation_pump", "outdoor_temperature"]);
 
-/** Device type named in a text, e.g. `boiler` for "Heat pump DHW tank temperature". */
+/** Device preset named in a text, e.g. `tank_dhw` for "Heat pump DHW tank temperature". */
 function namedDeviceType(text: string): string | undefined {
   const type = DEVICE_KEYWORDS.find(([pattern]) => has(text, pattern))?.[1];
   return type && !GENERIC_KEYWORD_TYPES.has(type) ? type : undefined;
@@ -59,13 +59,13 @@ function namedDeviceType(text: string): string | undefined {
 
 const HEAT_SOURCE_TYPES = new Set(["heat_pump", "heating_boiler", "solar_collector"]);
 
-/** Device type that most likely matches an entity; `undefined` when nothing fits. */
+/** Device preset that most likely matches an entity; `undefined` when nothing fits. */
 export function guessDeviceType(entity: HassEntity): string | undefined {
   const text = words(entity);
   const domain = domainOf(entity);
   const keyword = DEVICE_KEYWORDS.find(([pattern]) => has(text, pattern))?.[1];
   if (keyword) return keyword;
-  if (domain === "water_heater") return "boiler";
+  if (domain === "water_heater") return "tank_dhw";
   if (domain === "climate") return "radiator";
   if (domain === "valve") return "zone_valve";
   if (domain === "fan") return "fancoil";
@@ -142,7 +142,7 @@ export function suggestAddons(
   const deviceEntry = hass.devices?.[device];
   const deviceType = namedDeviceType(normalizeWords(deviceEntry?.name_by_user || deviceEntry?.name || ""));
   // Entities that name no device belong to the HA device itself, e.g. the heat pump.
-  const primary = deviceType ? node.type === deviceType : HEAT_SOURCE_TYPES.has(node.type);
+  const primary = deviceType ? presetOf(node) === deviceType : HEAT_SOURCE_TYPES.has(node.type);
 
   const candidates = Object.values(hass.entities ?? {})
     .filter((entry) => entry.device_id === device && !bound.has(entry.entity_id) && !taken.has(entry.entity_id))
@@ -150,7 +150,7 @@ export function suggestAddons(
     .filter((entity): entity is HassEntity => entity !== undefined)
     .filter((entity) => {
       const owner = namedDeviceType(words(entity));
-      return owner ? owner === node.type : primary;
+      return owner ? owner === presetOf(node) : primary;
     })
     .sort((a, b) => a.entity_id.localeCompare(b.entity_id));
 

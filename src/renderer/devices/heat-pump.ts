@@ -1,6 +1,6 @@
 import { svg } from "lit";
 import type { DeviceDefinition } from "../../models/schema.js";
-import { BOILER_TEMPERATURE_SLOTS, TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
+import { TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
@@ -15,13 +15,30 @@ import {
   renderPorts,
   renderTemperatureBands,
   renderValueLabel,
+  spinDuration,
   temperatureColor,
   temperatureSlots,
   type DeviceExtras,
 } from "./common.js";
 import { renderExtraDevice } from "./extra.js";
 
-function renderBufferTank(
+const TANK_LEFT = 14;
+const TANK_RIGHT = 86;
+const COIL_DEPTH = 32;
+const COIL_PITCH = 8;
+
+/** Heat exchanger coil from its supply port down to its return port. */
+function coilPath(y1: number, y2: number): string {
+  const turns = Math.max(2, Math.floor((y2 - y1) / COIL_PITCH));
+  const step = (y2 - y1) / turns;
+  let d = `M ${TANK_LEFT} ${y1}`;
+  for (let i = 1; i < turns; i++) {
+    d += ` L ${i % 2 ? TANK_LEFT + COIL_DEPTH : TANK_LEFT + 4} ${y1 + i * step}`;
+  }
+  return `${d} L ${TANK_LEFT} ${y2}`;
+}
+
+function renderTank(
   def: DeviceDefinition,
   t: Translator,
   selected: boolean,
@@ -40,24 +57,28 @@ function renderBufferTank(
   const step = (bottom - top - 36) / (TANK_TEMPERATURE_SLOTS.length - 1);
   const sensors = TANK_TEMPERATURE_SLOTS.map((slot, i) => ({ y: top + 18 + i * step, state: slots.get(slot) }))
     .filter((s): s is { y: number; state: NodeVisualState } => s.state !== undefined);
-  const hasCoil = def.ports.some((p) => p.id === "coil_in");
+  const portY = (id: string): number | undefined => def.ports.find((p) => p.id === id)?.position.y;
+  const coils = [["coil_in", "coil_out"], ["coil2_in", "coil2_out"]]
+    .map(([a, b]) => [portY(a), portY(b)])
+    .filter((pair): pair is [number, number] => pair[0] !== undefined && pair[1] !== undefined);
+  const heaterY = [bottom - 22, (top + bottom) / 2];
 
   return svg`
-    <g class="device device-buffer-tank">
+    <g class="device device-tank">
       ${def.ports.map((p) => svg`
-        <line x1="${p.position.x}" y1="${p.position.y}" x2="${p.position.x === 0 ? 14 : 86}" y2="${p.position.y}"
+        <line x1="${p.position.x}" y1="${p.position.y}" x2="${p.position.x === 0 ? TANK_LEFT : TANK_RIGHT}" y2="${p.position.y}"
           stroke="var(--divider-color, #888)" stroke-width="2" />
       `)}
-      <rect x="14" y="10" width="72" height="${def.height - 14}" rx="10"
+      <rect x="${TANK_LEFT}" y="10" width="${TANK_RIGHT - TANK_LEFT}" height="${def.height - 14}" rx="12"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
-      ${renderTemperatureBands(17, 66, top, bottom, sensors)}
-      ${sensors.map((sensor) => svg`<circle cx="18" cy="${sensor.y}" r="3" fill="${temperatureColor(sensor.state.numeric)}" />`)}
-      ${hasCoil
-        ? svg`<path d="M 14 80 L 46 88 L 18 96 L 46 104 L 18 112 L 14 118" fill="none"
-            stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.8" />`
-        : svg``}
-      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(86, i === 0 ? bottom - 22 : (top + bottom) / 2, 30, heater))}
-      ${sensors.map((sensor) => renderValueLabel(56, sensor.y + 4, sensor.state))}
+      ${renderTemperatureBands(TANK_LEFT + 3, TANK_RIGHT - TANK_LEFT - 6, top, bottom, sensors)}
+      ${sensors.map((sensor) => svg`<circle cx="${TANK_LEFT + 4}" cy="${sensor.y}" r="3" fill="${temperatureColor(sensor.state.numeric)}" />`)}
+      ${coils.map(([y1, y2], i) => svg`
+        <path class="coil" d="${coilPath(y1, y2)}" fill="none" stroke="${SUPPLY_COLOR}"
+          stroke-width="2" stroke-linejoin="round" opacity="${i === 0 ? 0.85 : 0.65}" />
+      `)}
+      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(TANK_RIGHT, heaterY[i], 30, heater))}
+      ${sensors.map((sensor) => renderValueLabel(58, sensor.y + 4, sensor.state, true))}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -127,53 +148,6 @@ function renderValve3Way(
       />
       <line x1="45" y1="50" x2="90" y2="25" stroke="${branchAColor}" stroke-width="3" />
       <line x1="45" y1="50" x2="90" y2="75" stroke="${branchBColor}" stroke-width="3" />
-      ${renderPorts(def, t)}
-    </g>
-  `;
-}
-
-function renderBoiler(
-  def: DeviceDefinition,
-  t: Translator,
-  selected: boolean,
-  state: NodeVisualState,
-  heaters: NodeVisualState[],
-  slots: Map<string, NodeVisualState>
-): ReturnType<typeof svg> {
-  const stroke = state.active
-    ? "#4caf50"
-    : selected
-      ? "var(--primary-color, #03a9f4)"
-      : "var(--divider-color, #888)";
-  const strokeWidth = selected ? 2.5 : 1.5;
-  // Heat exchanger coil between coil_in (y=50) and coil_out (y=100).
-  const coil = "M 0 50 H 24 L 58 58 L 24 66 L 58 74 L 24 82 L 58 90 L 24 98 L 24 100 H 0";
-  const coil2 = "M 0 122 H 24 L 58 130 L 24 138 L 58 146 L 24 154 L 24 160 H 0";
-  const hasCoil2 = def.ports.some((p) => p.id === "coil2_in");
-  const coldY = def.ports.find((p) => p.id === "cold_in")?.position.y ?? 118;
-  const sensorY: Record<string, number> = {
-    [BOILER_TEMPERATURE_SLOTS[0]]: 34,
-    [BOILER_TEMPERATURE_SLOTS[1]]: 78,
-    [BOILER_TEMPERATURE_SLOTS[2]]: def.height - 26,
-  };
-  const sensors = BOILER_TEMPERATURE_SLOTS.map((slot) => ({ y: sensorY[slot], state: slots.get(slot) }))
-    .filter((s): s is { y: number; state: NodeVisualState } => s.state !== undefined);
-  const heaterY = [def.height - 44, 56];
-  return svg`
-    <g class="device device-boiler">
-      <path d="M 88 30 H ${def.width} M 88 ${coldY} H ${def.width}" stroke="var(--divider-color, #888)" stroke-width="2" />
-      <rect
-        x="12" y="8" width="76" height="${def.height - 16}" rx="18"
-        fill="var(--card-background-color, #1c1c1c)"
-        stroke="${stroke}" stroke-width="${strokeWidth}"
-      />
-      ${renderTemperatureBands(15, 70, 20, def.height - 20, sensors)}
-      <path d="${coil}" fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.8" />
-      ${hasCoil2
-        ? svg`<path d="${coil2}" fill="none" stroke="${SUPPLY_COLOR}" stroke-width="2" stroke-linejoin="round" opacity="0.6" />`
-        : svg``}
-      ${heaters.slice(0, 2).map((heater, i) => renderHeatingRod(88, heaterY[i], 22, heater))}
-      ${sensors.map((sensor) => renderValueLabel(46, sensor.y, sensor.state, true))}
       ${renderPorts(def, t)}
     </g>
   `;
@@ -331,7 +305,9 @@ function renderOutdoorUnit(
   const cy = 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";
   const defrost = isAddonActive(extras, "defrost");
+  const fan = addonStates(extras, "fan")[0];
   const fanActive = (state.active || isAddonActive(extras, "fan")) && !defrost;
+  const duration = fan ? spinDuration(fan) : undefined;
   const fanColor = defrost ? "#4fc3f7" : "var(--primary-color, #03a9f4)";
   const heaters = heaterStates(extras);
   const rows = (extras.addons ?? []).filter(
@@ -343,7 +319,7 @@ function renderOutdoorUnit(
       <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
       <circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
-      <g class="fan ${fanActive ? "spinning" : ""}">
+      <g class="fan ${fanActive ? "spinning" : ""}" style="${duration ? `animation-duration: ${duration}s` : ""}">
         ${[0, 90, 180, 270].map((angle) => svg`
           <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
             fill="${fanColor}" opacity="0.75" />
@@ -446,8 +422,8 @@ export function renderDeviceByType(
       return renderOutdoorUnit(def, t, selected, state, extras);
     case "valve_3way":
       return renderValve3Way(def, t, selected, state);
-    case "boiler":
-      return renderBoiler(def, t, selected, state, heaterStates(extras), temperatureSlots(extras));
+    case "tank":
+      return renderTank(def, t, selected, state, temperatureSlots(extras), heaterStates(extras));
     case "junction":
       return renderJunction(def, t, selected, state);
     case "circulation_pump":
@@ -456,8 +432,6 @@ export function renderDeviceByType(
       return renderFloorHeating(def, t, selected, state);
     case "manifold":
       return renderManifold(def, t, selected, state, addonStates(extras, "loop"));
-    case "buffer_tank":
-      return renderBufferTank(def, t, selected, state, temperatureSlots(extras), heaterStates(extras));
     case "mixing_valve":
       return renderMixingValve(def, t, selected, state);
     case "electric_heater":

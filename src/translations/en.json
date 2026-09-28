@@ -15,15 +15,22 @@
         "out_b": "Outlet B"
       }
     },
-    "boiler": {
-      "name": "DHW tank",
+    "tank": {
+      "name": "Tank",
+      "name_buffer": "Buffer tank",
+      "name_dhw": "DHW tank",
       "ports": {
-        "cold_in": "Cold water inlet",
+        "source_in": "From heat source",
+        "source_out": "Back to heat source",
+        "coil_in": "Heat exchanger coil supply",
+        "coil_out": "Heat exchanger coil return",
+        "coil2_in": "Second coil supply",
+        "coil2_out": "Second coil return",
         "hot_out": "Hot water outlet",
-        "coil_in": "Heat exchanger supply",
-        "coil_out": "Heat exchanger return",
-        "coil2_in": "Second heat exchanger supply",
-        "coil2_out": "Second heat exchanger return"
+        "supply_out": "To heating system",
+        "circulation_in": "Hot water circulation",
+        "return_in": "Return from heating system",
+        "cold_in": "Cold water inlet"
       }
     },
     "junction": {
@@ -31,7 +38,14 @@
       "ports": {
         "in": "Inlet",
         "out_top": "Top outlet",
-        "out_bottom": "Bottom outlet"
+        "out_bottom": "Bottom outlet",
+        "in_top": "Top inlet",
+        "in_bottom": "Bottom inlet",
+        "out": "Outlet"
+      },
+      "variants": {
+        "split": "Split (1 → 2)",
+        "merge": "Merge (2 → 1)"
       }
     },
     "circulation_pump": {
@@ -55,17 +69,6 @@
         "return_out": "Return",
         "loop_out": "Loop {0} supply",
         "loop_in": "Loop {0} return"
-      }
-    },
-    "buffer_tank": {
-      "name": "Buffer tank",
-      "ports": {
-        "source_in": "From heat source",
-        "source_out": "Back to heat source",
-        "supply_out": "To heating system",
-        "return_in": "Return from heating system",
-        "coil_in": "Heat exchanger supply",
-        "coil_out": "Heat exchanger return"
       }
     },
     "mixing_valve": {
@@ -152,12 +155,18 @@
     },
     "outdoor_temperature": {
       "name": "Outdoor temperature"
+    },
+    "water_supply": {
+      "name": "Cold water supply"
+    },
+    "dhw_outlet": {
+      "name": "Hot water taps"
     }
   },
   "addons": {
     "temperature": { "name": "Temperature sensor" },
     "value": { "name": "Value" },
-    "electric_heater": { "name": "Electric heater" },
+    "electric_heater": { "name": "Electric immersion heater" },
     "pump": { "name": "Pump" },
     "actuator": { "name": "Actuator" },
     "fan": { "name": "Fan" },
@@ -167,8 +176,24 @@
     "alarm": { "name": "Alarm" },
     "window": { "name": "Window" },
     "heat_exchanger": {
-      "name": "Heat exchanger",
-      "hint": "Adds the heat exchanger and its connections to the drawing."
+      "name": "Heat exchanger coil",
+      "hint": "Coil heated by a heat source; adds its supply and return."
+    },
+    "direct_source": {
+      "name": "Heat source connection",
+      "hint": "Heating water from the heat source flows straight into the tank."
+    },
+    "direct_heating": {
+      "name": "Heating system connection",
+      "hint": "Supply to and return from the heating system."
+    },
+    "dhw": {
+      "name": "Domestic hot water",
+      "hint": "Cold water inlet and hot water outlet."
+    },
+    "circulation": {
+      "name": "Hot water circulation",
+      "hint": "Return of the hot water circulation loop."
     },
     "loop": { "name": "Loop" }
   },
@@ -243,6 +268,9 @@
     "back": "Back",
     "name": "Name",
     "name_helper": "Empty = device type name",
+    "variant": "Variant",
+    "volume": "Volume (l)",
+    "volume_helper": "Sets the size of the drawing.",
     "entity": "Entity",
     "state_entity": "State entity (optional)",
     "state_entity_helper": "Shows whether the device is running (green frame, animation) and opens on tap. Leave empty if the device has no entity of its own – add-ons then show the activity.",
