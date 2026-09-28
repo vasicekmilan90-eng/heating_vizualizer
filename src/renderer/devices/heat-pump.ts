@@ -223,8 +223,8 @@ function renderCirculationPump(
       ? "var(--primary-color, #03a9f4)"
       : "var(--divider-color, #888)";
   const strokeWidth = selected ? 2.5 : 1.5;
-  const c = 45;
-  const r = 18;
+  const c = def.width / 2;
+  const r = 16;
   // Equilateral triangle pointing in the flow direction; its centroid is the circle center.
   const triangle = [0, 120, 240]
     .map((deg) => {
@@ -234,9 +234,9 @@ function renderCirculationPump(
     .join(" ");
   return svg`
     <g class="device device-circulation-pump">
-      <path d="M 0 45 H 17 M 73 45 H 90" stroke="var(--divider-color, #888)" stroke-width="2" />
+      <path d="M 0 ${c} H ${c - 26} M ${c + 26} ${c} H ${def.width}" stroke="var(--divider-color, #888)" stroke-width="2" />
       <circle
-        cx="45" cy="45" r="28"
+        cx="${c}" cy="${c}" r="26"
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
@@ -266,7 +266,7 @@ function renderFloorHeating(
   return svg`
     <g class="device device-floor-heating">
       <rect
-        x="10" y="18" width="120" height="55" rx="8"
+        x="10" y="14" width="120" height="52" rx="8"
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />

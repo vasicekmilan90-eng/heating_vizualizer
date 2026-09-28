@@ -307,6 +307,8 @@
     "disconnect": "Odpojit",
     "connection_pending": "Napojování z {0} — klikněte na kompatibilní port",
     "delete_connection": "Smazat vybrané propojení",
+    "reset_route": "Automatické vedení",
+    "route_hint": "Táhnutím čtverčků na trubce posunete její úseky.",
     "invalid_connections": "Propojení s neexistujícím nebo nekompatibilním portem: {0}",
     "remove_invalid": "Odstranit",
     "position_title": "Poloha",

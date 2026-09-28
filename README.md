@@ -30,7 +30,8 @@ Add the card from the card picker (**Heating Visualizer**).
 
 - *Add device* by type, *Insert template* (heat pump + floor heating, heat pump + DHW tank + floor heating, heat pump + buffer tank + radiators, boiler + radiators) or *Add from entity* – pick the main entity and the device type is suggested.
 - *Arrange automatically* places devices in columns from the heat source along the pipes; *Undo arrangement* restores the previous positions.
-- *Drawing mode* (✎) enables dragging devices and connecting two ports by clicking them. Without it the preview only selects, so scrolling on a phone never moves anything. Arrow keys move the selected device (Shift = faster).
+- *Drawing mode* (✎) enables dragging devices and connecting two ports by clicking them. Without it the preview only selects, so scrolling on a phone never moves anything. Arrow keys move the selected device (Shift = faster). All ports lie on the 10-point grid devices snap to, so pipes between aligned ports run straight.
+- **Pipe routing** – select a pipe in drawing mode and drag the squares on its segments; bends are added as needed. *Automatic routing* restores the computed path. Where pipes cross, the horizontal one jumps over the vertical one with a small arc.
 
 **Device detail** (click a device row)
 
@@ -95,7 +96,7 @@ overlays:
 | Option | Description |
 | --- | --- |
 | `nodes` | Devices: `id`, `type`, `position`, optional `name`, `device_id` (Home Assistant device), `rotation` (90° steps), `volume` (tanks, liters), `variant` (junction: `split` or `merge`), entity binding, `addons`, actions. |
-| `connections` | Pipes from an outlet to an inlet, written as `node_id.port_id`. |
+| `connections` | Pipes from an outlet to an inlet, written as `node_id.port_id`; optional `route` with the bend points drawn in the editor, e.g. `[[240, 110], [240, 300]]`. |
 | `overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`, actions. |
 | `pipe_style` | `orthogonal` (default) or `curved`. |
 | `pipe_colors` | Color pipes by what flows in them: heating supply red, return blue, hot water orange, cold water turquoise (default `true`). Pumps, valves and junctions take the color of their pipes. |

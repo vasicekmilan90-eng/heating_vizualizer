@@ -90,6 +90,8 @@ export interface PortRef {
 export interface Connection {
   from: string;
   to: string;
+  /** Bend points drawn by the user, `[x, y]`; without it the pipe is routed automatically. */
+  route?: [number, number][];
 }
 
 export function formatPortRef(ref: PortRef): string {

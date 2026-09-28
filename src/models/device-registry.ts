@@ -10,6 +10,10 @@ const SETPOINT: AddonSpec = { type: "setpoint", max: 1 };
 const values = (max: number): AddonSpec => ({ type: "value", max });
 const temperatures = (...slots: string[]): AddonSpec => ({ type: "temperature", max: slots.length, slots });
 
+/** Ports sit on the same 10-point grid devices snap to, so pipes between them can run straight. */
+export const PORT_GRID = 10;
+const snapPort = (value: number): number => Math.round(value / PORT_GRID) * PORT_GRID;
+
 export const VALVE_3WAY: DeviceDefinition = {
   type: "valve_3way",
   labelKey: "devices.valve_3way.name",
@@ -76,7 +80,7 @@ function spreadPorts(ids: string[], x: number, height: number): PortDefinition[]
     kind: TANK_OUTLETS.has(id) ? "outlet" : "inlet",
     position: {
       x,
-      y: Math.round(height * (ids.length === 1 ? 0.5 : TANK_PORT_TOP + (TANK_PORT_SPAN * i) / (ids.length - 1))),
+      y: snapPort(height * (ids.length === 1 ? 0.5 : TANK_PORT_TOP + (TANK_PORT_SPAN * i) / (ids.length - 1))),
     },
   }));
 }
@@ -123,7 +127,7 @@ export const TANK: DeviceDefinition = {
   },
 };
 
-const JUNCTION_SIZE = 30;
+const JUNCTION_SIZE = 20;
 const JUNCTION_MID = JUNCTION_SIZE / 2;
 
 /** Compact T-piece; its name is only shown when set. */
@@ -166,20 +170,20 @@ export const JUNCTION: DeviceDefinition = {
 export const CIRCULATION_PUMP: DeviceDefinition = {
   type: "circulation_pump",
   labelKey: "devices.circulation_pump.name",
-  width: 90,
-  height: 90,
+  width: 80,
+  height: 80,
   ports: [
     {
       id: "in",
       labelKey: "devices.circulation_pump.ports.in",
       kind: "inlet",
-      position: { x: 0, y: 45 },
+      position: { x: 0, y: 40 },
     },
     {
       id: "out",
       labelKey: "devices.circulation_pump.ports.out",
       kind: "outlet",
-      position: { x: 90, y: 45 },
+      position: { x: 80, y: 40 },
     },
   ],
   addons: [values(3), MODE, ALARM],
@@ -189,25 +193,25 @@ export const FLOOR_HEATING: DeviceDefinition = {
   type: "floor_heating",
   labelKey: "devices.floor_heating.name",
   width: 140,
-  height: 90,
+  height: 80,
   ports: [
     {
       id: "in",
       labelKey: "devices.floor_heating.ports.in",
       kind: "inlet",
-      position: { x: 0, y: 45 },
+      position: { x: 0, y: 40 },
     },
     {
       id: "out",
       labelKey: "devices.floor_heating.ports.out",
       kind: "outlet",
-      position: { x: 140, y: 45 },
+      position: { x: 140, y: 40 },
     },
   ],
   addons: [temperatures("room", "floor"), { type: "actuator", max: 1 }, SETPOINT, { type: "window", max: 1 }],
 };
 
-export const MANIFOLD_LOOP_SPACING = 36;
+export const MANIFOLD_LOOP_SPACING = 40;
 export const MANIFOLD_LOOP_START = 50;
 const MANIFOLD_HEIGHT = 130;
 export const MANIFOLD_DEFAULT_LOOPS = 4;
@@ -394,13 +398,13 @@ function heatSource(type: string): DeviceDefinition {
         id: "supply_out",
         labelKey: "devices.heat_source.ports.supply_out",
         kind: "outlet",
-        position: { x: 100, y: 35 },
+        position: { x: 100, y: 30 },
       },
       {
         id: "return_in",
         labelKey: "devices.heat_source.ports.return_in",
         kind: "inlet",
-        position: { x: 100, y: 105 },
+        position: { x: 100, y: 100 },
       },
     ],
   };
@@ -423,13 +427,13 @@ export const SOLAR_COLLECTOR: DeviceDefinition = {
       id: "hot_out",
       labelKey: "devices.solar_collector.ports.hot_out",
       kind: "outlet",
-      position: { x: 150, y: 22 },
+      position: { x: 150, y: 20 },
     },
     {
       id: "cold_in",
       labelKey: "devices.solar_collector.ports.cold_in",
       kind: "inlet",
-      position: { x: 150, y: 84 },
+      position: { x: 150, y: 80 },
     },
   ],
   addons: [temperatures("collector"), values(2), { type: "pump", max: 1 }, ALARM],
@@ -472,7 +476,7 @@ export const PLATE_HEAT_EXCHANGER: DeviceDefinition = {
 export const EXPANSION_VESSEL: DeviceDefinition = {
   type: "expansion_vessel",
   labelKey: "devices.expansion_vessel.name",
-  width: 70,
+  width: 80,
   height: 110,
   valueDisplay: "only",
   ports: [
@@ -480,7 +484,7 @@ export const EXPANSION_VESSEL: DeviceDefinition = {
       id: "connection",
       labelKey: "devices.expansion_vessel.ports.connection",
       kind: "inlet",
-      position: { x: 35, y: 110 },
+      position: { x: 40, y: 110 },
     },
   ],
   addons: [values(1), ALARM],
@@ -502,7 +506,7 @@ export const SAFETY_VALVE: DeviceDefinition = {
       id: "discharge",
       labelKey: "devices.safety_valve.ports.discharge",
       kind: "outlet",
-      position: { x: 70, y: 56 },
+      position: { x: 70, y: 60 },
     },
   ],
   addons: [ALARM],
@@ -529,8 +533,8 @@ function terminalUnit(type: string): DeviceDefinition {
     height: 80,
     valueDisplay: "with_state",
     ports: [
-      { id: "in", labelKey: "devices.terminal.ports.in", kind: "inlet", position: { x: 0, y: 66 } },
-      { id: "out", labelKey: "devices.terminal.ports.out", kind: "outlet", position: { x: 130, y: 66 } },
+      { id: "in", labelKey: "devices.terminal.ports.in", kind: "inlet", position: { x: 0, y: 70 } },
+      { id: "out", labelKey: "devices.terminal.ports.out", kind: "outlet", position: { x: 130, y: 70 } },
     ],
   };
 }
