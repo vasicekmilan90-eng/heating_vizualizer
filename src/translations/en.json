@@ -307,6 +307,8 @@
     "disconnect": "Disconnect",
     "connection_pending": "Connecting from {0} — click a compatible port",
     "delete_connection": "Delete selected connection",
+    "reset_route": "Automatic routing",
+    "route_hint": "Drag the squares on the pipe to move its segments.",
     "invalid_connections": "{0} connections point to missing or incompatible ports.",
     "remove_invalid": "Remove",
     "position_title": "Position",

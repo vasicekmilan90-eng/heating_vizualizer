@@ -493,6 +493,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         @edge-select="${this._onEdgeSelect}"
         @node-move="${this._onNodeMove}"
         @port-click="${this._onPortClick}"
+        @connection-route="${this._onConnectionRoute}"
       ></heating-schema-canvas>
       ${this._pendingPort
         ? html`<p class="notice" role="status">
@@ -504,6 +505,12 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
             <button type="button" class="danger" @click="${this._deleteSelectedConnection}">
               ${t.t("editor.delete_connection")}
             </button>
+            ${schema.connections.find((c) => connectionId(c) === this._selectedEdgeId)?.route
+              ? html`<button type="button" @click="${() => this._setRoute(this._selectedEdgeId, undefined)}">
+                  ${t.t("editor.reset_route")}
+                </button>`
+              : nothing}
+            ${this._drawing ? html`<span class="hint">${t.t("editor.route_hint")}</span>` : nothing}
           </div>`
         : nothing}
     `;
@@ -1554,6 +1561,18 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
 
   private _onNodeMove(ev: CustomEvent<{ nodeId: string; position: { x: number; y: number } }>): void {
     this._moveNode(ev.detail.nodeId, ev.detail.position);
+  }
+
+  private _onConnectionRoute(ev: CustomEvent<{ connectionId: string; route: [number, number][] }>): void {
+    this._setRoute(ev.detail.connectionId, ev.detail.route);
+  }
+
+  private _setRoute(id: string | undefined, route: [number, number][] | undefined): void {
+    if (!id) return;
+    this._update((schema) => {
+      const connection = schema.connections.find((c) => connectionId(c) === id);
+      if (connection) connection.route = route?.length ? route : undefined;
+    });
   }
 
   private _onPortClick(ev: CustomEvent<PortRef>): void {

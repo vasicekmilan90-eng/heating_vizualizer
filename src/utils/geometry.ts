@@ -135,32 +135,128 @@ function simplify(points: Point[]): Point[] {
 }
 
 export function orthogonalPoints(from: AbsolutePort, to: AbsolutePort): Point[] {
-  const a = { x: from.x + from.direction.x * PIPE_STUB, y: from.y + from.direction.y * PIPE_STUB };
-  const b = { x: to.x + to.direction.x * PIPE_STUB, y: to.y + to.direction.y * PIPE_STUB };
-  return simplify([
-    { x: from.x, y: from.y },
-    a,
-    ...orthogonalRoute(a, from.direction, b, to.direction),
-    b,
-    { x: to.x, y: to.y },
-  ]);
+  return simplify(routeSkeleton(from, to));
 }
 
-/** Pipe drawn with horizontal and vertical segments and rounded bends. */
-export function buildOrthogonalPipePath(from: AbsolutePort, to: AbsolutePort): string {
-  const points = orthogonalPoints(from, to);
+/** User-drawn bend points of a pipe, `[x, y]` in schema coordinates. */
+export type RoutePoint = [number, number];
+
+function stubEnd(port: AbsolutePort): Point {
+  return { x: port.x + port.direction.x * PIPE_STUB, y: port.y + port.direction.y * PIPE_STUB };
+}
+
+/**
+ * Editable form of a pipe: port, stub end, bends, stub end, port. Without `route` the bends are chosen
+ * automatically; with it, elbows are added where a device moved so the pipe stays orthogonal.
+ */
+export function routeSkeleton(from: AbsolutePort, to: AbsolutePort, route?: RoutePoint[]): Point[] {
+  const a = stubEnd(from);
+  const b = stubEnd(to);
+  const bends = route?.length
+    ? route.map(([x, y]) => ({ x, y }))
+    : orthogonalRoute(a, from.direction, b, to.direction);
+  const points: Point[] = [{ x: from.x, y: from.y }, a];
+  const add = (p: Point, horizontalFirst: boolean): void => {
+    const last = points[points.length - 1];
+    if (last.x !== p.x && last.y !== p.y) points.push(horizontalFirst ? { x: p.x, y: last.y } : { x: last.x, y: p.y });
+    points.push(p);
+  };
+  bends.forEach((p, i) => add(p, i === 0 ? from.direction.x !== 0 : true));
+  // The last segment must reach the stub end along the inlet's axis.
+  add(b, to.direction.x === 0);
+  points.push({ x: to.x, y: to.y });
+
+  const unique = points.filter((p, i) => i === 0 || p.x !== points[i - 1].x || p.y !== points[i - 1].y);
+  // Stub ends are kept even when collinear: they anchor the segments users can drag.
+  return unique.filter((p, i) => {
+    if (i <= 1 || i >= unique.length - 2) return true;
+    const prev = unique[i - 1];
+    const next = unique[i + 1];
+    return (prev.x - p.x) * (next.y - p.y) !== (prev.y - p.y) * (next.x - p.x);
+  });
+}
+
+export function routePoints(from: AbsolutePort, to: AbsolutePort, route?: RoutePoint[]): Point[] {
+  return simplify(routeSkeleton(from, to, route));
+}
+
+/** Segments of a skeleton users can drag: all except the two stubs at the ports. */
+export function draggableSegments(skeleton: Point[]): number[] {
+  const indexes: number[] = [];
+  for (let i = 1; i < skeleton.length - 2; i++) indexes.push(i);
+  return indexes;
+}
+
+/**
+ * Moves segment `index` (from point `index` to `index + 1`) across its direction and returns the new
+ * route. Segments at a stub get an extra joint so the stub stays attached to its port.
+ */
+export function moveSegment(skeleton: Point[], index: number, delta: number, grid = 10): RoutePoint[] {
+  const points = skeleton.map((p) => ({ ...p }));
+  const horizontal = points[index].y === points[index + 1].y;
+  let i = index;
+  if (i === 1) {
+    points.splice(1, 0, { ...points[1] });
+    i++;
+  }
+  let j = i + 1;
+  if (j === points.length - 2) points.splice(j + 1, 0, { ...points[j] });
+  if (horizontal) {
+    const y = snapToGrid(points[i].y + delta, grid);
+    points[i].y = y;
+    points[j].y = y;
+  } else {
+    const x = snapToGrid(points[i].x + delta, grid);
+    points[i].x = x;
+    points[j].x = x;
+  }
+  j = points.length - 2;
+  return points.slice(2, j).map((p) => [p.x, p.y]);
+}
+
+const HOP_RADIUS = 5;
+
+/**
+ * Pipe through `points` with rounded bends. `hopsAt` returns x positions where a horizontal segment
+ * jumps over another pipe with a small arc, the usual way to show crossing pipes that are not connected.
+ */
+export function pathFromPoints(points: Point[], hopsAt?: (p: Point, q: Point) => number[]): string {
+  const straight = (s: Point, e: Point, p: Point, q: Point): string => {
+    const xs = s.y === e.y && s.x !== e.x && hopsAt ? hopsAt(p, q) : [];
+    if (!xs.length) return ` L ${e.x} ${e.y}`;
+    const dir = Math.sign(e.x - s.x);
+    let d = "";
+    let cursor = s.x;
+    for (const x of [...xs].sort((u, v) => (u - v) * dir)) {
+      if ((x - cursor) * dir < HOP_RADIUS + 1 || (e.x - x) * dir < HOP_RADIUS + 1) continue;
+      d += ` L ${x - HOP_RADIUS * dir} ${s.y} A ${HOP_RADIUS} ${HOP_RADIUS} 0 0 ${dir > 0 ? 1 : 0} ${x + HOP_RADIUS * dir} ${s.y}`;
+      cursor = x + HOP_RADIUS * dir;
+    }
+    return `${d} L ${e.x} ${e.y}`;
+  };
+
   let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length - 1; i++) {
+  let cursor = points[0];
+  for (let i = 1; i < points.length; i++) {
     const [prev, p, next] = [points[i - 1], points[i], points[i + 1]];
+    if (!next) {
+      d += straight(cursor, p, prev, p);
+      break;
+    }
     const inLength = Math.hypot(p.x - prev.x, p.y - prev.y);
     const outLength = Math.hypot(next.x - p.x, next.y - p.y);
     const r = Math.min(PIPE_CORNER_RADIUS, inLength / 2, outLength / 2);
     const start = { x: p.x - ((p.x - prev.x) / inLength) * r, y: p.y - ((p.y - prev.y) / inLength) * r };
     const end = { x: p.x + ((next.x - p.x) / outLength) * r, y: p.y + ((next.y - p.y) / outLength) * r };
-    d += ` L ${start.x} ${start.y} Q ${p.x} ${p.y} ${end.x} ${end.y}`;
+    d += `${straight(cursor, start, prev, p)} Q ${p.x} ${p.y} ${end.x} ${end.y}`;
+    cursor = end;
   }
-  const last = points[points.length - 1];
-  return `${d} L ${last.x} ${last.y}`;
+  return d;
+}
+
+/** Pipe drawn with horizontal and vertical segments and rounded bends. */
+export function buildOrthogonalPipePath(from: AbsolutePort, to: AbsolutePort): string {
+  return pathFromPoints(orthogonalPoints(from, to));
 }
 
 export function portRefsEqual(a: PortRef, b: PortRef): boolean {

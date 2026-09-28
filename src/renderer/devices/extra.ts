@@ -63,10 +63,10 @@ function renderSolarCollector(
   const value = numericValue(state);
   return svg`
     <g class="device device-solar-collector">
-      <path d="M 124 22 L ${def.width} 22 M 100 84 L ${def.width} 84" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
-      <path d="M 10 84 L 36 22 L 124 22 L 100 84 Z" fill="${CARD_FILL}"
+      <path d="M 124 20 L ${def.width} 20 M 100 80 L ${def.width} 80" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <path d="M 10 80 L 36 20 L 124 20 L 100 80 Z" fill="${CARD_FILL}"
         stroke="${stroke}" stroke-width="${frameWidth(selected)}" stroke-linejoin="round" />
-      <path d="M 58 22 L 32 84 M 80 22 L 54 84 M 102 22 L 76 84 M 23 53 L 112 53"
+      <path d="M 58 20 L 32 80 M 80 20 L 54 80 M 102 20 L 76 80 M 23 50 L 112 50"
         stroke="${NEUTRAL_STROKE}" stroke-width="1" />
       <circle cx="20" cy="14" r="6" fill="${state.active ? SOLAR_ACTIVE_COLOR : "none"}" stroke="${SOLAR_ACTIVE_COLOR}" stroke-width="1.5" />
       ${value ? svg`<text x="67" y="${def.height - 2}" text-anchor="middle" class="device-value">${value}</text>` : svg``}
@@ -158,7 +158,7 @@ function renderSafetyValve(
   const stroke = frameStroke(state, selected, SUPPLY_COLOR);
   const width = frameWidth(selected);
   const cx = 30;
-  const cy = 56;
+  const cy = 60;
   return svg`
     <g class="device device-safety-valve">
       <line x1="${cx}" y1="${cy + 14}" x2="${cx}" y2="${def.height}" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
@@ -212,7 +212,7 @@ function renderRadiator(
   }
   return svg`
     <g class="device device-radiator">
-      <path d="M 0 66 L 16 66 L 16 62 M ${def.width - 16} 62 L ${def.width - 16} 66 L ${def.width} 66"
+      <path d="M 0 70 L 16 70 L 16 62 M ${def.width - 16} 62 L ${def.width - 16} 70 L ${def.width} 70"
         fill="none" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
       <rect x="16" y="16" width="${def.width - 32}" height="46" rx="4"
         fill="${state.active ? HEATER_ACTIVE_COLOR : CARD_FILL}" fill-opacity="${state.active ? 0.2 : 1}"
@@ -237,8 +237,8 @@ function renderFancoil(
   const blade = "M 0 0 C 4 -7, 13 -9, 17 -4 C 12 -1, 5 0, 0 0 Z";
   return svg`
     <g class="device device-fancoil">
-      <path d="M 0 66 L 16 66 M ${def.width - 16} 66 L ${def.width} 66" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
-      <rect x="16" y="12" width="${def.width - 32}" height="54" rx="6"
+      <path d="M 0 70 L 16 70 M ${def.width - 16} 70 L ${def.width} 70" stroke="${NEUTRAL_STROKE}" stroke-width="2" />
+      <rect x="16" y="12" width="${def.width - 32}" height="58" rx="6"
         fill="${CARD_FILL}" stroke="${frameStroke(state, selected)}" stroke-width="${frameWidth(selected)}" />
       <circle cx="${cx}" cy="${cy}" r="20" fill="none" stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
       <g class="fan ${state.active ? "spinning" : ""}">

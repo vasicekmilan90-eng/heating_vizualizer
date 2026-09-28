@@ -107,7 +107,7 @@ export function renumberLoops(schema: HeatingSchema, nodeId: string, removed: nu
   for (const c of schema.connections) {
     const from = shift(c.from);
     const to = shift(c.to);
-    if (from && to) result.push({ from, to });
+    if (from && to) result.push({ ...c, from, to });
   }
   return result;
 }

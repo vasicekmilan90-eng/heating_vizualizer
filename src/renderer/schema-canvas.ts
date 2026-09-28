@@ -11,14 +11,20 @@ import { getNodeDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
 import {
-  buildOrthogonalPipePath,
   buildPipePath,
+  draggableSegments,
   getAbsolutePort,
   getNodeBounds,
+  moveSegment,
   normalizeRotation,
+  pathFromPoints,
+  routePoints,
+  routeSkeleton,
   snapToGrid,
+  type AbsolutePort,
   type Point,
   type Rect,
+  type RoutePoint,
 } from "../utils/geometry.js";
 import {
   formatOverlayName,
@@ -53,6 +59,43 @@ const FLOW_LAYERS = [
 interface ResolvedNode {
   visual: NodeVisualState;
   addons: ResolvedAddon[];
+}
+
+interface PipeLayout {
+  connection: Connection;
+  id: string;
+  from: AbsolutePort;
+  to: AbsolutePort;
+  /** Bends after simplification; missing for curved pipes. */
+  points?: Point[];
+  /** Editable form including both stubs. */
+  skeleton?: Point[];
+}
+
+interface VerticalSegment {
+  id: string;
+  x: number;
+  y1: number;
+  y2: number;
+}
+
+interface SegmentDrag {
+  id: string;
+  index: number;
+  horizontal: boolean;
+  start: Point;
+  skeleton: Point[];
+}
+
+function verticalSegments(pipes: PipeLayout[]): VerticalSegment[] {
+  return pipes.flatMap((pipe) =>
+    (pipe.points ?? []).slice(1).flatMap((q, i) => {
+      const p = (pipe.points ?? [])[i];
+      return p.x === q.x && p.y !== q.y
+        ? [{ id: pipe.id, x: p.x, y1: Math.min(p.y, q.y), y2: Math.max(p.y, q.y) }]
+        : [];
+    })
+  );
 }
 
 function flowState(node: ResolvedNode | undefined): FlowNodeState {
@@ -144,6 +187,17 @@ export class HeatingSchemaCanvas extends LitElement {
       stroke-width: 16;
       pointer-events: stroke;
       cursor: pointer;
+    }
+    .segment-handle {
+      fill: var(--primary-color, #03a9f4);
+      stroke: var(--card-background-color, #1c1c1c);
+      stroke-width: 2;
+    }
+    .segment-handle.horizontal {
+      cursor: row-resize;
+    }
+    .segment-handle.vertical {
+      cursor: col-resize;
     }
     .flow {
       fill: none;
@@ -245,6 +299,8 @@ export class HeatingSchemaCanvas extends LitElement {
   `;
 
   private _dragNodeId?: string;
+  private _segmentDrag?: SegmentDrag;
+  private _routePreview?: { id: string; route: RoutePoint[] };
   private _press?: Press;
   private _pendingTap?: { key: string; timer: number };
   private _dragOffset?: Point;
@@ -279,6 +335,10 @@ export class HeatingSchemaCanvas extends LitElement {
     const flowing = this.flowAnimation
       ? flowingConnections(this.schema, (n) => flowState(resolved.get(n.id)))
       : new Set<string>();
+    const pipes = connections
+      .map((c) => this._layoutPipe(c))
+      .filter((p): p is PipeLayout => p !== undefined);
+    const verticals = verticalSegments(pipes);
 
     return html`
       <svg
@@ -303,7 +363,7 @@ export class HeatingSchemaCanvas extends LitElement {
             <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" aria-hidden="true" />
           `
           : nothing}
-        ${connections.map((connection) => this._renderConnection(connection, media, flowing))}
+        ${pipes.map((pipe) => this._renderConnection(pipe, media, flowing, verticals))}
         ${nodes.map((node) => this._renderNode(node, t, resolved.get(node.id)))}
         ${overlays.map((overlay) => this._renderOverlay(overlay))}
       </svg>
@@ -339,6 +399,12 @@ export class HeatingSchemaCanvas extends LitElement {
       maxX = Math.max(maxX, rect.x + Math.max(rect.width, badges.height ? this._badgeWidth(rect) : 0));
       maxY = Math.max(maxY, rect.y + rect.height + 10 + (badges.height ? badges.height + BADGE_OFFSET : 0));
     }
+    for (const [x, y] of this.schema.connections.flatMap((c) => c.route ?? [])) {
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
 
     const pad = 40;
     return {
@@ -349,21 +415,47 @@ export class HeatingSchemaCanvas extends LitElement {
     };
   }
 
-  private _renderConnection(connection: Connection, media: Map<string, Medium>, flowing: Set<string>): TemplateResult {
+  private _layoutPipe(connection: Connection): PipeLayout | undefined {
     const fromRef = parsePortRef(connection.from);
     const toRef = parsePortRef(connection.to);
     const fromNode = this.schema.nodes.find((n) => n.id === fromRef?.nodeId);
     const toNode = this.schema.nodes.find((n) => n.id === toRef?.nodeId);
-    if (!fromRef || !toRef || !fromNode || !toNode) return html``;
+    if (!fromRef || !toRef || !fromNode || !toNode) return undefined;
 
     const from = getAbsolutePort(fromNode, fromRef.portId);
     const to = getAbsolutePort(toNode, toRef.portId);
-    if (!from || !to) return html``;
+    if (!from || !to) return undefined;
 
-    const d = this.pipeStyle === "curved" ? buildPipePath(from, to) : buildOrthogonalPipePath(from, to);
     const id = connectionId(connection);
+    const route = this._routePreview?.id === id ? this._routePreview.route : connection.route;
+    // A drawn route always wins over the curved style, which has no bends to edit.
+    if (this.pipeStyle === "curved" && !route?.length) return { connection, id, from, to };
+    return { connection, id, from, to, points: routePoints(from, to, route), skeleton: routeSkeleton(from, to, route) };
+  }
+
+  private _renderConnection(
+    pipe: PipeLayout,
+    media: Map<string, Medium>,
+    flowing: Set<string>,
+    verticals: VerticalSegment[]
+  ): TemplateResult {
+    const { id, from, to, points } = pipe;
+    const hopsAt = (p: Point, q: Point): number[] =>
+      verticals
+        .filter(
+          (v) =>
+            v.id !== id &&
+            v.x > Math.min(p.x, q.x) &&
+            v.x < Math.max(p.x, q.x) &&
+            p.y > v.y1 + 1 &&
+            p.y < v.y2 - 1
+        )
+        .map((v) => v.x);
+    const d = points ? pathFromPoints(points, hopsAt) : buildPipePath(from, to);
     const selected = this.selectedEdgeId === id;
     const medium = media.get(id);
+    const skeleton = this.editable && this.drawing && selected ? pipe.skeleton : undefined;
+    const handles = skeleton ? draggableSegments(skeleton) : [];
     return svg`
       <path class="pipe ${selected ? "selected" : ""}" d="${d}" aria-hidden="true"
         style="${medium && !selected ? `stroke: ${MEDIUM_COLORS[medium]}` : ""}" />
@@ -373,6 +465,13 @@ export class HeatingSchemaCanvas extends LitElement {
           </g>`
         : nothing}
       ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${id}" d="${d}" />` : nothing}
+      ${handles.map((index) => {
+        const [p, q] = [(skeleton ?? [])[index], (skeleton ?? [])[index + 1]];
+        const horizontal = p.y === q.y;
+        return svg`<rect class="segment-handle ${horizontal ? "horizontal" : "vertical"}"
+          data-edge="${id}" data-segment="${index}"
+          x="${(p.x + q.x) / 2 - 5}" y="${(p.y + q.y) / 2 - 5}" width="10" height="10" rx="2" />`;
+      })}
     `;
   }
 
@@ -488,6 +587,12 @@ export class HeatingSchemaCanvas extends LitElement {
     }
 
     const target = ev.target as SVGElement | null;
+    const segmentEdge = target?.getAttribute?.("data-edge");
+    const segment = target?.getAttribute?.("data-segment");
+    if (this.drawing && segmentEdge && segment) {
+      this._startSegmentDrag(ev, segmentEdge, Number(segment), target);
+      return;
+    }
     const edgeId = target?.getAttribute?.("data-edge-id");
     if (edgeId) {
       this.dispatchEvent(
@@ -536,6 +641,44 @@ export class HeatingSchemaCanvas extends LitElement {
     nodeEl.setPointerCapture(ev.pointerId);
     this._dispatchSelect(nodeId);
     ev.preventDefault();
+  }
+
+  private _startSegmentDrag(ev: PointerEvent, id: string, index: number, handle: SVGElement | null): void {
+    const connection = this.schema.connections.find((c) => connectionId(c) === id);
+    const skeleton = connection ? this._layoutPipe(connection)?.skeleton : undefined;
+    const start = this._toLocal(ev);
+    if (!skeleton || !start || !skeleton[index + 1]) return;
+    this._segmentDrag = { id, index, horizontal: skeleton[index].y === skeleton[index + 1].y, start, skeleton };
+    this._dragBounds = this._computeBounds(this.schema.nodes);
+    handle?.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+
+  private _moveSegment(ev: PointerEvent): void {
+    const drag = this._segmentDrag;
+    const local = drag && this._toLocal(ev);
+    if (!drag || !local) return;
+    const delta = drag.horizontal ? local.y - drag.start.y : local.x - drag.start.x;
+    this._routePreview = { id: drag.id, route: moveSegment(drag.skeleton, drag.index, delta, GRID_SIZE) };
+    this.requestUpdate();
+  }
+
+  private _endSegmentDrag(): void {
+    const preview = this._routePreview;
+    this._segmentDrag = undefined;
+    this._routePreview = undefined;
+    this._dragBounds = undefined;
+    if (preview) {
+      this.dispatchEvent(
+        new CustomEvent("connection-route", {
+          detail: { connectionId: preview.id, route: preview.route },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+    this.requestUpdate();
   }
 
   /** Arrow keys move the selected device by one grid step, with Shift by five. */
@@ -590,6 +733,10 @@ export class HeatingSchemaCanvas extends LitElement {
   private _onCanvasPointerMove(ev: PointerEvent): void {
     const press = this._press;
     if (press && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > MOVE_TOLERANCE) this._cancelPress();
+    if (this._segmentDrag) {
+      this._moveSegment(ev);
+      return;
+    }
     if (!this.editable || !this._dragNodeId) return;
 
     const node = this.schema.nodes.find((n) => n.id === this._dragNodeId);
@@ -613,6 +760,10 @@ export class HeatingSchemaCanvas extends LitElement {
   }
 
   private _onCanvasPointerUp(ev: PointerEvent): void {
+    if (this._segmentDrag) {
+      this._endSegmentDrag();
+      return;
+    }
     if (this._press) {
       this._endPress();
       return;
