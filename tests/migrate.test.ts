@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeConfig } from "../src/models/migrate.js";
+import { getNodeDefinition } from "../src/models/device-registry.js";
 import { SCHEMA_VERSION } from "../src/models/schema.js";
 
 const CARD = "custom:heating-visualizer-card";
@@ -46,9 +47,12 @@ describe("normalizeConfig", () => {
     expect(hp.active_state).toBe("heat");
     expect(hp.addons).toEqual([{ entity_id: "switch.backup", type: "electric_heater" }]);
 
+    expect(tank.type).toBe("tank");
     expect(tank.addons).toEqual([
       { entity_id: "sensor.t1", type: "temperature", slot: "top" },
       { entity_id: "sensor.t3", type: "temperature", slot: "bottom" },
+      { type: "direct_source" },
+      { type: "direct_heating" },
     ]);
     expect(manifold.addons).toHaveLength(4);
 
@@ -70,5 +74,26 @@ describe("normalizeConfig", () => {
   it("treats a config without schema as an empty v2 config", () => {
     const config = normalizeConfig({ type: CARD });
     expect(config).toMatchObject({ schema_version: SCHEMA_VERSION, nodes: [], connections: [], overlays: [] });
+  });
+
+  it("turns 0.4 DHW tanks into tanks with a coil and hot water, keeping their ports", () => {
+    const config = normalizeConfig({
+      type: CARD,
+      schema_version: 2,
+      nodes: [
+        {
+          id: "dhw",
+          type: "boiler",
+          position: { x: 0, y: 0 },
+          addons: [{ type: "heat_exchanger" }, { type: "electric_heater", entity_id: "switch.h" }],
+        },
+      ],
+    });
+    const [dhw] = config.nodes!;
+    expect(dhw.type).toBe("tank");
+    expect(dhw.addons?.map((a) => a.type)).toEqual(["electric_heater", "heat_exchanger", "heat_exchanger", "dhw"]);
+    const ports = getNodeDefinition(dhw)!.ports.map((p) => p.id);
+    expect(ports).toEqual(expect.arrayContaining(["coil_in", "coil_out", "coil2_in", "coil2_out", "hot_out", "cold_in"]));
+    expect(normalizeConfig(config).nodes).toEqual(config.nodes);
   });
 });

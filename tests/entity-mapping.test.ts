@@ -10,7 +10,7 @@ describe("guessDeviceType", () => {
   it("uses keywords before domain defaults", () => {
     expect(guessDeviceType(entity("climate.tepelne_cerpadlo", "heat"))).toBe("heat_pump");
     expect(guessDeviceType(entity("climate.obyvak", "heat"))).toBe("radiator");
-    expect(guessDeviceType(entity("water_heater.x", "eco"))).toBe("boiler");
+    expect(guessDeviceType(entity("water_heater.x", "eco"))).toBe("tank_dhw");
     expect(guessDeviceType(entity("sensor.p", "1.5", { device_class: "pressure" }))).toBe("pipe_sensor");
     expect(guessDeviceType(entity("light.kitchen", "on"))).toBeUndefined();
   });
@@ -82,13 +82,24 @@ describe("suggestAddons", () => {
     const pump = suggestAddons(sharedHass, { id: "hp", type: "heat_pump", position: at, device_id: "midea" });
     expect(pump.map((a) => a.entity_id)).toEqual(["sensor.midea_outdoor_temperature"]);
 
-    const tank = suggestAddons(sharedHass, { id: "dhw", type: "boiler", position: at, device_id: "midea" });
+    const dhwTank = {
+      id: "dhw",
+      type: "tank",
+      position: at,
+      device_id: "midea",
+      addons: [{ type: "heat_exchanger" as const }, { type: "dhw" as const }],
+    };
+    const tank = suggestAddons(sharedHass, dhwTank);
     expect(tank).toEqual([
       { type: "temperature", entity_id: "sensor.midea_dhw_tank_temperature", slot: "top" },
       { type: "electric_heater", entity_id: "switch.midea_dhw_backup_heater" },
     ]);
 
     const taken = new Set(["sensor.midea_dhw_tank_temperature"]);
-    expect(suggestAddons(sharedHass, { id: "dhw", type: "boiler", position: at, device_id: "midea" }, taken)).toHaveLength(1);
+    expect(suggestAddons(sharedHass, dhwTank, taken)).toHaveLength(1);
+
+    // A buffer tank on the same HA device does not get the DHW sensors.
+    const buffer = { ...dhwTank, id: "buf", addons: [{ type: "direct_source" as const }] };
+    expect(suggestAddons(sharedHass, buffer)).toEqual([]);
   });
 });

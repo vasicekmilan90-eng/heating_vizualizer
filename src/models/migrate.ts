@@ -124,8 +124,33 @@ export function normalizeConfig(config: Partial<HeatingVisualizerConfig>): Heati
     ...migrated,
     type: typeof raw.type === "string" ? raw.type : CARD_TYPE,
     schema_version: SCHEMA_VERSION,
-    nodes: (migrated.nodes ?? []).map((n) => (LEGACY_TYPES[n.type] ? { ...n, type: LEGACY_TYPES[n.type] } : n)),
+    nodes: (migrated.nodes ?? []).map((n) => upgradeTank(LEGACY_TYPES[n.type] ? { ...n, type: LEGACY_TYPES[n.type] } : n)),
     connections: migrated.connections ?? [],
     overlays: migrated.overlays ?? [],
   };
+}
+
+/**
+ * DHW tanks and buffer tanks became one `tank` in 0.5; their fixed connections are now modules.
+ * Port ids are unchanged, so existing pipes keep working.
+ */
+function upgradeTank(node: SchemaNode): SchemaNode {
+  const addons = node.addons ?? [];
+  if (node.type === "boiler") {
+    // The DHW tank always had one coil; its heat exchanger add-on was the second one.
+    const coils = addons.some((a) => a.type === "heat_exchanger") ? 2 : 1;
+    return {
+      ...node,
+      type: "tank",
+      addons: [
+        ...addons.filter((a) => a.type !== "heat_exchanger"),
+        ...Array.from({ length: coils }, () => ({ type: "heat_exchanger" as const })),
+        { type: "dhw" },
+      ],
+    };
+  }
+  if (node.type === "buffer_tank") {
+    return { ...node, type: "tank", addons: [...addons, { type: "direct_source" }, { type: "direct_heating" }] };
+  }
+  return node;
 }

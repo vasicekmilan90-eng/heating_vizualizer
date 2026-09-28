@@ -1,5 +1,5 @@
 import type { AddonSpec } from "./addons.js";
-import type { DeviceDefinition, PortDefinition, SchemaNode } from "./schema.js";
+import type { AddonConfig, DeviceDefinition, PortDefinition, SchemaNode } from "./schema.js";
 
 export const TANK_TEMPERATURE_SLOTS = ["top", "upper", "middle", "lower", "bottom"];
 export const BOILER_TEMPERATURE_SLOTS = ["top", "middle", "bottom"];
@@ -9,10 +9,6 @@ const MODE: AddonSpec = { type: "mode", max: 1 };
 const SETPOINT: AddonSpec = { type: "setpoint", max: 1 };
 const values = (max: number): AddonSpec => ({ type: "value", max });
 const temperatures = (...slots: string[]): AddonSpec => ({ type: "temperature", max: slots.length, slots });
-
-function hasAddon(node: SchemaNode, type: string): boolean {
-  return node.addons?.some((a) => a.type === type) ?? false;
-}
 
 export const VALVE_3WAY: DeviceDefinition = {
   type: "valve_3way",
@@ -42,63 +38,89 @@ export const VALVE_3WAY: DeviceDefinition = {
   addons: [values(1), ALARM],
 };
 
-const BOILER_HEIGHT = 140;
-const BOILER_EXCHANGER_HEIGHT = 180;
+const TANK_WIDTH = 100;
+export const TANK_DEFAULT_VOLUME = 200;
+const TANK_MIN_HEIGHT = 100;
+const TANK_MAX_HEIGHT = 300;
 
-export const BOILER: DeviceDefinition = {
-  type: "boiler",
-  labelKey: "devices.boiler.name",
-  width: 100,
-  height: BOILER_HEIGHT,
-  ports: [
-    {
-      id: "coil_in",
-      labelKey: "devices.boiler.ports.coil_in",
-      kind: "inlet",
-      position: { x: 0, y: 50 },
+/** Schematic height: doubling the volume adds a fixed step, so 1000 l does not dwarf the schema. */
+export function tankHeight(volume: number | undefined): number {
+  const liters = volume && volume > 0 ? volume : TANK_DEFAULT_VOLUME;
+  const height = 110 + 38 * Math.log2(liters / 50);
+  return Math.round(Math.min(TANK_MAX_HEIGHT, Math.max(TANK_MIN_HEIGHT, height)));
+}
+
+// Ports top to bottom; each side is spread evenly over the tank height.
+const TANK_LEFT_PORTS = ["source_in", "coil_in", "coil_out", "coil2_in", "coil2_out", "source_out"];
+const TANK_RIGHT_PORTS = ["hot_out", "supply_out", "circulation_in", "return_in", "cold_in"];
+const TANK_OUTLETS = new Set(["source_out", "coil_out", "coil2_out", "hot_out", "supply_out"]);
+const TANK_PORT_TOP = 0.15;
+const TANK_PORT_SPAN = 0.7;
+
+function tankPortIds(node: SchemaNode): Set<string> {
+  const count = (type: string): number => node.addons?.filter((a) => a.type === type).length ?? 0;
+  const ids = new Set<string>();
+  if (count("direct_source")) ["source_in", "source_out"].forEach((id) => ids.add(id));
+  if (count("heat_exchanger") >= 1) ["coil_in", "coil_out"].forEach((id) => ids.add(id));
+  if (count("heat_exchanger") >= 2) ["coil2_in", "coil2_out"].forEach((id) => ids.add(id));
+  if (count("dhw")) ["hot_out", "cold_in"].forEach((id) => ids.add(id));
+  if (count("direct_heating")) ["supply_out", "return_in"].forEach((id) => ids.add(id));
+  if (count("circulation")) ids.add("circulation_in");
+  return ids;
+}
+
+function spreadPorts(ids: string[], x: number, height: number): PortDefinition[] {
+  return ids.map((id, i) => ({
+    id,
+    labelKey: `devices.tank.ports.${id}`,
+    kind: TANK_OUTLETS.has(id) ? "outlet" : "inlet",
+    position: {
+      x,
+      y: Math.round(height * (ids.length === 1 ? 0.5 : TANK_PORT_TOP + (TANK_PORT_SPAN * i) / (ids.length - 1))),
     },
-    {
-      id: "coil_out",
-      labelKey: "devices.boiler.ports.coil_out",
-      kind: "outlet",
-      position: { x: 0, y: 100 },
-    },
-    {
-      id: "hot_out",
-      labelKey: "devices.boiler.ports.hot_out",
-      kind: "outlet",
-      position: { x: 100, y: 30 },
-    },
-    {
-      id: "cold_in",
-      labelKey: "devices.boiler.ports.cold_in",
-      kind: "inlet",
-      position: { x: 100, y: 118 },
-    },
-  ],
+  }));
+}
+
+/** A tank with a DHW module is a DHW tank, otherwise a buffer tank. */
+export function tankRole(node: SchemaNode): "tank_dhw" | "tank_buffer" {
+  return node.addons?.some((a) => a.type === "dhw") ? "tank_dhw" : "tank_buffer";
+}
+
+/** Buffer tank, DHW tank or combination: connections, coils and heaters are modules. */
+export const TANK: DeviceDefinition = {
+  type: "tank",
+  labelKey: "devices.tank.name",
+  width: TANK_WIDTH,
+  height: tankHeight(undefined),
+  ports: [],
+  volume: true,
   addons: [
-    temperatures(...BOILER_TEMPERATURE_SLOTS),
+    temperatures(...TANK_TEMPERATURE_SLOTS),
     values(2),
     { type: "electric_heater", max: 2 },
     { type: "pump", max: 1 },
     MODE,
     SETPOINT,
     ALARM,
-    { type: "heat_exchanger", max: 1 },
+    { type: "heat_exchanger", max: 2 },
+    { type: "direct_source", max: 1 },
+    { type: "direct_heating", max: 1 },
+    { type: "dhw", max: 1 },
+    { type: "circulation", max: 1 },
   ],
-  // A second heat exchanger (e.g. solar) adds its own connections below the first one.
-  resolve: (node) =>
-    hasAddon(node, "heat_exchanger")
-      ? {
-          ...BOILER,
-          height: BOILER_EXCHANGER_HEIGHT,
-          ports: [
-            ...BOILER.ports.map((p) => (p.id === "cold_in" ? { ...p, position: { x: 100, y: 158 } } : p)),
-            { id: "coil2_in", labelKey: "devices.boiler.ports.coil2_in", kind: "inlet", position: { x: 0, y: 122 } },
-            { id: "coil2_out", labelKey: "devices.boiler.ports.coil2_out", kind: "outlet", position: { x: 0, y: 160 } },
-          ],
-        }
-      : BOILER,
+  resolve: (node) => {
+    const height = tankHeight(node.volume);
+    const ids = tankPortIds(node);
+    return {
+      ...TANK,
+      labelKey: `devices.tank.${tankRole(node) === "tank_dhw" ? "name_dhw" : ids.size ? "name_buffer" : "name"}`,
+      height,
+      ports: [
+        ...spreadPorts(TANK_LEFT_PORTS.filter((id) => ids.has(id)), 0, height),
+        ...spreadPorts(TANK_RIGHT_PORTS.filter((id) => ids.has(id)), TANK_WIDTH, height),
+      ],
+    };
+  },
 };
 
 export const JUNCTION: DeviceDefinition = {
@@ -106,6 +128,7 @@ export const JUNCTION: DeviceDefinition = {
   labelKey: "devices.junction.name",
   width: 60,
   height: 60,
+  variants: ["split", "merge"],
   ports: [
     {
       id: "in",
@@ -126,6 +149,18 @@ export const JUNCTION: DeviceDefinition = {
       position: { x: 60, y: 45 },
     },
   ],
+  // Merging two returns into one pipe: two inlets on the left, one outlet on the right.
+  resolve: (node) =>
+    node.variant === "merge"
+      ? {
+          ...JUNCTION,
+          ports: [
+            { id: "in_top", labelKey: "devices.junction.ports.in_top", kind: "inlet", position: { x: 0, y: 15 } },
+            { id: "in_bottom", labelKey: "devices.junction.ports.in_bottom", kind: "inlet", position: { x: 0, y: 45 } },
+            { id: "out", labelKey: "devices.junction.ports.out", kind: "outlet", position: { x: 60, y: 30 } },
+          ],
+        }
+      : JUNCTION,
 };
 
 export const CIRCULATION_PUMP: DeviceDefinition = {
@@ -234,57 +269,6 @@ export const MANIFOLD: DeviceDefinition = {
   ],
   resolve: (node) =>
     manifoldDefinition(Math.max(1, node.addons?.filter((a) => a.type === "loop").length ?? 0)),
-};
-
-export const BUFFER_TANK: DeviceDefinition = {
-  type: "buffer_tank",
-  labelKey: "devices.buffer_tank.name",
-  width: 100,
-  height: 186,
-  ports: [
-    {
-      id: "source_in",
-      labelKey: "devices.buffer_tank.ports.source_in",
-      kind: "inlet",
-      position: { x: 0, y: 40 },
-    },
-    {
-      id: "source_out",
-      labelKey: "devices.buffer_tank.ports.source_out",
-      kind: "outlet",
-      position: { x: 0, y: 150 },
-    },
-    {
-      id: "supply_out",
-      labelKey: "devices.buffer_tank.ports.supply_out",
-      kind: "outlet",
-      position: { x: 100, y: 40 },
-    },
-    {
-      id: "return_in",
-      labelKey: "devices.buffer_tank.ports.return_in",
-      kind: "inlet",
-      position: { x: 100, y: 150 },
-    },
-  ],
-  addons: [
-    temperatures(...TANK_TEMPERATURE_SLOTS),
-    values(2),
-    { type: "electric_heater", max: 2 },
-    ALARM,
-    { type: "heat_exchanger", max: 1 },
-  ],
-  resolve: (node) =>
-    hasAddon(node, "heat_exchanger")
-      ? {
-          ...BUFFER_TANK,
-          ports: [
-            ...BUFFER_TANK.ports,
-            { id: "coil_in", labelKey: "devices.buffer_tank.ports.coil_in", kind: "inlet", position: { x: 0, y: 80 } },
-            { id: "coil_out", labelKey: "devices.buffer_tank.ports.coil_out", kind: "outlet", position: { x: 0, y: 118 } },
-          ],
-        }
-      : BUFFER_TANK,
 };
 
 export const MIXING_VALVE: DeviceDefinition = {
@@ -567,12 +551,31 @@ export const FANCOIL: DeviceDefinition = {
   ],
 };
 
+/** Cold water from the mains, e.g. to refill a DHW tank. */
+export const WATER_SUPPLY: DeviceDefinition = {
+  type: "water_supply",
+  labelKey: "devices.water_supply.name",
+  width: 80,
+  height: 60,
+  ports: [{ id: "out", labelKey: "devices.inline.ports.out", kind: "outlet", position: { x: 80, y: 30 } }],
+  addons: [values(2), ALARM],
+};
+
+/** Hot water taps (bathroom, kitchen). */
+export const DHW_OUTLET: DeviceDefinition = {
+  type: "dhw_outlet",
+  labelKey: "devices.dhw_outlet.name",
+  width: 80,
+  height: 60,
+  ports: [{ id: "in", labelKey: "devices.inline.ports.in", kind: "inlet", position: { x: 0, y: 30 } }],
+  addons: [values(2)],
+};
+
 const ALL_DEVICES: DeviceDefinition[] = [
   HEAT_PUMP,
   HEATING_BOILER,
   SOLAR_COLLECTOR,
-  BOILER,
-  BUFFER_TANK,
+  TANK,
   HYDRAULIC_SEPARATOR,
   PLATE_HEAT_EXCHANGER,
   EXPANSION_VESSEL,
@@ -589,9 +592,47 @@ const ALL_DEVICES: DeviceDefinition[] = [
   JUNCTION,
   PIPE_SENSOR,
   OUTDOOR_TEMPERATURE,
+  WATER_SUPPLY,
+  DHW_OUTLET,
 ];
 
 export const DEVICE_TYPES: string[] = ALL_DEVICES.map((d) => d.type);
+
+/** Entry of the "add device" list: a device type, possibly with modules already added. */
+export interface DevicePreset {
+  id: string;
+  type: string;
+  labelKey: string;
+  addons?: AddonConfig[];
+}
+
+const TANK_PRESETS: DevicePreset[] = [
+  {
+    id: "tank_buffer",
+    type: TANK.type,
+    labelKey: "devices.tank.name_buffer",
+    addons: [{ type: "direct_source" }, { type: "direct_heating" }],
+  },
+  {
+    id: "tank_dhw",
+    type: TANK.type,
+    labelKey: "devices.tank.name_dhw",
+    addons: [{ type: "heat_exchanger" }, { type: "dhw" }],
+  },
+];
+
+export const DEVICE_PRESETS: DevicePreset[] = ALL_DEVICES.flatMap((d) =>
+  d.type === TANK.type ? TANK_PRESETS : [{ id: d.type, type: d.type, labelKey: d.labelKey }]
+);
+
+export function getPreset(id: string): DevicePreset | undefined {
+  return DEVICE_PRESETS.find((p) => p.id === id);
+}
+
+/** Preset a node corresponds to; tanks are told apart by their modules. */
+export function presetOf(node: SchemaNode): string {
+  return node.type === TANK.type ? tankRole(node) : node.type;
+}
 
 const REGISTRY = new Map<string, DeviceDefinition>(ALL_DEVICES.map((d) => [d.type, d]));
 

@@ -15,15 +15,22 @@
         "out_b": "Výstup B"
       }
     },
-    "boiler": {
-      "name": "Bojler",
+    "tank": {
+      "name": "Nádrž",
+      "name_buffer": "Akumulační nádrž",
+      "name_dhw": "Zásobník teplé vody (bojler)",
       "ports": {
-        "cold_in": "Studená voda – vstup",
-        "hot_out": "Teplá voda – výstup",
-        "coil_in": "Výměník – přívod od zdroje",
-        "coil_out": "Výměník – vratka ke zdroji",
+        "source_in": "Od zdroje tepla",
+        "source_out": "Zpět ke zdroji tepla",
+        "coil_in": "Výměník – přívod",
+        "coil_out": "Výměník – vratka",
         "coil2_in": "Druhý výměník – přívod",
-        "coil2_out": "Druhý výměník – vratka"
+        "coil2_out": "Druhý výměník – vratka",
+        "hot_out": "Teplá voda – výstup",
+        "supply_out": "Do topného systému",
+        "circulation_in": "Cirkulace teplé vody",
+        "return_in": "Vratka z topného systému",
+        "cold_in": "Studená voda – vstup"
       }
     },
     "junction": {
@@ -31,7 +38,14 @@
       "ports": {
         "in": "Vstup",
         "out_top": "Horní výstup",
-        "out_bottom": "Spodní výstup"
+        "out_bottom": "Spodní výstup",
+        "in_top": "Horní vstup",
+        "in_bottom": "Spodní vstup",
+        "out": "Výstup"
+      },
+      "variants": {
+        "split": "Rozbočení (1 → 2)",
+        "merge": "Sloučení (2 → 1)"
       }
     },
     "circulation_pump": {
@@ -55,17 +69,6 @@
         "return_out": "Vratka",
         "loop_out": "Okruh {0} – přívod",
         "loop_in": "Okruh {0} – vratka"
-      }
-    },
-    "buffer_tank": {
-      "name": "Akumulační nádrž",
-      "ports": {
-        "source_in": "Od zdroje tepla",
-        "source_out": "Zpět ke zdroji tepla",
-        "supply_out": "Do topného systému",
-        "return_in": "Vratka z topného systému",
-        "coil_in": "Výměník – přívod",
-        "coil_out": "Výměník – vratka"
       }
     },
     "mixing_valve": {
@@ -152,12 +155,18 @@
     },
     "outdoor_temperature": {
       "name": "Venkovní teplota"
+    },
+    "water_supply": {
+      "name": "Vodovodní přípojka"
+    },
+    "dhw_outlet": {
+      "name": "Odběr teplé vody"
     }
   },
   "addons": {
     "temperature": { "name": "Teplotní čidlo" },
     "value": { "name": "Hodnota" },
-    "electric_heater": { "name": "Elektrická topná spirála" },
+    "electric_heater": { "name": "Elektrická patrona" },
     "pump": { "name": "Čerpadlo" },
     "actuator": { "name": "Pohon" },
     "fan": { "name": "Ventilátor" },
@@ -167,8 +176,24 @@
     "alarm": { "name": "Porucha" },
     "window": { "name": "Okno" },
     "heat_exchanger": {
-      "name": "Výměník",
-      "hint": "Přidá do výkresu výměník a jeho připojení."
+      "name": "Výměník (topný had)",
+      "hint": "Had ohřívaný zdrojem tepla; přidá jeho přívod a vratku."
+    },
+    "direct_source": {
+      "name": "Připojení zdroje tepla",
+      "hint": "Topná voda ze zdroje proudí přímo do nádrže."
+    },
+    "direct_heating": {
+      "name": "Připojení topného systému",
+      "hint": "Přívod do topného systému a vratka z něj."
+    },
+    "dhw": {
+      "name": "Teplá užitková voda",
+      "hint": "Vstup studené vody a výstup teplé vody."
+    },
+    "circulation": {
+      "name": "Cirkulace teplé vody",
+      "hint": "Návrat cirkulačního okruhu teplé vody."
     },
     "loop": { "name": "Okruh" }
   },
@@ -243,6 +268,9 @@
     "back": "Zpět",
     "name": "Název",
     "name_helper": "Prázdné = název typu zařízení",
+    "variant": "Provedení",
+    "volume": "Objem (l)",
+    "volume_helper": "Určuje velikost výkresu.",
     "entity": "Entita",
     "state_entity": "Stavová entita (volitelné)",
     "state_entity_helper": "Určuje, zda zařízení běží (zelený rámeček, animace), a otevře se po klepnutí. Nemá-li zařízení vlastní entitu, nechte prázdné – činnost pak ukazují doplňky.",

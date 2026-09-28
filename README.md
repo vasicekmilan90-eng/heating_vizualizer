@@ -62,19 +62,22 @@ nodes:
       - type: electric_heater
         entity_id: switch.heat_pump_backup_heater
   - id: tank
-    type: buffer_tank
+    type: tank
+    volume: 200
     position: { x: 300, y: 20 }
     addons:
+      # Coil heated by the heat pump, hot water for the house.
+      - type: heat_exchanger
+      - type: dhw
       # Wired to the heat pump, but physically part of the tank.
       - type: temperature
         slot: top
         entity_id: sensor.heat_pump_tank_top
-      - type: temperature
-        slot: bottom
-        entity_id: sensor.heat_pump_tank_bottom
+      - type: electric_heater
+        entity_id: switch.heat_pump_tank_heater
 connections:
-  - { from: hp.hot_out, to: tank.source_in }
-  - { from: tank.source_out, to: hp.cold_in }
+  - { from: hp.hot_out, to: tank.coil_in }
+  - { from: tank.coil_out, to: hp.cold_in }
 overlays:
   - id: o1
     entity_id: sensor.outdoor_temperature
@@ -89,18 +92,18 @@ overlays:
 
 | Option | Description |
 | --- | --- |
-| `nodes` | Devices: `id`, `type`, `position`, optional `name`, `device_id` (Home Assistant device), `rotation` (90° steps), entity binding, `addons`, actions. |
+| `nodes` | Devices: `id`, `type`, `position`, optional `name`, `device_id` (Home Assistant device), `rotation` (90° steps), `volume` (tanks, liters), `variant` (junction: `split` or `merge`), entity binding, `addons`, actions. |
 | `connections` | Pipes from an outlet to an inlet, written as `node_id.port_id`. |
 | `overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`, actions. |
 | `pipe_style` | `orthogonal` (default) or `curved`. |
-| `schema_version` | Written by the editor. Configurations of 0.3 (`schema:` with `edges`, `channels`, `heater`) are converted automatically when loaded. |
+| `schema_version` | Written by the editor. Configurations of 0.3 (`schema:` with `edges`, `channels`, `heater`) are converted automatically when loaded, and so are the `boiler` and `buffer_tank` of 0.4 (they become a `tank` with modules, pipes keep working). |
 
 ### Entity binding (devices and add-ons)
 
 | Field | Meaning |
 | --- | --- |
 | `entity_id` | Bound entity. |
-| `active_state` | State that means "running". Without it the device is active when `hvac_action` is `heating`/`preheating`, otherwise when the state is `on`, `heat` or `open`. |
+| `active_state` | State that means "running". Without it the device is active when `hvac_action` is `heating`/`preheating`, otherwise when the state is `on`, `heat` or `open`. On/off add-ons bound to a number (rpm, W, %) run while it is above zero. |
 | `value_attribute` | Attribute shown instead of the state, e.g. `current_temperature`. |
 | `mode_attribute` | 3-way valve: attribute with the branch position (default `position`). Mixing valve and actuators: attribute with the opening in % (default `current_position`, then the state). |
 | `branch_a_value` / `branch_b_value` | 3-way valve: values for branch A / B (default `a` / `b`). |
@@ -113,14 +116,18 @@ Each add-on has a `type`, optional `slot` (position on the drawing), `name` and 
 | --- | --- |
 | `temperature` | value colored from blue to red |
 | `value` | any value (power, pressure, flow, COP, …) |
-| `electric_heater`, `pump`, `fan`, `defrost`, `alarm`, `window` | on/off indicator |
+| `electric_heater`, `pump`, `fan`, `defrost`, `alarm`, `window` | on/off indicator; a heat pump fan bound to rpm or % spins at a matching speed (rpm shown at a tenth) |
 | `actuator` | opening in % |
 | `mode` | state text |
 | `setpoint` | value |
-| `heat_exchanger` | no entity – adds a heat exchanger and its ports |
+| `heat_exchanger` | no entity – heat exchanger coil with `coil_in` / `coil_out` (a second one adds `coil2_in` / `coil2_out`) |
+| `direct_source` | no entity – tank connection from/to the heat source: `source_in`, `source_out` |
+| `direct_heating` | no entity – tank connection to/from the heating system: `supply_out`, `return_in` |
+| `dhw` | no entity – domestic hot water: `cold_in`, `hot_out` |
+| `circulation` | no entity – hot water circulation return: `circulation_in` |
 | `loop` | manifold loop with actuator; each loop adds `loop_<n>_out` / `loop_<n>_in` ports |
 
-Tank and DHW tank sensors (colored water), their immersion heaters, heat pump values, fan, defrost and backup heaters, and manifold loops are drawn inside the device; other add-ons appear as badges below it. Tapping a badge opens more info of its entity.
+Tank sensors (colored water), coils and immersion heaters, heat pump values, fan, defrost and backup heaters, and manifold loops are drawn inside the device; other add-ons appear as badges below it. Tapping a badge opens more info of its entity. A device without its own state entity shows activity through its pumps, fans and heaters.
 
 ### Devices
 
@@ -129,8 +136,7 @@ Tank and DHW tank sensors (colored water), their immersion heaters, heat pump va
 | `heat_pump` | `hot_out`, `cold_in` | temperature (supply, return, outdoor, evaporator), value 6, electric heater 3, pump, fan, mode, setpoint, defrost, alarm |
 | `heating_boiler` | `supply_out`, `return_in` | temperature (supply, return), value 4, pump, mode, setpoint, alarm |
 | `solar_collector` | `hot_out`, `cold_in` | temperature (collector), value 2, pump, alarm |
-| `boiler` (DHW tank) | `coil_in`, `coil_out`, `hot_out`, `cold_in` (+ `coil2_in`, `coil2_out`) | temperature (top, middle, bottom), value 2, electric heater 2, pump, mode, setpoint, alarm, heat exchanger |
-| `buffer_tank` | `source_in`, `source_out`, `supply_out`, `return_in` (+ `coil_in`, `coil_out`) | temperature (top, upper, middle, lower, bottom), value 2, electric heater 2, alarm, heat exchanger |
+| `tank` | from its modules (see add-ons) | temperature (top, upper, middle, lower, bottom), value 2, electric heater 2, pump, mode, setpoint, alarm, heat exchanger 2, heat source connection, heating system connection, domestic hot water, circulation. The editor offers it as *Buffer tank* and *DHW tank* with the matching modules; `volume` (default 200 l) sets its height. |
 | `hydraulic_separator`, `plate_heat_exchanger` | `primary_in`, `primary_out`, `secondary_out`, `secondary_in` | temperature (primary/secondary supply/return), value 2 |
 | `expansion_vessel` | `connection` | value, alarm |
 | `safety_valve` | `in`, `discharge` | alarm |
@@ -143,9 +149,11 @@ Tank and DHW tank sensors (colored water), their immersion heaters, heat pump va
 | `radiator` | `in`, `out` | temperature (room), actuator, setpoint, alarm, window |
 | `fancoil` | `in`, `out` | temperature (room, supply), actuator, fan, mode, setpoint, alarm |
 | `electric_heater` | `in`, `out` | temperature (inlet, outlet), value 2, mode, alarm |
-| `junction` | `in`, `out_top`, `out_bottom` | – |
+| `junction` | `in`, `out_top`, `out_bottom`; with `variant: merge` `in_top`, `in_bottom`, `out` | – |
 | `pipe_sensor` | `in`, `out` | – (icon follows the entity `device_class`) |
 | `outdoor_temperature` | – | value |
+| `water_supply` | `out` | value 2, alarm |
+| `dhw_outlet` (hot water taps) | `in` | value 2 |
 
 Devices only model what Home Assistant can observe – a boiler has no fuel type. Use `name` to tell devices of the same type apart.
 

@@ -15,6 +15,10 @@ export type AddonType =
   | "alarm"
   | "window"
   | "heat_exchanger"
+  | "direct_source"
+  | "direct_heating"
+  | "dhw"
+  | "circulation"
   | "loop";
 
 /** How an add-on is shown: a measured value, an on/off indicator, an opening in % or a state text. */
@@ -59,6 +63,11 @@ export const ADDON_TYPES: Record<AddonType, AddonTypeDefinition> = {
   alarm: { type: "alarm", display: "binary", domains: ["binary_sensor", "sensor"], deviceClasses: ["problem"] },
   window: { type: "window", display: "binary", domains: ["binary_sensor"], deviceClasses: ["window", "opening"] },
   heat_exchanger: { type: "heat_exchanger", display: "none", entityless: true },
+  // Tank connections: they only add ports to the drawing.
+  direct_source: { type: "direct_source", display: "none", entityless: true },
+  direct_heating: { type: "direct_heating", display: "none", entityless: true },
+  dhw: { type: "dhw", display: "none", entityless: true },
+  circulation: { type: "circulation", display: "none", entityless: true },
   loop: { type: "loop", display: "binary", domains: ["valve", "switch", "binary_sensor", "climate"] },
 };
 

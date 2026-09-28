@@ -24,6 +24,10 @@ export interface DeviceDefinition {
   addons?: AddonSpec[];
   /** Device shows its entity value: `only` = value display, `with_state` = value plus on/off. */
   valueDisplay?: "only" | "with_state";
+  /** The node's `volume` (liters) sets the drawing size. */
+  volume?: boolean;
+  /** Alternative port layouts stored in the node's `variant`; the first one is the default. */
+  variants?: string[];
   /** Builds the node-specific geometry, e.g. from the number of loops. */
   resolve?: (node: SchemaNode) => DeviceDefinition;
 }
@@ -68,6 +72,10 @@ export interface SchemaNode extends NodeStateBinding, ActionBinding {
   device_id?: string;
   position: { x: number; y: number };
   rotation?: number;
+  /** Tanks: volume in liters. */
+  volume?: number;
+  /** One of the device's `variants`, e.g. `merge` for a junction. */
+  variant?: string;
   addons?: AddonConfig[];
 }
 

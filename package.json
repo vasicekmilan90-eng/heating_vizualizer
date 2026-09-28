@@ -1,6 +1,6 @@
 {
   "name": "heating-visualizer-card",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Home Assistant Lovelace card for heating schema design and visualization",
   "type": "module",
   "repository": {

@@ -274,6 +274,40 @@ function renderOutdoorTemperature(
   `;
 }
 
+function dropPath(cx: number, cy: number): string {
+  return `M ${cx} ${cy - 7} C ${cx + 5} ${cy - 1}, ${cx + 5} ${cy + 6}, ${cx} ${cy + 6} C ${cx - 5} ${cy + 6}, ${cx - 5} ${cy - 1}, ${cx} ${cy - 7} Z`;
+}
+
+function renderWaterSupply(def: DeviceDefinition, t: Translator, selected: boolean, state: NodeVisualState): SvgResult {
+  const cy = def.height / 2;
+  return svg`
+    <g class="device device-water-supply">
+      <line x1="36" y1="${cy}" x2="${def.width}" y2="${cy}" stroke="${RETURN_COLOR}" stroke-width="3" />
+      <circle cx="22" cy="${cy}" r="16" fill="${CARD_FILL}" stroke="${frameStroke(state, selected, RETURN_COLOR)}"
+        stroke-width="${frameWidth(selected)}" />
+      <path d="${dropPath(22, cy)}" fill="${RETURN_COLOR}" opacity="0.85" />
+      <path d="M 50 ${cy - 8} L 62 ${cy + 8} M 50 ${cy + 8} L 62 ${cy - 8} M 50 ${cy - 8} V ${cy + 8} M 62 ${cy - 8} V ${cy + 8}"
+        stroke="${NEUTRAL_STROKE}" stroke-width="1.5" />
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
+function renderDhwOutlet(def: DeviceDefinition, t: Translator, selected: boolean, state: NodeVisualState): SvgResult {
+  const cy = def.height / 2;
+  const color = state.active ? SUPPLY_COLOR : NEUTRAL_STROKE;
+  return svg`
+    <g class="device device-dhw-outlet">
+      <line x1="0" y1="${cy}" x2="40" y2="${cy}" stroke="${SUPPLY_COLOR}" stroke-width="3" />
+      <path d="M 40 ${cy - 6} H 58 Q 66 ${cy - 6} 66 ${cy + 2} V ${cy + 6} M 40 ${cy + 6} H 54 Q 58 ${cy + 6} 58 ${cy + 10}"
+        fill="none" stroke="${selected ? ACCENT : NEUTRAL_STROKE}" stroke-width="${frameWidth(selected) + 1}" stroke-linecap="round" />
+      <path d="M 46 ${cy - 6} V ${cy - 14} M 42 ${cy - 14} H 50" stroke="${NEUTRAL_STROKE}" stroke-width="2" stroke-linecap="round" />
+      <path d="${dropPath(62, cy + 18)}" fill="${color}" opacity="0.85" />
+      ${renderPorts(def, t)}
+    </g>
+  `;
+}
+
 /** Renderers for devices added after the initial set. */
 export function renderExtraDevice(
   type: string,
@@ -303,6 +337,10 @@ export function renderExtraDevice(
       return renderFancoil(def, t, selected, state);
     case "outdoor_temperature":
       return renderOutdoorTemperature(def, selected, state);
+    case "water_supply":
+      return renderWaterSupply(def, t, selected, state);
+    case "dhw_outlet":
+      return renderDhwOutlet(def, t, selected, state);
     default:
       return undefined;
   }
