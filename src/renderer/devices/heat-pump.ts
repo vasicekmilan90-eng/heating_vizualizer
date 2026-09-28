@@ -61,7 +61,9 @@ function renderTank(
   const coils = [["coil_in", "coil_out"], ["coil2_in", "coil2_out"]]
     .map(([a, b]) => [portY(a), portY(b)])
     .filter((pair): pair is [number, number] => pair[0] !== undefined && pair[1] !== undefined);
-  const heaterY = [bottom - 22, (top + bottom) / 2];
+  // Heaters sit between the sensor positions so they never cover a temperature label.
+  const sensorY = (i: number): number => top + 18 + i * step;
+  const heaterY = [sensorY(3) + step / 2, sensorY(1) + step / 2];
 
   return svg`
     <g class="device device-tank">

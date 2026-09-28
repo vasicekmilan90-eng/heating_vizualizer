@@ -280,7 +280,7 @@ export class HeatingSchemaCanvas extends LitElement {
       const rect = getNodeBounds(node, def);
       const badges = layoutBadges(badgeAddons(node.type, this._resolveAddons(node)), this._badgeWidth(rect));
       minX = Math.min(minX, rect.x);
-      minY = Math.min(minY, rect.y - 20);
+      minY = Math.min(minY, rect.y - 28);
       maxX = Math.max(maxX, rect.x + Math.max(rect.width, badges.height ? this._badgeWidth(rect) : 0));
       maxY = Math.max(maxY, rect.y + rect.height + 10 + (badges.height ? badges.height + BADGE_OFFSET : 0));
     }
@@ -350,7 +350,9 @@ export class HeatingSchemaCanvas extends LitElement {
 
     const rotation = normalizeRotation(node.rotation);
     const rect = getNodeBounds(node, def);
-    const labelY = rect.y - node.position.y - 4;
+    // Ports on the top edge (manifold loops) would sit on the label, so it moves up.
+    const topPort = def.ports.some((p) => (getAbsolutePort(node, p.id)?.y ?? Infinity) <= rect.y + 1);
+    const labelY = rect.y - node.position.y - (topPort ? 12 : 4);
     const badges = badgeAddons(node.type, addons);
     const name = node.name || t.t(def.labelKey);
     const actionable = this._isActionable({ nodeId: node.id });

@@ -13,7 +13,7 @@ import { HA_CONTEXT, HassContextConsumer } from "./utils/context.js";
 import "./renderer/schema-canvas.js";
 import "./editor/card-editor.js";
 
-const CARD_VERSION = "0.5.0";
+const CARD_VERSION = "0.5.1";
 const DOCUMENTATION_URL = "https://github.com/vasicekmilan90-eng/heating_vizualizer";
 
 @customElement("heating-visualizer-card")
@@ -30,6 +30,7 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
       display: block;
     }
     ha-card {
+      display: block;
       overflow: hidden;
     }
     .empty {

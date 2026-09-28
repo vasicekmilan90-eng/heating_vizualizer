@@ -2,6 +2,8 @@
 
 Custom Lovelace card for Home Assistant **2026.9+**. Draw your heating system from devices and pipes and see it live: temperatures, running pumps, valve positions, defrosting, alarms.
 
+![Heating Visualizer Card: heat pump, 3-way valve, DHW tank with coil and immersion heater, floor heating manifold](docs/screenshot.svg)
+
 - **Visual editor** – add devices from a list, straight from an entity, or from a template; the editor suggests add-ons from the same Home Assistant device.
 - **Add-ons** describe parts of a physical device (tank sensors, backup heater, defrost, …), no matter which integration provides the entity.
 - **Right-angled pipes** (or curved), automatic arrangement in flow direction, drawing mode with drag & drop.
@@ -179,3 +181,5 @@ npm run lint
 npm test
 npm run build   # writes heating-visualizer-card.js for HACS
 ```
+
+[`docs/demo.html`](docs/demo.html) shows the built card with sample states outside Home Assistant (serve the repository folder over HTTP, e.g. `npx http-server`, and open `/docs/demo.html`).

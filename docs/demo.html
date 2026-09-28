@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Heating Visualizer Card – demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        width: 880px;
+        font-family: Roboto, "Segoe UI", sans-serif;
+        font-size: 14px;
+        color: #e1e1e1;
+        background: #111111;
+        --primary-color: #03a9f4;
+        --primary-text-color: #e1e1e1;
+        --secondary-text-color: #9b9b9b;
+        --card-background-color: #1c1c1c;
+        --ha-card-background: #1c1c1c;
+        --divider-color: rgba(225, 225, 225, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Standalone preview with sample states; used for the README screenshot. -->
+    <div id="card"></div>
+    <script type="module">
+      import "../heating-visualizer-card.js";
+
+      const now = new Date().toISOString();
+      const entity = (entity_id, state, attributes = {}) => ({
+        entity_id,
+        state,
+        attributes,
+        last_changed: now,
+        last_updated: now,
+      });
+      const temp = (id, value, name) =>
+        entity(id, String(value), { unit_of_measurement: "°C", device_class: "temperature", friendly_name: name });
+
+      const states = Object.fromEntries(
+        [
+          entity("climate.heat_pump", "heat", { hvac_action: "heating", friendly_name: "Heat pump" }),
+          temp("sensor.hp_supply", 42.5, "Supply"),
+          temp("sensor.hp_return", 36.1, "Return"),
+          temp("sensor.hp_outdoor", 3.4, "Outdoor"),
+          entity("sensor.hp_fan", "620", { unit_of_measurement: "rpm", friendly_name: "Fan speed" }),
+          entity("binary_sensor.hp_defrost", "off", { friendly_name: "Defrost" }),
+          entity("select.valve", "a", { friendly_name: "3-way valve" }),
+          temp("sensor.dhw_top", 52.3, "DHW top"),
+          temp("sensor.dhw_middle", 47.8, "DHW middle"),
+          temp("sensor.dhw_bottom", 31.2, "DHW bottom"),
+          entity("switch.dhw_heater", "on", { friendly_name: "DHW heater" }),
+          entity("switch.floor_pump", "on", { friendly_name: "Floor heating pump" }),
+          entity("valve.loop_1", "open", { current_position: 100 }),
+          entity("valve.loop_2", "open", { current_position: 100 }),
+          entity("valve.loop_3", "closed", { current_position: 0 }),
+          entity("valve.loop_4", "open", { current_position: 100 }),
+          temp("sensor.living_room", 21.4, "Living room"),
+        ].map((e) => [e.entity_id, e])
+      );
+
+      const formatters = {
+        formatEntityState: (e) => (e.attributes.unit_of_measurement ? `${e.state} ${e.attributes.unit_of_measurement}` : e.state),
+        formatEntityAttributeValue: (e, attribute) => String(e.attributes[attribute] ?? ""),
+        formatEntityAttributeName: (_e, attribute) => attribute,
+        formatEntityName: (e, name) => (typeof name === "string" ? name : (e.attributes.friendly_name ?? e.entity_id)),
+      };
+      const contexts = {
+        states,
+        hassFormatters: formatters,
+        hassInternationalization: { language: "en", localize: (key) => key },
+      };
+      document.addEventListener("context-request", (ev) => {
+        if (!(ev.context in contexts)) return;
+        ev.stopPropagation();
+        ev.callback(contexts[ev.context]);
+      });
+
+      const card = document.createElement("heating-visualizer-card");
+      card.setConfig({
+        type: "custom:heating-visualizer-card",
+        schema_version: 2,
+        nodes: [
+          {
+            id: "hp",
+            type: "heat_pump",
+            position: { x: 40, y: 120 },
+            entity_id: "climate.heat_pump",
+            addons: [
+              { type: "temperature", slot: "supply", entity_id: "sensor.hp_supply" },
+              { type: "temperature", slot: "return", entity_id: "sensor.hp_return" },
+              { type: "temperature", slot: "outdoor", entity_id: "sensor.hp_outdoor" },
+              { type: "fan", entity_id: "sensor.hp_fan" },
+              { type: "defrost", entity_id: "binary_sensor.hp_defrost" },
+            ],
+          },
+          { id: "valve", type: "valve_3way", position: { x: 280, y: 110 }, entity_id: "select.valve" },
+          {
+            id: "dhw",
+            type: "tank",
+            volume: 200,
+            position: { x: 460, y: 20 },
+            addons: [
+              { type: "heat_exchanger" },
+              { type: "dhw" },
+              { type: "temperature", slot: "top", entity_id: "sensor.dhw_top" },
+              { type: "temperature", slot: "middle", entity_id: "sensor.dhw_middle" },
+              { type: "temperature", slot: "bottom", entity_id: "sensor.dhw_bottom" },
+              { type: "electric_heater", entity_id: "switch.dhw_heater" },
+            ],
+          },
+          { id: "tap", type: "dhw_outlet", position: { x: 640, y: 18 } },
+          { id: "mains", type: "water_supply", position: { x: 640, y: 148 }, rotation: 180 },
+          { id: "pump", type: "circulation_pump", position: { x: 420, y: 260 }, entity_id: "switch.floor_pump" },
+          {
+            id: "manifold",
+            type: "manifold",
+            position: { x: 560, y: 275 },
+            addons: [1, 2, 3, 4].map((n) => ({ type: "loop", entity_id: `valve.loop_${n}` })),
+          },
+        ],
+        connections: [
+          { from: "hp.hot_out", to: "valve.in" },
+          { from: "valve.out_a", to: "dhw.coil_in" },
+          { from: "dhw.coil_out", to: "hp.cold_in" },
+          { from: "valve.out_b", to: "pump.in" },
+          { from: "pump.out", to: "manifold.supply_in" },
+          { from: "manifold.return_out", to: "hp.cold_in" },
+          { from: "dhw.hot_out", to: "tap.in" },
+          { from: "mains.out", to: "dhw.cold_in" },
+        ],
+        overlays: [{ id: "room", entity_id: "sensor.living_room", position: { x: 40, y: 40 } }],
+      });
+      document.getElementById("card").append(card);
+    </script>
+  </body>
+</html>
