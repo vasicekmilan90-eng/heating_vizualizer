@@ -95,7 +95,7 @@
               { type: "defrost", entity_id: "binary_sensor.hp_defrost" },
             ],
           },
-          { id: "valve", type: "valve_3way", position: { x: 280, y: 110 }, entity_id: "select.valve" },
+          { id: "valve", type: "valve_3way", position: { x: 280, y: 120 }, entity_id: "select.valve" },
           {
             id: "dhw",
             type: "tank",
@@ -113,6 +113,7 @@
           { id: "tap", type: "dhw_outlet", position: { x: 640, y: 18 } },
           { id: "mains", type: "water_supply", position: { x: 640, y: 148 }, rotation: 180 },
           { id: "pump", type: "circulation_pump", position: { x: 420, y: 260 }, entity_id: "switch.floor_pump" },
+          { id: "returns", type: "junction", variant: "merge", position: { x: 300, y: 330 } },
           {
             id: "manifold",
             type: "manifold",
@@ -123,10 +124,11 @@
         connections: [
           { from: "hp.hot_out", to: "valve.in" },
           { from: "valve.out_a", to: "dhw.coil_in" },
-          { from: "dhw.coil_out", to: "hp.cold_in" },
+          { from: "dhw.coil_out", to: "returns.in_top" },
           { from: "valve.out_b", to: "pump.in" },
           { from: "pump.out", to: "manifold.supply_in" },
-          { from: "manifold.return_out", to: "hp.cold_in" },
+          { from: "manifold.return_out", to: "returns.in_bottom" },
+          { from: "returns.out", to: "hp.cold_in" },
           { from: "dhw.hot_out", to: "tap.in" },
           { from: "mains.out", to: "dhw.cold_in" },
         ],

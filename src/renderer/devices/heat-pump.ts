@@ -139,17 +139,26 @@ function renderValve3Way(
       ? "var(--primary-color, #03a9f4)"
       : "var(--divider-color, #888)";
   const strokeWidth = selected ? 2.5 : 1.5;
-  const branchAColor = state.valveBranch === "a" ? "#4caf50" : "var(--divider-color, #555)";
-  const branchBColor = state.valveBranch === "b" ? "#4caf50" : "var(--divider-color, #555)";
+  const active = "#4caf50";
+  const neutral = "var(--divider-color, #888)";
+  const fill = "var(--card-background-color, #1c1c1c)";
+  const branchA = state.valveBranch === "a";
+  const branchB = state.valveBranch === "b";
+  // Standard 3-way valve symbol: three seats meeting in the middle, actuator on top.
   return svg`
     <g class="device device-valve-3way">
-      <polygon
-        points="10,50 45,15 45,35 90,35 90,65 45,65 45,85"
-        fill="var(--card-background-color, #1c1c1c)"
-        stroke="${stroke}" stroke-width="${strokeWidth}"
-      />
-      <line x1="45" y1="50" x2="90" y2="25" stroke="${branchAColor}" stroke-width="3" />
-      <line x1="45" y1="50" x2="90" y2="75" stroke="${branchBColor}" stroke-width="3" />
+      <path d="M 0 40 H 14" stroke="${neutral}" stroke-width="2" />
+      <path d="M 66 40 H 80" stroke="${branchA ? active : neutral}" stroke-width="2" />
+      <path d="M 40 66 V 80" stroke="${branchB ? active : neutral}" stroke-width="2" />
+      <path d="M 40 40 V 18" stroke="${stroke}" stroke-width="1.5" />
+      <rect x="30" y="6" width="20" height="12" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />
+      <polygon points="14,28 14,52 40,40" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" />
+      <polygon points="66,28 66,52 40,40" fill="${branchA ? active : fill}" fill-opacity="${branchA ? 0.8 : 1}"
+        stroke="${branchA ? active : stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" />
+      <polygon points="28,66 52,66 40,40" fill="${branchB ? active : fill}" fill-opacity="${branchB ? 0.8 : 1}"
+        stroke="${branchB ? active : stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" />
+      <text x="72" y="33" text-anchor="middle" class="device-label">A</text>
+      <text x="50" y="77" text-anchor="middle" class="device-label">B</text>
       ${renderPorts(def, t)}
     </g>
   `;
@@ -189,13 +198,14 @@ function renderJunction(
       ? "var(--primary-color, #03a9f4)"
       : "var(--divider-color, #888)";
   const strokeWidth = selected ? 2.5 : 1.5;
+  const mid = def.width / 2;
   return svg`
     <g class="device device-junction">
-      <circle
-        cx="30" cy="30" r="18"
-        fill="var(--card-background-color, #1c1c1c)"
-        stroke="${stroke}" stroke-width="${strokeWidth}"
-      />
+      ${def.ports.map((p) => svg`
+        <line x1="${p.position.x}" y1="${p.position.y}" x2="${mid}" y2="${mid}"
+          stroke="var(--divider-color, #888)" stroke-width="3" stroke-linecap="round" />
+      `)}
+      <circle cx="${mid}" cy="${mid}" r="4.5" fill="${stroke}" stroke="${stroke}" stroke-width="${strokeWidth}" />
       ${renderPorts(def, t)}
     </g>
   `;
@@ -213,17 +223,28 @@ function renderCirculationPump(
       ? "var(--primary-color, #03a9f4)"
       : "var(--divider-color, #888)";
   const strokeWidth = selected ? 2.5 : 1.5;
+  const c = 45;
+  const r = 18;
+  // Equilateral triangle pointing in the flow direction; its centroid is the circle center.
+  const triangle = [0, 120, 240]
+    .map((deg) => {
+      const rad = (deg * Math.PI) / 180;
+      return `${Math.round((c + r * Math.cos(rad)) * 10) / 10},${Math.round((c + r * Math.sin(rad)) * 10) / 10}`;
+    })
+    .join(" ");
   return svg`
     <g class="device device-circulation-pump">
+      <path d="M 0 45 H 17 M 73 45 H 90" stroke="var(--divider-color, #888)" stroke-width="2" />
       <circle
         cx="45" cy="45" r="28"
         fill="var(--card-background-color, #1c1c1c)"
         stroke="${stroke}" stroke-width="${strokeWidth}"
       />
-      <g class="${state.active ? "spinning" : ""}">
-        <path d="M 32 52 A 14 14 0 0 1 58 38"
-          fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round" />
-        <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)" />
+      <g class="impeller ${state.active ? "spinning" : ""}">
+        <!-- Invisible circle keeps the bounding box centered, so the rotation does not wobble. -->
+        <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="none" />
+        <polygon points="${triangle}" fill="var(--primary-color, #03a9f4)" fill-opacity="${state.active ? 0.85 : 0.35}"
+          stroke="var(--primary-color, #03a9f4)" stroke-width="1.5" stroke-linejoin="round" />
       </g>
       ${renderPorts(def, t)}
     </g>

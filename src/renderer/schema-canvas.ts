@@ -33,6 +33,39 @@ import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-ba
 import type { ResolvedAddon } from "./devices/common.js";
 import { activeFromAddons, withNumericActivity } from "./devices/common.js";
 import { ADDON_TYPES } from "../models/addons.js";
+import { flowingConnections, pipeMedia, type FlowNodeState, type Medium } from "../models/hydraulics.js";
+import type { NodeVisualState } from "../utils/entity.js";
+
+const MEDIUM_COLORS: Record<Medium, string> = {
+  supply: "#ef5350",
+  return: "#42a5f5",
+  hot_water: "#ffa726",
+  cold_water: "#4dd0e1",
+};
+
+// Three dash layers share one period and end at the same point: a bright head with a fading tail.
+const FLOW_LAYERS = [
+  { dash: "16 24", opacity: 0.15 },
+  { dash: "0 6 10 24", opacity: 0.35 },
+  { dash: "0 11 5 24", opacity: 0.85 },
+];
+
+interface ResolvedNode {
+  visual: NodeVisualState;
+  addons: ResolvedAddon[];
+}
+
+function flowState(node: ResolvedNode | undefined): FlowNodeState {
+  if (!node) return { active: false };
+  const ofType = (type: string): ResolvedAddon[] => node.addons.filter((a) => a.config.type === type);
+  return {
+    active: node.visual.active,
+    valveBranch: node.visual.valveBranch,
+    pumpActive: ofType("pump").some((a) => a.config.entity_id && a.state.active),
+    // Loops without an actuator entity are always open.
+    loops: ofType("loop").map((a) => !a.config.entity_id || a.state.active),
+  };
+}
 import { nodeDescription } from "./a11y.js";
 
 const BADGE_OFFSET = 6;
@@ -74,6 +107,10 @@ export class HeatingSchemaCanvas extends LitElement {
   /** Dragging devices and connecting ports; off by default so scrolling on touch screens cannot move anything. */
   @property({ type: Boolean }) public drawing = false;
   @property({ attribute: false }) public pipeStyle: PipeStyle = "orthogonal";
+  /** Color pipes by what flows in them (heating supply/return, hot/cold water). */
+  @property({ attribute: false }) public pipeColors = true;
+  /** Animate water in pipes that currently flow. */
+  @property({ attribute: false }) public flowAnimation = true;
   @property({ attribute: false }) public selectedNodeId?: string;
   @property({ attribute: false }) public selectedEdgeId?: string;
   @property({ attribute: false }) public selectedPort?: { nodeId: string; portId: string };
@@ -108,6 +145,18 @@ export class HeatingSchemaCanvas extends LitElement {
       pointer-events: stroke;
       cursor: pointer;
     }
+    .flow {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.5;
+      pointer-events: none;
+      animation: flow 1.2s linear infinite;
+    }
+    @keyframes flow {
+      to {
+        stroke-dashoffset: -40;
+      }
+    }
     .grid-dot {
       fill: var(--divider-color, #555);
     }
@@ -122,7 +171,8 @@ export class HeatingSchemaCanvas extends LitElement {
       }
     }
     @media (prefers-reduced-motion: reduce) {
-      .spinning {
+      .spinning,
+      .flow {
         animation: none;
       }
     }
@@ -224,6 +274,11 @@ export class HeatingSchemaCanvas extends LitElement {
     const t = this._translator();
     const { nodes, connections, overlays } = this.schema;
     const bounds = this._dragBounds ?? this._computeBounds(nodes);
+    const resolved = new Map(nodes.map((n) => [n.id, this._resolveNode(n)]));
+    const media = this.pipeColors ? pipeMedia(this.schema) : new Map<string, Medium>();
+    const flowing = this.flowAnimation
+      ? flowingConnections(this.schema, (n) => flowState(resolved.get(n.id)))
+      : new Set<string>();
 
     return html`
       <svg
@@ -248,8 +303,8 @@ export class HeatingSchemaCanvas extends LitElement {
             <rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="url(#grid)" aria-hidden="true" />
           `
           : nothing}
-        ${connections.map((connection) => this._renderConnection(connection))}
-        ${nodes.map((node) => this._renderNode(node, t))}
+        ${connections.map((connection) => this._renderConnection(connection, media, flowing))}
+        ${nodes.map((node) => this._renderNode(node, t, resolved.get(node.id)))}
         ${overlays.map((overlay) => this._renderOverlay(overlay))}
       </svg>
     `;
@@ -294,7 +349,7 @@ export class HeatingSchemaCanvas extends LitElement {
     };
   }
 
-  private _renderConnection(connection: Connection): TemplateResult {
+  private _renderConnection(connection: Connection, media: Map<string, Medium>, flowing: Set<string>): TemplateResult {
     const fromRef = parsePortRef(connection.from);
     const toRef = parsePortRef(connection.to);
     const fromNode = this.schema.nodes.find((n) => n.id === fromRef?.nodeId);
@@ -308,10 +363,24 @@ export class HeatingSchemaCanvas extends LitElement {
     const d = this.pipeStyle === "curved" ? buildPipePath(from, to) : buildOrthogonalPipePath(from, to);
     const id = connectionId(connection);
     const selected = this.selectedEdgeId === id;
+    const medium = media.get(id);
     return svg`
-      <path class="pipe ${selected ? "selected" : ""}" d="${d}" aria-hidden="true" />
+      <path class="pipe ${selected ? "selected" : ""}" d="${d}" aria-hidden="true"
+        style="${medium && !selected ? `stroke: ${MEDIUM_COLORS[medium]}` : ""}" />
+      ${flowing.has(id)
+        ? svg`<g aria-hidden="true">
+            ${FLOW_LAYERS.map((layer) => svg`<path class="flow" d="${d}" stroke-dasharray="${layer.dash}" stroke-opacity="${layer.opacity}" />`)}
+          </g>`
+        : nothing}
       ${this.editable ? svg`<path class="pipe-hit" data-edge-id="${id}" d="${d}" />` : nothing}
     `;
+  }
+
+  private _resolveNode(node: SchemaNode): ResolvedNode {
+    const addons = this._resolveAddons(node);
+    const visual = resolveNodeVisualState(this._states.value, node, this._formatters.value);
+    if (!node.entity_id) visual.active = activeFromAddons(addons);
+    return { visual, addons };
   }
 
   private _resolveAddons(node: SchemaNode): ResolvedAddon[] {
@@ -337,14 +406,12 @@ export class HeatingSchemaCanvas extends LitElement {
     return Math.max(rect.width, BADGE_MIN_WIDTH);
   }
 
-  private _renderNode(node: SchemaNode, t: Translator): TemplateResult {
+  private _renderNode(node: SchemaNode, t: Translator, resolved = this._resolveNode(node)): TemplateResult {
     const def = getNodeDefinition(node);
     if (!def) return html``;
 
     const selected = this.selectedNodeId === node.id;
-    const addons = this._resolveAddons(node);
-    const visualState = resolveNodeVisualState(this._states.value, node, this._formatters.value);
-    if (!node.entity_id) visualState.active = activeFromAddons(addons);
+    const { addons, visual: visualState } = resolved;
     const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, { addons });
     if (!deviceSvg) return html``;
 
@@ -369,9 +436,9 @@ export class HeatingSchemaCanvas extends LitElement {
         <g transform="rotate(${rotation} ${def.width / 2} ${def.height / 2})">
           ${deviceSvg}
         </g>
-        <text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">
-          ${name}
-        </text>
+        ${def.hideLabel && !node.name
+          ? nothing
+          : svg`<text x="${def.width / 2}" y="${labelY}" text-anchor="middle" class="device-label">${name}</text>`}
         ${badges.length
           ? renderAddonBadges(
               badges,

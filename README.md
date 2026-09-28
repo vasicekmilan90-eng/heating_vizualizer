@@ -98,6 +98,8 @@ overlays:
 | `connections` | Pipes from an outlet to an inlet, written as `node_id.port_id`. |
 | `overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`, actions. |
 | `pipe_style` | `orthogonal` (default) or `curved`. |
+| `pipe_colors` | Color pipes by what flows in them: heating supply red, return blue, hot water orange, cold water turquoise (default `true`). Pumps, valves and junctions take the color of their pipes. |
+| `flow_animation` | Animate water in pipes that currently flow (default `true`): from running pumps and heat sources along the pipes, only through the active branch of 3-way valves, open zone valves and open manifold loops. An open hot water tap makes the cold water supply flow. |
 | `schema_version` | Written by the editor. Configurations of 0.3 (`schema:` with `edges`, `channels`, `heater`) are converted automatically when loaded, and so are the `boiler` and `buffer_tank` of 0.4 (they become a `tank` with modules, pipes keep working). |
 
 ### Entity binding (devices and add-ons)
@@ -151,7 +153,7 @@ Tank sensors (colored water), coils and immersion heaters, heat pump values, fan
 | `radiator` | `in`, `out` | temperature (room), actuator, setpoint, alarm, window |
 | `fancoil` | `in`, `out` | temperature (room, supply), actuator, fan, mode, setpoint, alarm |
 | `electric_heater` | `in`, `out` | temperature (inlet, outlet), value 2, mode, alarm |
-| `junction` | `in`, `out_top`, `out_bottom`; with `variant: merge` `in_top`, `in_bottom`, `out` | – |
+| `junction` | T-piece: `in`, `out_top`, `out_bottom`; with `variant: merge` `in_top`, `in_bottom`, `out`. Its name is only shown when set. | – |
 | `pipe_sensor` | `in`, `out` | – (icon follows the entity `device_class`) |
 | `outdoor_temperature` | – | value |
 | `water_supply` | `out` | value 2, alarm |

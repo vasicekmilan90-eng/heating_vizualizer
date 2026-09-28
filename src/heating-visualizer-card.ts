@@ -13,7 +13,7 @@ import { HA_CONTEXT, HassContextConsumer } from "./utils/context.js";
 import "./renderer/schema-canvas.js";
 import "./editor/card-editor.js";
 
-const CARD_VERSION = "0.5.1";
+const CARD_VERSION = "0.6.0";
 const DOCUMENTATION_URL = "https://github.com/vasicekmilan90-eng/heating_vizualizer";
 
 @customElement("heating-visualizer-card")
@@ -85,6 +85,8 @@ export class HeatingVisualizerCard extends LitElement implements LovelaceCard {
             <heating-schema-canvas
               .schema="${schema}"
               .pipeStyle="${this._config.pipe_style ?? "orthogonal"}"
+              .pipeColors="${this._config.pipe_colors !== false}"
+              .flowAnimation="${this._config.flow_animation !== false}"
               .editable="${false}"
             ></heating-schema-canvas>
           `}

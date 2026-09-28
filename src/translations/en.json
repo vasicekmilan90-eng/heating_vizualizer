@@ -253,6 +253,8 @@
     "pipe_style": "Pipe style",
     "pipe_style_orthogonal": "Right-angled pipes",
     "pipe_style_curved": "Curved pipes",
+    "pipe_colors": "Colored pipes",
+    "flow_animation": "Show water flow",
     "drawing_mode": "Drawing mode",
     "drawing_hint": "Drag devices; click two ports to connect them.",
     "select_hint": "Click a device to select it; arrow keys move it (Shift = faster).",

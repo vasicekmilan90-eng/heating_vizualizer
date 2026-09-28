@@ -4,13 +4,17 @@ svg { width: 100%; min-height: 280px; background: var(--ha-card-background, var(
 .pipe { fill: none; stroke: rgb(120, 144, 156); stroke-width: 4; stroke-linecap: round; }
 .pipe.selected { stroke: var(--primary-color, #03a9f4); stroke-width: 6; }
 .pipe-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+.flow { fill: none; stroke: rgb(255, 255, 255); stroke-width: 2.5; pointer-events: none; animation: 1.2s linear 0s infinite normal none running flow; }
+@keyframes flow { 
+  100% { stroke-dashoffset: -40; }
+}
 .grid-dot { fill: var(--divider-color, #555); }
 .spinning { transform-box: fill-box; transform-origin: center center; animation: 1.6s linear 0s infinite normal none running spin; }
 @keyframes spin { 
   100% { transform: rotate(360deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .spinning { animation: auto ease 0s 1 normal none running none; }
+  .spinning, .flow { animation: auto ease 0s 1 normal none running none; }
 }
 .device-label { fill: var(--primary-text-color, #e0e0e0); font-size: var(--ha-font-size-xs, 11px); pointer-events: none; }
 .device-value { fill: var(--primary-text-color, #e0e0e0); font-size: var(--ha-font-size-s, 12px); font-weight: var(--ha-font-weight-medium, 500); pointer-events: none; }
@@ -32,28 +36,52 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
 .port-highlight { stroke: var(--primary-color, #03a9f4) !important; stroke-width: 3 !important; }</style><rect x="0" y="-50" width="784" height="505" rx="12" fill="#1c1c1c"/>
         
         
-      <path aria-hidden="true" class="pipe " d="M 210 160 L 280 160"/>
+      <path aria-hidden="true" class="pipe " d="M 210 160 L 280 160" style="stroke: #ef5350"/>
+      <g aria-hidden="true">
+            <path class="flow" d="M 210 160 L 280 160" stroke-dasharray="16 24" stroke-opacity="0.15"/><path class="flow" d="M 210 160 L 280 160" stroke-dasharray="0 6 10 24" stroke-opacity="0.35"/><path class="flow" d="M 210 160 L 280 160" stroke-dasharray="0 11 5 24" stroke-opacity="0.85"/>
+          </g>
       
     
-      <path aria-hidden="true" class="pipe " d="M 380 135 L 412 135 Q 420 135 420 127 L 420 56 Q 420 48 428 48 L 460 48"/>
+      <path aria-hidden="true" class="pipe " d="M 360 160 L 402 160 Q 410 160 410 152 L 410 56 Q 410 48 418 48 L 460 48" style="stroke: #ef5350"/>
+      <g aria-hidden="true">
+            <path class="flow" d="M 360 160 L 402 160 Q 410 160 410 152 L 410 56 Q 410 48 418 48 L 460 48" stroke-dasharray="16 24" stroke-opacity="0.15"/><path class="flow" d="M 360 160 L 402 160 Q 410 160 410 152 L 410 56 Q 410 48 418 48 L 460 48" stroke-dasharray="0 6 10 24" stroke-opacity="0.35"/><path class="flow" d="M 360 160 L 402 160 Q 410 160 410 152 L 410 56 Q 410 48 418 48 L 460 48" stroke-dasharray="0 11 5 24" stroke-opacity="0.85"/>
+          </g>
       
     
-      <path aria-hidden="true" class="pipe " d="M 460 178 L 343 178 Q 335 178 335 186 L 335 202 Q 335 210 327 210 L 210 210"/>
+      <path aria-hidden="true" class="pipe " d="M 460 178 L 323 178 Q 315 178 315 186 L 315 330" style="stroke: #42a5f5"/>
+      <g aria-hidden="true">
+            <path class="flow" d="M 460 178 L 323 178 Q 315 178 315 186 L 315 330" stroke-dasharray="16 24" stroke-opacity="0.15"/><path class="flow" d="M 460 178 L 323 178 Q 315 178 315 186 L 315 330" stroke-dasharray="0 6 10 24" stroke-opacity="0.35"/><path class="flow" d="M 460 178 L 323 178 Q 315 178 315 186 L 315 330" stroke-dasharray="0 11 5 24" stroke-opacity="0.85"/>
+          </g>
       
     
-      <path aria-hidden="true" class="pipe " d="M 380 185 L 392 185 Q 400 185 400 193 L 400 297 Q 400 305 408 305 L 420 305"/>
+      <path aria-hidden="true" class="pipe " d="M 320 200 L 320 297 Q 320 305 328 305 L 420 305" style="stroke: #ef5350"/>
+      
       
     
-      <path aria-hidden="true" class="pipe " d="M 510 305 L 560 305"/>
+      <path aria-hidden="true" class="pipe " d="M 510 305 L 560 305" style="stroke: #ef5350"/>
+      <g aria-hidden="true">
+            <path class="flow" d="M 510 305 L 560 305" stroke-dasharray="16 24" stroke-opacity="0.15"/><path class="flow" d="M 510 305 L 560 305" stroke-dasharray="0 6 10 24" stroke-opacity="0.35"/><path class="flow" d="M 510 305 L 560 305" stroke-dasharray="0 11 5 24" stroke-opacity="0.85"/>
+          </g>
       
     
-      <path aria-hidden="true" class="pipe " d="M 560 375 L 393 375 Q 385 375 385 367 L 385 218 Q 385 210 377 210 L 210 210"/>
+      <path aria-hidden="true" class="pipe " d="M 560 375 L 542.5 375 Q 540 375 540 377.5 L 540 377.5 Q 540 380 537.5 380 L 323 380 Q 315 380 315 372 L 315 360" style="stroke: #42a5f5"/>
+      <g aria-hidden="true">
+            <path class="flow" d="M 560 375 L 542.5 375 Q 540 375 540 377.5 L 540 377.5 Q 540 380 537.5 380 L 323 380 Q 315 380 315 372 L 315 360" stroke-dasharray="16 24" stroke-opacity="0.15"/><path class="flow" d="M 560 375 L 542.5 375 Q 540 375 540 377.5 L 540 377.5 Q 540 380 537.5 380 L 323 380 Q 315 380 315 372 L 315 360" stroke-dasharray="0 6 10 24" stroke-opacity="0.35"/><path class="flow" d="M 560 375 L 542.5 375 Q 540 375 540 377.5 L 540 377.5 Q 540 380 537.5 380 L 323 380 Q 315 380 315 372 L 315 360" stroke-dasharray="0 11 5 24" stroke-opacity="0.85"/>
+          </g>
       
     
-      <path aria-hidden="true" class="pipe " d="M 560 48 L 640 48"/>
+      <path aria-hidden="true" class="pipe " d="M 330 345 L 342 345 Q 350 345 350 337 L 350 285.5 Q 350 277.5 342 277.5 L 238 277.5 Q 230 277.5 230 269.5 L 230 218 Q 230 210 222 210 L 210 210" style="stroke: #42a5f5"/>
+      <g aria-hidden="true">
+            <path class="flow" d="M 330 345 L 342 345 Q 350 345 350 337 L 350 285.5 Q 350 277.5 342 277.5 L 238 277.5 Q 230 277.5 230 269.5 L 230 218 Q 230 210 222 210 L 210 210" stroke-dasharray="16 24" stroke-opacity="0.15"/><path class="flow" d="M 330 345 L 342 345 Q 350 345 350 337 L 350 285.5 Q 350 277.5 342 277.5 L 238 277.5 Q 230 277.5 230 269.5 L 230 218 Q 230 210 222 210 L 210 210" stroke-dasharray="0 6 10 24" stroke-opacity="0.35"/><path class="flow" d="M 330 345 L 342 345 Q 350 345 350 337 L 350 285.5 Q 350 277.5 342 277.5 L 238 277.5 Q 230 277.5 230 269.5 L 230 218 Q 230 210 222 210 L 210 210" stroke-dasharray="0 11 5 24" stroke-opacity="0.85"/>
+          </g>
       
     
-      <path aria-hidden="true" class="pipe " d="M 640 178 L 560 178"/>
+      <path aria-hidden="true" class="pipe " d="M 560 48 L 640 48" style="stroke: #ffa726"/>
+      
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 640 178 L 560 178" style="stroke: #4dd0e1"/>
+      
       
     
         
@@ -98,32 +126,35 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="85" y="-4">
-          Heat pump
-        </text>
+        <text text-anchor="middle" class="device-label" x="85" y="-4">Heat pump</text>
         
       </g>
     
-      <g class="node  actionable" data-node-id="valve" role="button" tabindex="0" aria-label="3-way valve: a" transform="translate(280 110)">
-        <g transform="rotate(0 50 50)">
+      <g class="node  actionable" data-node-id="valve" role="button" tabindex="0" aria-label="3-way valve: a" transform="translate(280 120)">
+        <g transform="rotate(0 40 40)">
           
     <g class="device device-valve-3way">
-      <polygon points="10,50 45,15 45,35 90,35 90,65 45,65 45,85" fill="var(--card-background-color, #1c1c1c)" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
-      <line x1="45" y1="50" x2="90" y2="25" stroke-width="3" stroke="#4caf50"/>
-      <line x1="45" y1="50" x2="90" y2="75" stroke-width="3" stroke="var(--divider-color, #555)"/>
+      <path d="M 0 40 H 14" stroke-width="2" stroke="var(--divider-color, #888)"/>
+      <path d="M 66 40 H 80" stroke-width="2" stroke="#4caf50"/>
+      <path d="M 40 66 V 80" stroke-width="2" stroke="var(--divider-color, #888)"/>
+      <path d="M 40 40 V 18" stroke-width="1.5" stroke="var(--divider-color, #888)"/>
+      <rect x="30" y="6" width="20" height="12" rx="2" fill="var(--card-background-color, #1c1c1c)" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
+      <polygon points="14,28 14,52 40,40" stroke-linejoin="round" fill="var(--card-background-color, #1c1c1c)" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
+      <polygon points="66,28 66,52 40,40" stroke-linejoin="round" fill="#4caf50" fill-opacity="0.8" stroke="#4caf50" stroke-width="1.5"/>
+      <polygon points="28,66 52,66 40,40" stroke-linejoin="round" fill="var(--card-background-color, #1c1c1c)" fill-opacity="1" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
+      <text x="72" y="33" text-anchor="middle" class="device-label">A</text>
+      <text x="50" y="77" text-anchor="middle" class="device-label">B</text>
       
-    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in" cx="0" cy="50" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Inlet</title></circle>
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in" cx="0" cy="40" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Inlet</title></circle>
   
-    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out_a" cx="100" cy="25" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet A</title></circle>
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out_a" cx="80" cy="40" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet A</title></circle>
   
-    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out_b" cx="100" cy="75" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet B</title></circle>
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out_b" cx="40" cy="80" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet B</title></circle>
   
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="50" y="-4">
-          3-way valve
-        </text>
+        <text text-anchor="middle" class="device-label" x="40" y="-4">3-way valve</text>
         
       </g>
     
@@ -183,9 +214,7 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="50" y="-4">
-          DHW tank
-        </text>
+        <text text-anchor="middle" class="device-label" x="50" y="-4">DHW tank</text>
         
       </g>
     
@@ -203,9 +232,7 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="40" y="-4">
-          Hot water taps
-        </text>
+        <text text-anchor="middle" class="device-label" x="40" y="-4">Hot water taps</text>
         
       </g>
     
@@ -223,9 +250,7 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="40" y="-4">
-          Cold water supply
-        </text>
+        <text text-anchor="middle" class="device-label" x="40" y="-4">Cold water supply</text>
         
       </g>
     
@@ -233,10 +258,12 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
         <g transform="rotate(0 45 45)">
           
     <g class="device device-circulation-pump">
+      <path d="M 0 45 H 17 M 73 45 H 90" stroke="var(--divider-color, #888)" stroke-width="2"/>
       <circle cx="45" cy="45" r="28" fill="var(--card-background-color, #1c1c1c)" stroke="#4caf50" stroke-width="1.5"/>
-      <g class="spinning">
-        <path d="M 32 52 A 14 14 0 0 1 58 38" fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round"/>
-        <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)"/>
+      <g class="impeller spinning">
+        
+        <circle fill="none" stroke="none" cx="45" cy="45" r="18"/>
+        <polygon fill="var(--primary-color, #03a9f4)" stroke="var(--primary-color, #03a9f4)" stroke-width="1.5" stroke-linejoin="round" points="63,45 36,60.6 36,29.4" fill-opacity="0.85"/>
       </g>
       
     <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in" cx="0" cy="45" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Inlet</title></circle>
@@ -246,9 +273,33 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="45" y="-4">
-          Circulation pump
-        </text>
+        <text text-anchor="middle" class="device-label" x="45" y="-4">Circulation pump</text>
+        
+      </g>
+    
+      <g class="node  " data-node-id="returns" role="img" aria-label="Junction" transform="translate(300 330)">
+        <g transform="rotate(0 15 15)">
+          
+    <g class="device device-junction">
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="3" stroke-linecap="round" x1="15" y1="0" x2="15" y2="15"/>
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="3" stroke-linecap="round" x1="15" y1="30" x2="15" y2="15"/>
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="3" stroke-linecap="round" x1="30" y1="15" x2="15" y2="15"/>
+      
+      <circle r="4.5" cx="15" cy="15" fill="var(--divider-color, #888)" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
+      
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in_top" cx="15" cy="0" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Top inlet</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in_bottom" cx="15" cy="30" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Bottom inlet</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out" cx="30" cy="15" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet</title></circle>
+  
+    </g>
+  
+        </g>
+        
         
       </g>
     
@@ -304,9 +355,7 @@ svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-of
     </g>
   
         </g>
-        <text text-anchor="middle" class="device-label" x="92" y="-12">
-          Floor heating manifold
-        </text>
+        <text text-anchor="middle" class="device-label" x="92" y="-12">Floor heating manifold</text>
         
       </g>
     
