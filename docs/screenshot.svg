@@ -1,0 +1,321 @@
+<svg role="group" viewBox="0 -50 784 505" aria-label="Heating schema" xmlns="http://www.w3.org/2000/svg" width="784" height="505"><style>svg { --primary-color: #03a9f4; --primary-text-color: #e1e1e1; --secondary-text-color: #9b9b9b; --card-background-color: #1c1c1c; --divider-color: rgba(225, 225, 225, 0.2); font-family: Roboto, "Segoe UI", Arial, sans-serif; font-size: 14px; }
+:host { display: block; width: 100%; overflow: auto; }
+svg { width: 100%; min-height: 280px; background: var(--ha-card-background, var(--card-background-color, #1c1c1c)); border-radius: var(--ha-card-border-radius, 12px); user-select: none; }
+.pipe { fill: none; stroke: rgb(120, 144, 156); stroke-width: 4; stroke-linecap: round; }
+.pipe.selected { stroke: var(--primary-color, #03a9f4); stroke-width: 6; }
+.pipe-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+.grid-dot { fill: var(--divider-color, #555); }
+.spinning { transform-box: fill-box; transform-origin: center center; animation: 1.6s linear 0s infinite normal none running spin; }
+@keyframes spin { 
+  100% { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinning { animation: auto ease 0s 1 normal none running none; }
+}
+.device-label { fill: var(--primary-text-color, #e0e0e0); font-size: var(--ha-font-size-xs, 11px); pointer-events: none; }
+.device-value { fill: var(--primary-text-color, #e0e0e0); font-size: var(--ha-font-size-s, 12px); font-weight: var(--ha-font-weight-medium, 500); pointer-events: none; }
+.node { cursor: default; }
+:host([editable]) .node { cursor: pointer; }
+:host([drawing]) .node { cursor: grab; }
+:host([drawing]) .node.dragging { cursor: grabbing; }
+:host([drawing]) svg { touch-action: none; }
+svg:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px; }
+.actionable:focus { outline: none; }
+.actionable:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 4px; }
+.overlay-group { pointer-events: none; }
+:host(:not([editable])) .actionable { cursor: pointer; }
+:host(:not([editable])) .overlay-group.actionable { pointer-events: auto; }
+.addon-value { font-size: var(--ha-font-size-xs, 11px); }
+.heating-rod.active { filter: drop-shadow(rgb(255, 112, 67) 0px 0px 3px); }
+.overlay-bg { fill: var(--card-background-color, #1c1c1c); stroke: var(--divider-color, #555); stroke-width: 1; opacity: 0.92; }
+.overlay-text { fill: var(--primary-text-color, #e0e0e0); font-size: var(--ha-font-size-s, 12px); }
+.port-highlight { stroke: var(--primary-color, #03a9f4) !important; stroke-width: 3 !important; }</style><rect x="0" y="-50" width="784" height="505" rx="12" fill="#1c1c1c"/>
+        
+        
+      <path aria-hidden="true" class="pipe " d="M 210 160 L 280 160"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 380 135 L 412 135 Q 420 135 420 127 L 420 56 Q 420 48 428 48 L 460 48"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 460 178 L 343 178 Q 335 178 335 186 L 335 202 Q 335 210 327 210 L 210 210"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 380 185 L 392 185 Q 400 185 400 193 L 400 297 Q 400 305 408 305 L 420 305"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 510 305 L 560 305"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 560 375 L 393 375 Q 385 375 385 367 L 385 218 Q 385 210 377 210 L 210 210"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 560 48 L 640 48"/>
+      
+    
+      <path aria-hidden="true" class="pipe " d="M 640 178 L 560 178"/>
+      
+    
+        
+      <g class="node  actionable" data-node-id="hp" role="button" tabindex="0" aria-label="Heat pump: heat, running; Temperature sensor – supply: 42.5 °C; Temperature sensor – return: 36.1 °C; Temperature sensor – outdoor: 3.4 °C; Fan: 620 rpm; Defrost: off" transform="translate(40 120)">
+        <g transform="rotate(0 85 60)">
+          
+    <g class="device device-outdoor-unit">
+      <rect x="10" y="12" rx="6" fill="var(--card-background-color, #1c1c1c)" width="150" height="96" stroke="#4caf50" stroke-width="1.5"/>
+      <circle r="34" fill="none" stroke-width="1.5" cx="58" cy="60" stroke="var(--divider-color, #888)"/>
+      <g class="fan spinning" style="animation-duration: 0.97s">
+        
+          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(58 60) rotate(0)" fill="var(--primary-color, #03a9f4)"/>
+        
+          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(58 60) rotate(90)" fill="var(--primary-color, #03a9f4)"/>
+        
+          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(58 60) rotate(180)" fill="var(--primary-color, #03a9f4)"/>
+        
+          <path opacity="0.75" d="M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z" transform="translate(58 60) rotate(270)" fill="var(--primary-color, #03a9f4)"/>
+        
+        <circle r="5" cx="58" cy="60" fill="var(--primary-color, #03a9f4)"/>
+      </g>
+      
+      
+          <text x="104" class="device-value" y="30" style="fill: hsl(96, 75%, 50%)">
+            <title>supply</title>42.5 °C
+          </text>
+        
+          <text x="104" class="device-value" y="45" style="fill: hsl(131, 75%, 50%)">
+            <title>return</title>36.1 °C
+          </text>
+        
+          <text x="104" class="device-value" y="60" style="fill: hsl(220, 75%, 50%)">
+            <title>outdoor</title>3.4 °C
+          </text>
+        
+      
+      
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="hot_out" cx="170" cy="40" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Heating water out</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="cold_in" cx="170" cy="90" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Heating water return</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="85" y="-4">
+          Heat pump
+        </text>
+        
+      </g>
+    
+      <g class="node  actionable" data-node-id="valve" role="button" tabindex="0" aria-label="3-way valve: a" transform="translate(280 110)">
+        <g transform="rotate(0 50 50)">
+          
+    <g class="device device-valve-3way">
+      <polygon points="10,50 45,15 45,35 90,35 90,65 45,65 45,85" fill="var(--card-background-color, #1c1c1c)" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
+      <line x1="45" y1="50" x2="90" y2="25" stroke-width="3" stroke="#4caf50"/>
+      <line x1="45" y1="50" x2="90" y2="75" stroke-width="3" stroke="var(--divider-color, #555)"/>
+      
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in" cx="0" cy="50" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Inlet</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out_a" cx="100" cy="25" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet A</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out_b" cx="100" cy="75" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet B</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="50" y="-4">
+          3-way valve
+        </text>
+        
+      </g>
+    
+      <g class="node  " data-node-id="dhw" role="img" aria-label="DHW tank; Temperature sensor – top: 52.3 °C; Temperature sensor – middle: 47.8 °C; Temperature sensor – bottom: 31.2 °C; Electric immersion heater: on" transform="translate(460 20)">
+        <g transform="rotate(0 50 93)">
+          
+    <g class="device device-tank">
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="2" x1="0" y1="28" x2="14" y2="28"/>
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="2" x1="0" y1="158" x2="14" y2="158"/>
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="2" x1="100" y1="28" x2="86" y2="28"/>
+      
+        <line stroke="var(--divider-color, #888)" stroke-width="2" x1="100" y1="158" x2="86" y2="158"/>
+      
+      <rect y="10" rx="12" fill="var(--card-background-color, #1c1c1c)" x="14" width="72" height="172" stroke="#4caf50" stroke-width="1.5"/>
+      <rect class="water" opacity="0.3" x="17" y="16" width="66" height="49" fill="hsl(42, 75%, 50%)"/><rect class="water" opacity="0.3" x="17" y="65" width="66" height="62" fill="hsl(67, 75%, 50%)"/><rect class="water" opacity="0.3" x="17" y="127" width="66" height="49" fill="hsl(158, 75%, 50%)"/>
+      <circle r="3" cx="18" cy="34" fill="hsl(42, 75%, 50%)"/><circle r="3" cx="18" cy="96" fill="hsl(67, 75%, 50%)"/><circle r="3" cx="18" cy="158" fill="hsl(158, 75%, 50%)"/>
+      
+        <path class="coil" fill="none" stroke-width="2" stroke-linejoin="round" d="M 14 28 L 46 36.125 L 18 44.25 L 46 52.375 L 18 60.5 L 46 68.625 L 18 76.75 L 46 84.875 L 18 93 L 46 101.125 L 18 109.25 L 46 117.375 L 18 125.5 L 46 133.625 L 18 141.75 L 46 149.875 L 14 158" stroke="#ef5350" opacity="0.85"/>
+      
+      
+    <g class="heating-rod active">
+      <title></title>
+      <rect width="8" height="12" rx="2" stroke-width="1.5" x="82" y="136.5" fill="var(--card-background-color, #1c1c1c)" stroke="#ff7043"/>
+      
+    <path fill="none" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" class="heater active" d="M 52 146.5 L 57 138.5 L 62 146.5 L 67 138.5 L 72 146.5 L 77 138.5 L 82 146.5" stroke="#ff7043"/>
+  
+    </g>
+  
+      
+    <rect height="15" rx="3" opacity="0.85" x="31.25" y="27" width="53.5" fill="var(--card-background-color, #1c1c1c)"/>
+    <text text-anchor="middle" class="device-value" x="58" y="38" style="fill: hsl(42, 75%, 50%)">
+      <title></title>52.3 °C
+    </text>
+  
+    <rect height="15" rx="3" opacity="0.85" x="31.25" y="89" width="53.5" fill="var(--card-background-color, #1c1c1c)"/>
+    <text text-anchor="middle" class="device-value" x="58" y="100" style="fill: hsl(67, 75%, 50%)">
+      <title></title>47.8 °C
+    </text>
+  
+    <rect height="15" rx="3" opacity="0.85" x="31.25" y="151" width="53.5" fill="var(--card-background-color, #1c1c1c)"/>
+    <text text-anchor="middle" class="device-value" x="58" y="162" style="fill: hsl(158, 75%, 50%)">
+      <title></title>31.2 °C
+    </text>
+  
+      
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="coil_in" cx="0" cy="28" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Heat exchanger coil supply</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="coil_out" cx="0" cy="158" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Heat exchanger coil return</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="hot_out" cx="100" cy="28" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Hot water outlet</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="cold_in" cx="100" cy="158" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Cold water inlet</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="50" y="-4">
+          DHW tank
+        </text>
+        
+      </g>
+    
+      <g class="node  " data-node-id="tap" role="img" aria-label="Hot water taps" transform="translate(640 18)">
+        <g transform="rotate(0 40 30)">
+          
+    <g class="device device-dhw-outlet">
+      <line x1="0" x2="40" stroke-width="3" y1="30" y2="30" stroke="#ef5350"/>
+      <path fill="none" stroke-linecap="round" d="M 40 24 H 58 Q 66 24 66 32 V 36 M 40 36 H 54 Q 58 36 58 40" stroke="var(--divider-color, #888)" stroke-width="2.5"/>
+      <path stroke-width="2" stroke-linecap="round" d="M 46 24 V 16 M 42 16 H 50" stroke="var(--divider-color, #888)"/>
+      <path opacity="0.85" d="M 62 41 C 67 47, 67 54, 62 54 C 57 54, 57 47, 62 41 Z" fill="var(--divider-color, #888)"/>
+      
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in" cx="0" cy="30" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Inlet</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="40" y="-4">
+          Hot water taps
+        </text>
+        
+      </g>
+    
+      <g class="node  " data-node-id="mains" role="img" aria-label="Cold water supply" transform="translate(640 148)">
+        <g transform="rotate(180 40 30)">
+          
+    <g class="device device-water-supply">
+      <line x1="36" stroke-width="3" y1="30" x2="80" y2="30" stroke="#42a5f5"/>
+      <circle cx="22" r="16" cy="30" fill="var(--card-background-color, #1c1c1c)" stroke="var(--divider-color, #888)" stroke-width="1.5"/>
+      <path opacity="0.85" d="M 22 23 C 27 29, 27 36, 22 36 C 17 36, 17 29, 22 23 Z" fill="#42a5f5"/>
+      <path stroke-width="1.5" d="M 50 22 L 62 38 M 50 38 L 62 22 M 50 22 V 38 M 62 22 V 38" stroke="var(--divider-color, #888)"/>
+      
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out" cx="80" cy="30" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="40" y="-4">
+          Cold water supply
+        </text>
+        
+      </g>
+    
+      <g class="node  actionable" data-node-id="pump" role="button" tabindex="0" aria-label="Circulation pump: on, running" transform="translate(420 260)">
+        <g transform="rotate(0 45 45)">
+          
+    <g class="device device-circulation-pump">
+      <circle cx="45" cy="45" r="28" fill="var(--card-background-color, #1c1c1c)" stroke="#4caf50" stroke-width="1.5"/>
+      <g class="spinning">
+        <path d="M 32 52 A 14 14 0 0 1 58 38" fill="none" stroke="var(--primary-color, #03a9f4)" stroke-width="2" stroke-linecap="round"/>
+        <polygon points="58,38 52,38 56,32" fill="var(--primary-color, #03a9f4)"/>
+      </g>
+      
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="in" cx="0" cy="45" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Inlet</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="out" cx="90" cy="45" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Outlet</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="45" y="-4">
+          Circulation pump
+        </text>
+        
+      </g>
+    
+      <g class="node  " data-node-id="manifold" role="img" aria-label="Floor heating manifold; Loop: open; Loop: open; Loop: closed; Loop: open" transform="translate(560 275)">
+        <g transform="rotate(0 92 65)">
+          
+    <g class="device device-manifold">
+      <rect x="2" y="18" height="94" rx="6" fill="none" stroke-dasharray="4 3" width="180" stroke="#4caf50" stroke-width="1.5"/>
+      <rect x="4" y="22" height="16" rx="4" fill="var(--card-background-color, #1c1c1c)" stroke-width="2" width="176" stroke="#ef5350"/>
+      <rect x="4" y="92" height="16" rx="4" fill="var(--card-background-color, #1c1c1c)" stroke-width="2" width="176" stroke="#42a5f5"/>
+      
+          <line y1="0" y2="22" stroke-width="2" x1="50" x2="50" stroke="#ef5350"/>
+          <rect y="6" width="14" height="11" rx="2" stroke-width="1.5" class="actuator active" x="43" fill="#4caf50" stroke="#4caf50"/>
+          <line y1="108" stroke-width="2" x1="50" x2="50" y2="130" stroke="#42a5f5"/>
+          <text y="69" text-anchor="middle" class="device-label" x="50">1</text>
+        
+          <line y1="0" y2="22" stroke-width="2" x1="86" x2="86" stroke="#ef5350"/>
+          <rect y="6" width="14" height="11" rx="2" stroke-width="1.5" class="actuator active" x="79" fill="#4caf50" stroke="#4caf50"/>
+          <line y1="108" stroke-width="2" x1="86" x2="86" y2="130" stroke="#42a5f5"/>
+          <text y="69" text-anchor="middle" class="device-label" x="86">2</text>
+        
+          <line y1="0" y2="22" stroke-width="2" x1="122" x2="122" stroke="#ef5350"/>
+          <rect y="6" width="14" height="11" rx="2" stroke-width="1.5" class="actuator " x="115" fill="var(--card-background-color, #1c1c1c)" stroke="var(--divider-color, #888)"/>
+          <line y1="108" stroke-width="2" x1="122" x2="122" y2="130" stroke="#42a5f5"/>
+          <text y="69" text-anchor="middle" class="device-label" x="122">3</text>
+        
+          <line y1="0" y2="22" stroke-width="2" x1="158" x2="158" stroke="#ef5350"/>
+          <rect y="6" width="14" height="11" rx="2" stroke-width="1.5" class="actuator active" x="151" fill="#4caf50" stroke="#4caf50"/>
+          <line y1="108" stroke-width="2" x1="158" x2="158" y2="130" stroke="#42a5f5"/>
+          <text y="69" text-anchor="middle" class="device-label" x="158">4</text>
+        
+      
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="supply_in" cx="0" cy="30" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Supply</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="return_out" cx="0" cy="100" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Return</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="loop_1_out" cx="50" cy="0" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Loop 1 supply</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="loop_1_in" cx="50" cy="130" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Loop 1 return</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="loop_2_out" cx="86" cy="0" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Loop 2 supply</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="loop_2_in" cx="86" cy="130" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Loop 2 return</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="loop_3_out" cx="122" cy="0" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Loop 3 supply</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="loop_3_in" cx="122" cy="130" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Loop 3 return</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-outlet" data-port-id="loop_4_out" cx="158" cy="0" fill="var(--card-background-color, #1c1c1c)" stroke="#ff8a65"><title>Loop 4 supply</title></circle>
+  
+    <circle r="5" stroke-width="2" class="port port-inlet" data-port-id="loop_4_in" cx="158" cy="130" fill="var(--card-background-color, #1c1c1c)" stroke="#4fc3f7"><title>Loop 4 return</title></circle>
+  
+    </g>
+  
+        </g>
+        <text text-anchor="middle" class="device-label" x="92" y="-12">
+          Floor heating manifold
+        </text>
+        
+      </g>
+    
+        
+      <g class="overlay-group  actionable" data-overlay-id="room" role="button" tabindex="0" aria-label="Living room: 21.4 °C" transform="translate(40 40)">
+        <rect class="overlay-bg" x="0" y="0" height="22" rx="4" width="156"/>
+        <text class="overlay-text" x="8" y="15" style="">
+          Living room: 21.4 °C
+        </text>
+      </g>
+    
+      </svg>

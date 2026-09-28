@@ -147,7 +147,7 @@ function t(t,e,i,o){var n,r=arguments.length,a=r<3?e:null===o?o=Object.getOwnPro
       <path d="${_i(62,n+18)}" fill="${r}" opacity="0.85" />
       ${ci(t,e)}
     </g>
-  `}(e,i,o,n);default:return}}const mi=14;function $i(t,e,i,o,n,r){const a=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",s=i?2.5:1.5,d=t.height-10,l=(d-16-36)/(xt.length-1),c=xt.map((t,e)=>({y:34+e*l,state:n.get(t)})).filter(t=>void 0!==t.state),p=e=>t.ports.find(t=>t.id===e)?.position.y,h=[["coil_in","coil_out"],["coil2_in","coil2_out"]].map(([t,e])=>[p(t),p(e)]).filter(t=>void 0!==t[0]&&void 0!==t[1]),u=[d-22,(16+d)/2];return Z`
+  `}(e,i,o,n);default:return}}const mi=14;function $i(t,e,i,o,n,r){const a=o.active?"#4caf50":i?"var(--primary-color, #03a9f4)":"var(--divider-color, #888)",s=i?2.5:1.5,d=t.height-10,l=(d-16-36)/(xt.length-1),c=xt.map((t,e)=>({y:34+e*l,state:n.get(t)})).filter(t=>void 0!==t.state),p=e=>t.ports.find(t=>t.id===e)?.position.y,h=[["coil_in","coil_out"],["coil2_in","coil2_out"]].map(([t,e])=>[p(t),p(e)]).filter(t=>void 0!==t[0]&&void 0!==t[1]),u=t=>34+t*l,v=[u(3)+l/2,u(1)+l/2];return Z`
     <g class="device device-tank">
       ${t.ports.map(t=>Z`
         <line x1="${t.position.x}" y1="${t.position.y}" x2="${0===t.position.x?mi:86}" y2="${t.position.y}"
@@ -168,7 +168,7 @@ function t(t,e,i,o){var n,r=arguments.length,a=r<3?e:null===o?o=Object.getOwnPro
       <rect x="${t-4}" y="${e-6}" width="8" height="12" rx="2" fill="${ii}" stroke="${n}" stroke-width="1.5" />
       ${pi(t-4-i,e+4,i,o)}
     </g>
-  `}(86,u[e],30,t))}
+  `}(86,v[e],30,t))}
       ${c.map(t=>function(t,e,i,o=!1){const n=i.value??"—",r=6.5*n.length+8,a=o&&void 0!==i.numeric?`fill: ${si(i.numeric)}`:"";return Z`
     <rect x="${t-r/2}" y="${e-11}" width="${r}" height="15" rx="3" fill="${ii}" opacity="0.85" />
     <text x="${t}" y="${e}" text-anchor="middle" class="device-value" style="${a}">
@@ -341,25 +341,25 @@ function t(t,e,i,o){var n,r=arguments.length,a=r<3?e:null===o?o=Object.getOwnPro
         ${e.map(e=>this._renderNode(e,t))}
         ${o.map(t=>this._renderOverlay(t))}
       </svg>
-    `}_translator(){return we(this._i18n.value?.language)}_computeBounds(t){if(!t.length)return{x:0,y:0,width:800,height:400};let e=1/0,i=1/0,o=-1/0,n=-1/0;for(const r of t){const t=ue(r);if(!t)continue;const a=ze(r,t),s=Ii(Mi(r.type,this._resolveAddons(r)),this._badgeWidth(a));e=Math.min(e,a.x),i=Math.min(i,a.y-20),o=Math.max(o,a.x+Math.max(a.width,s.height?this._badgeWidth(a):0)),n=Math.max(n,a.y+a.height+10+(s.height?s.height+6:0))}return{x:e-40,y:i-40,width:o-e+80,height:n-i+80}}_renderConnection(t){const e=mt(t.from),i=mt(t.to),o=this.schema.nodes.find(t=>t.id===e?.nodeId),n=this.schema.nodes.find(t=>t.id===i?.nodeId);if(!(e&&i&&o&&n))return B``;const r=Pe(o,e.portId),a=Pe(n,i.portId);if(!r||!a)return B``;const s="curved"===this.pipeStyle?function(t,e){const i=Math.hypot(e.x-t.x,e.y-t.y),o=Math.max(30,i/2),n=t.x+t.direction.x*o,r=t.y+t.direction.y*o,a=e.x+e.direction.x*o,s=e.y+e.direction.y*o;return`M ${t.x} ${t.y} C ${n} ${r}, ${a} ${s}, ${e.x} ${e.y}`}(r,a):Te(r,a),d=$t(t),l=this.selectedEdgeId===d;return Z`
+    `}_translator(){return we(this._i18n.value?.language)}_computeBounds(t){if(!t.length)return{x:0,y:0,width:800,height:400};let e=1/0,i=1/0,o=-1/0,n=-1/0;for(const r of t){const t=ue(r);if(!t)continue;const a=ze(r,t),s=Ii(Mi(r.type,this._resolveAddons(r)),this._badgeWidth(a));e=Math.min(e,a.x),i=Math.min(i,a.y-28),o=Math.max(o,a.x+Math.max(a.width,s.height?this._badgeWidth(a):0)),n=Math.max(n,a.y+a.height+10+(s.height?s.height+6:0))}return{x:e-40,y:i-40,width:o-e+80,height:n-i+80}}_renderConnection(t){const e=mt(t.from),i=mt(t.to),o=this.schema.nodes.find(t=>t.id===e?.nodeId),n=this.schema.nodes.find(t=>t.id===i?.nodeId);if(!(e&&i&&o&&n))return B``;const r=Pe(o,e.portId),a=Pe(n,i.portId);if(!r||!a)return B``;const s="curved"===this.pipeStyle?function(t,e){const i=Math.hypot(e.x-t.x,e.y-t.y),o=Math.max(30,i/2),n=t.x+t.direction.x*o,r=t.y+t.direction.y*o,a=e.x+e.direction.x*o,s=e.y+e.direction.y*o;return`M ${t.x} ${t.y} C ${n} ${r}, ${a} ${s}, ${e.x} ${e.y}`}(r,a):Te(r,a),d=$t(t),l=this.selectedEdgeId===d;return Z`
       <path class="pipe ${l?"selected":""}" d="${s}" aria-hidden="true" />
       ${this.editable?Z`<path class="pipe-hit" data-edge-id="${d}" d="${s}" />`:F}
-    `}_resolveAddons(t){const e=this._states.value,i=this._formatters.value;return(t.addons??[]).map((t,o)=>{const n={...Re(e,t,i),label:t.name};return{config:t,index:o,state:"binary"===wi[t.type]?.display?Ye(t,n):n}})}_isActionable(t){if(this.editable)return!1;const e=qe(this.schema,t);return void 0!==e&&(Ze(e)||Be(e.hold_action)||Be(e.double_tap_action))}_badgeWidth(t){return Math.max(t.width,120)}_renderNode(t,e){const i=ue(t);if(!i)return B``;const o=this.selectedNodeId===t.id,n=this._resolveAddons(t),r=Re(this._states.value,t,this._formatters.value);t.entity_id||(r.active=function(t){return t.some(t=>t.config.entity_id&&Xe.includes(t.config.type)&&t.state.active)}(n));const a=xi(t.type,i,e,o,r,{addons:n});if(!a)return B``;const s=Ee(t.rotation),d=ze(t,i),l=d.y-t.position.y-4,c=Mi(t.type,n),p=t.name||e.t(i.labelKey),h=this._isActionable({nodeId:t.id});return Z`
+    `}_resolveAddons(t){const e=this._states.value,i=this._formatters.value;return(t.addons??[]).map((t,o)=>{const n={...Re(e,t,i),label:t.name};return{config:t,index:o,state:"binary"===wi[t.type]?.display?Ye(t,n):n}})}_isActionable(t){if(this.editable)return!1;const e=qe(this.schema,t);return void 0!==e&&(Ze(e)||Be(e.hold_action)||Be(e.double_tap_action))}_badgeWidth(t){return Math.max(t.width,120)}_renderNode(t,e){const i=ue(t);if(!i)return B``;const o=this.selectedNodeId===t.id,n=this._resolveAddons(t),r=Re(this._states.value,t,this._formatters.value);t.entity_id||(r.active=function(t){return t.some(t=>t.config.entity_id&&Xe.includes(t.config.type)&&t.state.active)}(n));const a=xi(t.type,i,e,o,r,{addons:n});if(!a)return B``;const s=Ee(t.rotation),d=ze(t,i),l=i.ports.some(e=>(Pe(t,e.id)?.y??1/0)<=d.y+1),c=d.y-t.position.y-(l?12:4),p=Mi(t.type,n),h=t.name||e.t(i.labelKey),u=this._isActionable({nodeId:t.id});return Z`
       <g
-        class="node ${this._dragNodeId===t.id?"dragging":""} ${h?"actionable":""}"
+        class="node ${this._dragNodeId===t.id?"dragging":""} ${u?"actionable":""}"
         data-node-id="${t.id}"
-        role="${h?"button":"img"}"
-        tabindex="${h?"0":F}"
-        aria-label="${function(t,e,i,o,n){let r=t;if(i){const t=[e.value,e.active?n.t("a11y.active"):void 0].filter(Boolean);t.length&&(r+=`: ${t.join(", ")}`)}const a=o.filter(t=>t.config.entity_id).map(t=>`${Ci(t,n)}: ${t.state.value??"—"}`);return[r,...a].join("; ")}(p,r,Boolean(t.entity_id),n,e)}"
+        role="${u?"button":"img"}"
+        tabindex="${u?"0":F}"
+        aria-label="${function(t,e,i,o,n){let r=t;if(i){const t=[e.value,e.active?n.t("a11y.active"):void 0].filter(Boolean);t.length&&(r+=`: ${t.join(", ")}`)}const a=o.filter(t=>t.config.entity_id).map(t=>`${Ci(t,n)}: ${t.state.value??"—"}`);return[r,...a].join("; ")}(h,r,Boolean(t.entity_id),n,e)}"
         transform="translate(${t.position.x} ${t.position.y})"
       >
         <g transform="rotate(${s} ${i.width/2} ${i.height/2})">
           ${a}
         </g>
-        <text x="${i.width/2}" y="${l}" text-anchor="middle" class="device-label">
-          ${p}
+        <text x="${i.width/2}" y="${c}" text-anchor="middle" class="device-label">
+          ${h}
         </text>
-        ${c.length?Pi(c,e,d.x-t.position.x,d.y-t.position.y+d.height+6,this._badgeWidth(d)):F}
+        ${p.length?Pi(p,e,d.x-t.position.x,d.y-t.position.y+d.height+6,this._badgeWidth(d)):F}
       </g>
     `}_renderOverlay(t){const e=this._states.value,i=this._formatters.value,o=je(e,i,t),n=function(t,e){let i,o,n=!0;if(!t||!e.rules?.length)return{color:i,className:o,visible:n};for(const r of e.rules)Ke(t,r,e.entity_id)&&(r.effect.color&&(i=De(r.effect.color)),r.effect.class&&(o=r.effect.class),void 0!==r.effect.visible&&(n=r.effect.visible));return{color:i,className:o,visible:n}}(e,t);if(!n.visible)return B``;const r=function(t,e,i){const o=t?.[i.entity_id];return o&&e?e.formatEntityName(o,i.name):"string"==typeof i.name?i.name:i.entity_id}(e,i,t),a=`${r}: ${o}`,s=Math.max(80,7*a.length+16),d=this._isActionable({overlayId:t.id});return Z`
       <g
@@ -1319,6 +1319,7 @@ function t(t,e,i,o){var n,r=arguments.length,a=r<3?e:null===o?o=Object.getOwnPro
       display: block;
     }
     ha-card {
+      display: block;
       overflow: hidden;
     }
     .empty {
@@ -1327,5 +1328,5 @@ function t(t,e,i,o){var n,r=arguments.length,a=r<3?e:null===o?o=Object.getOwnPro
       opacity: 0.8;
       color: var(--primary-text-color, #e0e0e0);
     }
-  `,t([_t()],Ro.prototype,"_config",void 0),Ro=t([pt("heating-visualizer-card")],Ro),window.customCards=window.customCards??[],window.customCards.push({type:"heating-visualizer-card",name:"Heating Visualizer",description:"Design and visualize heating system schemas with live sensor overlays.",preview:!0,documentationURL:"https://github.com/vasicekmilan90-eng/heating_vizualizer"}),console.info("%c HEATING-VISUALIZER-CARD %c v0.5.0 ","color: white; background: #039be5; font-weight: bold;","color: #039be5; background: white; font-weight: bold;");export{Ro as HeatingVisualizerCard};
+  `,t([_t()],Ro.prototype,"_config",void 0),Ro=t([pt("heating-visualizer-card")],Ro),window.customCards=window.customCards??[],window.customCards.push({type:"heating-visualizer-card",name:"Heating Visualizer",description:"Design and visualize heating system schemas with live sensor overlays.",preview:!0,documentationURL:"https://github.com/vasicekmilan90-eng/heating_vizualizer"}),console.info("%c HEATING-VISUALIZER-CARD %c v0.5.1 ","color: white; background: #039be5; font-weight: bold;","color: #039be5; background: white; font-weight: bold;");export{Ro as HeatingVisualizerCard};
 //# sourceMappingURL=heating-visualizer-card.js.map
