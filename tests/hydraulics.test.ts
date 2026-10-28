@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flowingConnections, pipeMedia, type FlowNodeState } from "../src/models/hydraulics.js";
+import { dhwValveBranch, flowingConnections, pipeMedia, type FlowNodeState } from "../src/models/hydraulics.js";
 import { connectionId, type HeatingSchema } from "../src/models/schema.js";
 import { instantiateTemplate, SCHEMA_TEMPLATES } from "../src/models/templates.js";
 
@@ -87,5 +87,28 @@ describe("flowingConnections", () => {
     };
     expect(flowingConnections(water, states({})).size).toBe(0);
     expect(flowingConnections(water, states({ tap: { active: true } })).size).toBe(2);
+  });
+
+  it("lets a bound pump add-on decide instead of the device state", () => {
+    const stopped = flowingConnections(
+      schema,
+      states({ hp: { active: true, pumpBound: true, pumpActive: false }, valve: { active: false, valveBranch: "a" } })
+    );
+    expect(stopped.size).toBe(0);
+    const running = flowingConnections(
+      schema,
+      states({ hp: { active: false, pumpBound: true, pumpActive: true }, valve: { active: false, valveBranch: "a" } })
+    );
+    expect(running.has(pipe("hp.hot_out", "valve.in"))).toBe(true);
+  });
+});
+
+describe("dhwValveBranch", () => {
+  it("finds the valve branch that heats the hot water tank", () => {
+    expect(dhwValveBranch(template("heat_pump_dhw_floor"), "hp")).toEqual({ valveId: "valve", branch: "a" });
+  });
+
+  it("is undefined without a 3-way valve", () => {
+    expect(dhwValveBranch(template("heat_pump_floor"), "hp")).toBeUndefined();
   });
 });

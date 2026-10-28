@@ -15,7 +15,7 @@ import {
 
 /** Add-ons a device drawing shows by itself; all others are drawn as badges. */
 const DRAWN_BY_DEVICE: Record<string, AddonType[]> = {
-  heat_pump: ["temperature", "value", "electric_heater", "fan", "defrost"],
+  heat_pump: ["temperature", "value", "electric_heater", "fan", "defrost", "operation"],
   tank: ["temperature", "electric_heater"],
   manifold: ["loop"],
 };
@@ -44,7 +44,8 @@ function badgeText(addon: ResolvedAddon): string | undefined {
   const { state } = addon;
   switch (ADDON_TYPES[addon.config.type].display) {
     case "binary":
-      return undefined;
+      // A compressor bound to its frequency shows it.
+      return addon.config.type === "compressor" && state.numeric !== undefined ? state.value : undefined;
     case "position":
       return state.position !== undefined ? `${Math.round(state.position)} %` : (state.value ?? "—");
     default:
@@ -70,6 +71,8 @@ function iconPath(type: AddonType, cx: number, cy: number): string {
       return `M ${cx - 5} ${cy} A 5 5 0 1 0 ${cx + 5} ${cy} A 5 5 0 1 0 ${cx - 5} ${cy} M ${cx - 1.5} ${cy} A 1.5 1.5 0 1 0 ${cx + 1.5} ${cy} A 1.5 1.5 0 1 0 ${cx - 1.5} ${cy}`;
     case "pump":
       return `M ${cx - 5} ${cy} A 5 5 0 1 0 ${cx + 5} ${cy} A 5 5 0 1 0 ${cx - 5} ${cy} M ${cx - 2} ${cy - 3} L ${cx + 3} ${cy} L ${cx - 2} ${cy + 3} Z`;
+    case "compressor":
+      return `M ${cx - 5} ${cy} A 5 5 0 1 0 ${cx + 5} ${cy} A 5 5 0 1 0 ${cx - 5} ${cy} M ${cx} ${cy} m -1 0 a 1 1 0 1 1 2 0 a 2.5 2.5 0 1 1 -5 0`;
     case "fan":
       return `M ${cx} ${cy} L ${cx} ${cy - 5} M ${cx} ${cy} L ${cx + 4.3} ${cy + 2.5} M ${cx} ${cy} L ${cx - 4.3} ${cy + 2.5}`;
     case "electric_heater":

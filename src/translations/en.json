@@ -168,6 +168,8 @@
     "value": { "name": "Value" },
     "electric_heater": { "name": "Electric immersion heater" },
     "pump": { "name": "Pump" },
+    "compressor": { "name": "Compressor" },
+    "operation": { "name": "Operating status" },
     "actuator": { "name": "Actuator" },
     "fan": { "name": "Fan" },
     "mode": { "name": "Operating mode" },
@@ -216,7 +218,18 @@
     "primary_supply": "primary supply",
     "primary_return": "primary return",
     "secondary_supply": "secondary supply",
-    "secondary_return": "secondary return"
+    "secondary_return": "secondary return",
+    "status": "status text",
+    "heating": "heating",
+    "dhw": "hot water",
+    "cooling": "cooling"
+  },
+  "operation": {
+    "heating": "Heating",
+    "dhw": "Hot water",
+    "cooling": "Cooling",
+    "defrost": "Defrosting",
+    "idle": "Idle"
   },
   "templates": {
     "heat_pump_floor": "Heat pump + floor heating",
@@ -301,6 +314,7 @@
     "remaining": "{0} left",
     "slot": "Position",
     "addon_name_helper": "Empty = add-on type and position",
+    "operation_status_helper": "Text such as Heating / DHW / Defrost / Idle, or a climate entity (hvac_action)",
     "connections_title": "Connections",
     "not_connected": "Not connected",
     "connect_to": "Connect to",

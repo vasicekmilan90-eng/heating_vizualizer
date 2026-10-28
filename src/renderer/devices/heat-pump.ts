@@ -4,22 +4,25 @@ import { TANK_TEMPERATURE_SLOTS } from "../../models/device-registry.js";
 import type { Translator } from "../../i18n/translations.js";
 import type { NodeVisualState } from "../../utils/entity.js";
 import {
+  DEFROST_COLOR,
   HEATER_ACTIVE_COLOR,
   RETURN_COLOR,
   SUPPLY_COLOR,
   addonStates,
+  frameStroke,
+  frameWidth,
   heaterStates,
-  isAddonActive,
+  operationColor,
   renderHeaterCoil,
   renderHeatingRod,
   renderPorts,
   renderTemperatureBands,
   renderValueLabel,
-  spinDuration,
   temperatureColor,
   temperatureSlots,
   type DeviceExtras,
 } from "./common.js";
+import { heatPumpFan } from "./heat-pump-state.js";
 import { renderExtraDevice } from "./extra.js";
 
 const TANK_LEFT = 14;
@@ -318,20 +321,14 @@ function renderOutdoorUnit(
   state: NodeVisualState,
   extras: DeviceExtras
 ): ReturnType<typeof svg> {
-  const stroke = state.active
-    ? "#4caf50"
-    : selected
-      ? "var(--primary-color, #03a9f4)"
-      : "var(--divider-color, #888)";
-  const strokeWidth = selected ? 2.5 : 1.5;
+  const stroke = operationColor(state.operation) ?? frameStroke(state, selected);
+  const strokeWidth = frameWidth(selected);
   const cx = 58;
   const cy = 60;
   const blade = "M 0 0 C 6 -10, 20 -14, 26 -6 C 18 -2, 8 0, 0 0 Z";
-  const defrost = isAddonActive(extras, "defrost");
-  const fan = addonStates(extras, "fan")[0];
-  const fanActive = (state.active || isAddonActive(extras, "fan")) && !defrost;
-  const duration = fan ? spinDuration(fan) : undefined;
-  const fanColor = defrost ? "#4fc3f7" : "var(--primary-color, #03a9f4)";
+  const defrost = state.operation === "defrost";
+  const fan = heatPumpFan(state, extras.addons ?? []);
+  const fanColor = defrost ? DEFROST_COLOR : "var(--primary-color, #03a9f4)";
   const heaters = heaterStates(extras);
   const rows = (extras.addons ?? []).filter(
     (a) => a.config.entity_id && (a.config.type === "temperature" || a.config.type === "value")
@@ -342,7 +339,7 @@ function renderOutdoorUnit(
       <rect x="10" y="12" width="${def.width - 20}" height="${def.height - 24}" rx="6"
         fill="var(--card-background-color, #1c1c1c)" stroke="${stroke}" stroke-width="${strokeWidth}" />
       <circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="${defrost ? fanColor : "var(--divider-color, #888)"}" stroke-width="1.5" />
-      <g class="fan ${fanActive ? "spinning" : ""}" style="${duration ? `animation-duration: ${duration}s` : ""}">
+      <g class="fan ${fan.active ? "spinning" : ""}" style="${fan.duration ? `animation-duration: ${fan.duration}s` : ""}">
         ${[0, 90, 180, 270].map((angle) => svg`
           <path d="${blade}" transform="translate(${cx} ${cy}) rotate(${angle})"
             fill="${fanColor}" opacity="0.75" />

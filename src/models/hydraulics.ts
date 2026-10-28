@@ -1,4 +1,4 @@
-import { getNodeDefinition } from "./device-registry.js";
+import { getNodeDefinition, tankRole } from "./device-registry.js";
 import { connectionId, formatPortRef, parsePortRef, type HeatingSchema, type SchemaNode } from "./schema.js";
 
 /** What flows in a pipe; decides its color. */
@@ -96,6 +96,8 @@ export interface FlowNodeState {
   valveBranch?: "a" | "b";
   /** A pump add-on is running. */
   pumpActive?: boolean;
+  /** A pump add-on has an entity, so it alone decides whether the device moves water. */
+  pumpBound?: boolean;
   /** Manifold loops in order; `false` = closed. */
   loops?: boolean[];
 }
@@ -161,7 +163,7 @@ export function flowingConnections(
   const movers = schema.nodes.filter((n) => {
     const state = states.get(n.id);
     if (n.type === "water_supply") return tapOpen;
-    return (MOVERS.has(n.type) && state?.active) || state?.pumpActive;
+    return (MOVERS.has(n.type) && state?.active && !state.pumpBound) || state?.pumpActive;
   });
 
   const flowing = new Set<string>();
@@ -182,4 +184,64 @@ export function flowingConnections(
     }
   }
   return flowing;
+}
+
+/** Visits devices downstream of `start` (port refs); `enter` returns false to stop at a device. */
+function walkDownstream(
+  schema: HeatingSchema,
+  start: string[],
+  enter: (node: SchemaNode, inlet: string) => boolean
+): void {
+  const nodes = new Map(schema.nodes.map((n) => [n.id, n]));
+  const seen = new Set<string>();
+  const queue = [...start];
+  while (queue.length) {
+    const ref = queue.pop() as string;
+    for (const c of schema.connections.filter((x) => x.from === ref)) {
+      const to = parsePortRef(c.to);
+      const node = to && nodes.get(to.nodeId);
+      if (!to || !node || seen.has(c.to)) continue;
+      seen.add(c.to);
+      if (!enter(node, to.portId)) continue;
+      for (const outlet of outletsFrom(node, to.portId, { active: true })) {
+        queue.push(formatPortRef({ nodeId: node.id, portId: outlet }));
+      }
+    }
+  }
+}
+
+const TANK_HEATING_INLETS = new Set(["coil_in", "coil2_in", "source_in"]);
+
+/**
+ * The first 3-way valve after a heat source and its branch that heats a hot water tank; undefined when
+ * there is no valve or both (or neither) branches reach one.
+ */
+export function dhwValveBranch(
+  schema: HeatingSchema,
+  sourceId: string
+): { valveId: string; branch: "a" | "b" } | undefined {
+  const source = schema.nodes.find((n) => n.id === sourceId);
+  if (!source) return undefined;
+  const outlets = (getNodeDefinition(source)?.ports ?? [])
+    .filter((p) => p.kind === "outlet")
+    .map((p) => formatPortRef({ nodeId: sourceId, portId: p.id }));
+  let valve: SchemaNode | undefined;
+  walkDownstream(schema, outlets, (node) => {
+    if (node.type === "valve_3way") valve ??= node;
+    return !valve && node.id !== sourceId;
+  });
+  if (!valve) return undefined;
+  const valveId = valve.id;
+
+  const heatsDhw = (branch: "a" | "b"): boolean => {
+    let found = false;
+    walkDownstream(schema, [`${valveId}.out_${branch}`], (node, inlet) => {
+      if (node.type === "tank" && tankRole(node) === "tank_dhw" && TANK_HEATING_INLETS.has(inlet)) found = true;
+      return !found && node.id !== sourceId && node.id !== valveId;
+    });
+    return found;
+  };
+  const a = heatsDhw("a");
+  if (a === heatsDhw("b")) return undefined;
+  return { valveId, branch: a ? "a" : "b" };
 }

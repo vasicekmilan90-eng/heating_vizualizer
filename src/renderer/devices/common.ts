@@ -2,7 +2,7 @@ import { svg } from "lit";
 import type { AddonType } from "../../models/addons.js";
 import type { AddonConfig, DeviceDefinition, PortDefinition } from "../../models/schema.js";
 import type { Translator } from "../../i18n/translations.js";
-import type { NodeVisualState } from "../../utils/entity.js";
+import type { NodeVisualState, Operation } from "../../utils/entity.js";
 
 export type SvgResult = ReturnType<typeof svg>;
 
@@ -102,9 +102,23 @@ export const SUPPLY_COLOR = "#ef5350";
 export const RETURN_COLOR = "#42a5f5";
 export const ACTIVE_COLOR = "#4caf50";
 export const HEATER_ACTIVE_COLOR = "#ff7043";
+export const DEFROST_COLOR = "#4fc3f7";
 export const CARD_FILL = "var(--card-background-color, #1c1c1c)";
 export const NEUTRAL_STROKE = "var(--divider-color, #888)";
 export const ACCENT = "var(--primary-color, #03a9f4)";
+
+/** Home Assistant state colors where they exist; idle has none. */
+const OPERATION_COLORS: Record<Operation, string | undefined> = {
+  heating: "var(--state-climate-heat-color, #ff8100)",
+  dhw: "var(--deep-orange-color, #ff6f22)",
+  cooling: "var(--state-climate-cool-color, #2b9af9)",
+  defrost: DEFROST_COLOR,
+  idle: undefined,
+};
+
+export function operationColor(operation: Operation | undefined): string | undefined {
+  return operation ? OPERATION_COLORS[operation] : undefined;
+}
 
 /** Temperatures mapped onto the blue → red scale. */
 const TEMP_COLD = 20;

@@ -28,6 +28,13 @@ describe("guessAddonType", () => {
     expect(guessAddonType(entity("sensor.t", "40", { device_class: "temperature" }))).toBe("temperature");
     expect(guessAddonType(entity("sensor.power", "1200"))).toBe("value");
   });
+
+  it("recognises compressor and operating status entities", () => {
+    expect(guessAddonType(entity("binary_sensor.hp_compressor", "on"))).toBe("compressor");
+    expect(guessAddonType(entity("binary_sensor.hp_status_heating", "on"))).toBe("operation");
+    expect(guessAddonType(entity("sensor.hp_operating_status", "Heating"))).toBe("operation");
+    expect(guessAddonType(entity("binary_sensor.hp_status_wifi", "on"))).toBeUndefined();
+  });
 });
 
 describe("suggestAddons", () => {

@@ -350,6 +350,8 @@ export const HEAT_PUMP: DeviceDefinition = {
     { type: "electric_heater", max: 3 },
     { type: "pump", max: 1 },
     { type: "fan", max: 1 },
+    { type: "compressor", max: 1 },
+    { type: "operation", max: 4, slots: ["status", "heating", "dhw", "cooling"] },
     MODE,
     SETPOINT,
     { type: "defrost", max: 1 },

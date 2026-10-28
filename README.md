@@ -124,6 +124,8 @@ Each add-on has a `type`, optional `slot` (position on the drawing), `name` and 
 | `electric_heater`, `pump`, `fan`, `defrost`, `alarm`, `window` | on/off indicator; a heat pump fan bound to rpm or % spins at a matching speed (rpm shown at a tenth) |
 | `actuator` | opening in % |
 | `mode` | state text |
+| `compressor` | heat pump compressor: on/off, or its frequency (running above zero) |
+| `operation` | heat pump operating status. Slot `status`: a text (`Heating`, `DHW`, `Defrost`, `Idle`, … in English, Czech or German) or a climate entity's `hvac_action`; slots `heating`, `dhw`, `cooling`: on/off entities of one mode |
 | `setpoint` | value |
 | `heat_exchanger` | no entity – heat exchanger coil with `coil_in` / `coil_out` (a second one adds `coil2_in` / `coil2_out`) |
 | `direct_source` | no entity – tank connection from/to the heat source: `source_in`, `source_out` |
@@ -134,11 +136,20 @@ Each add-on has a `type`, optional `slot` (position on the drawing), `name` and 
 
 Tank sensors (colored water), coils and immersion heaters, heat pump values, fan, defrost and backup heaters, and manifold loops are drawn inside the device; other add-ons appear as badges below it. Tapping a badge opens more info of its entity. A device without its own state entity shows activity through its pumps, fans and heaters.
 
+#### Heat pump state
+
+The more specific entity wins over the heat pump's own state entity:
+
+- **Running** – the `compressor` add-on; otherwise the `operation` add-ons; otherwise the state entity.
+- **What it does** – defrost > hot water > heating > cooling > idle, from the `defrost` and `operation` add-ons or the state entity's `hvac_action`. Without status entities a running heat pump heats hot water while its 3-way valve points to the DHW tank. The frame takes the Home Assistant color of the operation and the label shows it, e.g. *Heat pump · Hot water*.
+- **Fan** – the `fan` add-on; otherwise it turns while the unit runs and is not defrosting.
+- **Water flow** – the `pump` add-on; otherwise the unit's running state.
+
 ### Devices
 
 | Type | Ports | Add-ons (slots / maximum) |
 | --- | --- | --- |
-| `heat_pump` | `hot_out`, `cold_in` | temperature (supply, return, outdoor, evaporator), value 6, electric heater 3, pump, fan, mode, setpoint, defrost, alarm |
+| `heat_pump` | `hot_out`, `cold_in` | temperature (supply, return, outdoor, evaporator), value 6, electric heater 3, pump, fan, compressor, operation (status, heating, dhw, cooling), mode, setpoint, defrost, alarm |
 | `heating_boiler` | `supply_out`, `return_in` | temperature (supply, return), value 4, pump, mode, setpoint, alarm |
 | `solar_collector` | `hot_out`, `cold_in` | temperature (collector), value 2, pump, alarm |
 | `tank` | from its modules (see add-ons) | temperature (top, upper, middle, lower, bottom), value 2, electric heater 2, pump, mode, setpoint, alarm, heat exchanger 2, heat source connection, heating system connection, domestic hot water, circulation. The editor offers it as *Buffer tank* and *DHW tank* with the matching modules; `volume` (default 200 l) sets its height. |

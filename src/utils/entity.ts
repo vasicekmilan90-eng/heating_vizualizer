@@ -97,12 +97,20 @@ function matchesRule(states: HassEntities, rule: OverlayStateRule, fallbackEntit
   return true;
 }
 
+export type Operation = "heating" | "dhw" | "cooling" | "defrost" | "idle";
+
 export interface NodeVisualState {
   active: boolean;
   valveBranch?: "a" | "b";
   /** Localized state including unit, e.g. "45.2 °C". */
   value?: string;
   numeric?: number;
+  /** State (or `value_attribute`) as reported, before localization. */
+  raw?: string;
+  /** `hvac_action` of climate / water_heater entities. */
+  hvacAction?: string;
+  /** What a heat pump is doing now. */
+  operation?: Operation;
   /** Actuator opening 0–100 %. */
   position?: number;
   /** User-defined channel name, used as tooltip. */
@@ -171,6 +179,8 @@ export function resolveNodeVisualState(
     valveBranch,
     value,
     numeric: String(rawValue ?? "").trim() !== "" && Number.isFinite(numeric) ? numeric : undefined,
+    raw: rawValue === undefined || rawValue === null ? undefined : String(rawValue),
+    hvacAction: typeof entity.attributes.hvac_action === "string" ? entity.attributes.hvac_action : undefined,
     position: resolvePosition(entity, binding.mode_attribute),
     unit,
     fromAttribute,
