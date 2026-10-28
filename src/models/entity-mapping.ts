@@ -84,7 +84,8 @@ export function guessAddonType(entity: HassEntity): AddonType | undefined {
   if (has(text, "defrost|odmraz|odtav")) return "defrost";
   if (has(text, "heater|heating element|backup|booster|spiral|topn\\w* tyc|bivalen")) return "electric_heater";
   if (has(text, "pump|cerpadl")) return "pump";
-  if (has(text, "compressor|kompresor")) return "compressor";
+  // Compressor running or frequency; its current and voltage are values.
+  if (has(text, "compressor|kompresor")) return has(text, "current|proud|voltage|napeti") ? "value" : "compressor";
   // On/off status entities only count when they name a mode, e.g. `status_heating`.
   const modeFlag = domain !== "binary_sensor" || has(text, "heating|topeni|dhw|hot water|tuv|cool|chlaz");
   if (has(text, "operating|operation|hvac action|provozni stav") || (has(text, "status|stav") && modeFlag)) {
@@ -103,17 +104,17 @@ export function guessAddonType(entity: HassEntity): AddonType | undefined {
   return undefined;
 }
 
-/** Slot keywords; slots are matched in the order the device lists them. */
+/** Slot keywords; slots are matched in the order the device lists them, generic slots last. */
 const SLOT_KEYWORDS: Record<string, string> = {
   top: "top|nahore|horni",
   upper: "upper",
   middle: "middle|stred|uprostred",
   lower: "lower",
   bottom: "bottom|dole|spodni|dolni",
-  supply: "supply|flow|outlet|leaving|vystup|privod|topna voda",
-  return: "return|inlet|entering|vratk|zpatec|vstup",
-  outdoor: "outdoor|outside|ambient|venkov",
-  evaporator: "evaporator|vyparnik",
+  supply: "supply|flow|outlet|leaving|vystup|privod|topna voda|t1 ",
+  return: "return|inlet|entering|vratk|zpatec|vstup|tw ?in|twin",
+  outdoor: "outdoor|outside|ambient|venkov|t4 ",
+  evaporator: "evaporator|vyparnik|coil|t3 ",
   room: "room|indoor|inside|mistnost|pokoj|vnitrni",
   floor: "floor|podlah",
   mixed: "mixed|smis",
@@ -124,16 +125,40 @@ const SLOT_KEYWORDS: Record<string, string> = {
   heating: "heating|topeni",
   dhw: "dhw|hot water|domestic|tuv|tepla voda",
   cooling: "cool|chlaz",
+  // Heat pump internals; T-codes follow the common Midea / Daikin service naming.
+  hx_outlet: "tw ?out|twout|plate|deskov|vymenik|heat exchanger|hx ",
+  suction: "suction|sani|th ",
+  discharge: "discharge|vytlak|tp ",
+  refrigerant_gas: "t2b|gas|plyn",
+  refrigerant_liquid: "t2 |liquid|kapal",
+  inverter: "tf |inverter|module|modul|menic|ipm",
+  frequency: "frequency|frekvenc|hz ",
+  compressor_current: "compressor current|kompresor\\w* proud",
+  high_pressure: "high pressure|pressure high|vysok\\w* tlak|discharge pressure",
+  low_pressure: "low pressure|pressure low|nizk\\w* tlak|suction pressure",
+  voltage: "voltage|napeti",
+  current: "current|proud",
+  power: "power|prikon|consumption|spotreb",
+  flow: "flow|prutok",
+  heat_output: "heat output|heating capacity|thermal power|topny vykon|vykon",
+  cop: "cop ",
 };
 
-/** Slots whose keywords also appear in names of the specific slots, e.g. `status_heating`. */
-const GENERIC_SLOTS = new Set(["status"]);
+/** Slots whose keywords also appear in names of the more specific slots, e.g. `status_heating`. */
+const GENERIC_SLOTS = new Set(["status", "supply", "return", "current", "power"]);
 
-function guessSlot(entity: HassEntity, slots: string[], used: Set<string | undefined>): string | undefined {
+/** `optional`: without a matching keyword the add-on gets no slot instead of the first free one. */
+function guessSlot(
+  entity: HassEntity,
+  slots: string[],
+  used: Set<string | undefined>,
+  optional = false
+): string | undefined {
   const text = words(entity);
   const free = slots.filter((slot) => !used.has(slot));
   const ordered = [...free.filter((s) => !GENERIC_SLOTS.has(s)), ...free.filter((s) => GENERIC_SLOTS.has(s))];
-  return ordered.find((slot) => SLOT_KEYWORDS[slot] && has(text, SLOT_KEYWORDS[slot])) ?? free[0];
+  const match = ordered.find((slot) => SLOT_KEYWORDS[slot] && has(text, SLOT_KEYWORDS[slot]));
+  return match ?? (optional ? undefined : free[0]);
 }
 
 /**
@@ -178,7 +203,9 @@ export function suggestAddons(
       const same = addons.filter((a) => a.type === type);
       if (!spec || same.length >= addonLimit(spec)) continue;
       const addon: AddonConfig = { type: spec.type, entity_id: entity.entity_id };
-      if (spec.slots) addon.slot = guessSlot(entity, spec.slots, new Set(same.map((a) => a.slot)));
+      if (spec.slots) {
+        addon.slot = guessSlot(entity, spec.slots, new Set(same.map((a) => a.slot)), spec.slotsOptional);
+      }
       addons.push(addon);
       suggestions.push(addon);
       break;

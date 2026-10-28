@@ -985,6 +985,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
     const slotOptions = (spec?.slots ?? [])
       .filter((slot) => !usedSlots.has(slot))
       .map((slot) => ({ value: slot, label: t.t(`slots.${slot}`) }));
+    if (spec?.slotsOptional) slotOptions.unshift({ value: "", label: t.t("editor.slot_none") });
     const preference: EntityPreference = {
       domains: definition.domains,
       deviceClasses: definition.deviceClasses,
@@ -1447,7 +1448,10 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       const spec = node && getDeviceDefinition(node.type)?.addons?.find((s) => s.type === type);
       if (!node || !spec || this._remaining(node, spec) <= 0) return;
       const used = new Set((node.addons ?? []).filter((a) => a.type === type).map((a) => a.slot));
-      const addon: AddonConfig = { type, slot: spec.slots?.find((slot) => !used.has(slot)) };
+      const addon: AddonConfig = {
+        type,
+        slot: spec.slotsOptional ? undefined : spec.slots?.find((slot) => !used.has(slot)),
+      };
       node.addons = [...(node.addons ?? []), addon];
       index = node.addons.length - 1;
     });
