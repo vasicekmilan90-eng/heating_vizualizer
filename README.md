@@ -6,6 +6,7 @@ Custom Lovelace card for Home Assistant **2026.9+**. Draw your heating system fr
 
 - **Visual editor** – add devices from a list, straight from an entity, or from a template; the editor suggests add-ons from the same Home Assistant device.
 - **Add-ons** describe parts of a physical device (tank sensors, backup heater, defrost, …), no matter which integration provides the entity.
+- **Heat pump detail** – a look inside the unit: animated refrigerant circuit, compressor, fan, plate heat exchanger and water side with all temperatures, pressures, power and COP; pinned in a corner of the card and/or opened by tap.
 - **Right-angled pipes** (or curved), automatic arrangement in flow direction, drawing mode with drag & drop.
 - **Actions** – tap, hold and double tap use the standard Home Assistant actions (more info, toggle, navigate, …).
 - Follows the Home Assistant language and number formatting; keyboard and screen reader friendly; masonry and sections dashboards.
@@ -35,7 +36,7 @@ Add the card from the card picker (**Heating Visualizer**).
 
 **Device detail** (click a device row)
 
-- Name, *Home Assistant device* (where the entities come from, e.g. the heat pump integration) and the optional *state entity*. The state entity makes the device green/animated while running and opens on tap; devices without an entity of their own (a DHW tank whose sensors belong to the heat pump) leave it empty and show activity through their pumps, fans and heaters.
+- Name, *Home Assistant device* (where the entities come from, e.g. the heat pump integration) and the optional *state entity*. The state entity makes the device green/animated while running and opens on tap; devices without an entity of their own (a DHW tank whose sensors belong to the heat pump) leave it empty and show activity through their pumps, fans and heaters. Heat pumps also offer *Variant* (monoblock / split) and *Pinned detail*.
 - *Add-ons* – only the types the device supports, with the number still available. *Suggested add-ons* lists other entities of the same Home Assistant device with a guessed type and position.
 - *Connections* per port – remove with ×, add with *Connect to…* (only compatible ports are offered).
 - *Actions*, position (X/Y, arrows, rotate) and *Delete device*.
@@ -95,7 +96,7 @@ overlays:
 
 | Option | Description |
 | --- | --- |
-| `nodes` | Devices: `id`, `type`, `position`, optional `name`, `device_id` (Home Assistant device), `rotation` (90° steps), `volume` (tanks, liters), `variant` (junction: `split` or `merge`), entity binding, `addons`, actions. |
+| `nodes` | Devices: `id`, `type`, `position`, optional `name`, `device_id` (Home Assistant device), `rotation` (90° steps), `volume` (tanks, liters), `variant` (junction: `split` or `merge`; heat pump: `monoblock` or `split`), `detail_pin` (heat pump, see below), entity binding, `addons`, actions. |
 | `connections` | Pipes from an outlet to an inlet, written as `node_id.port_id`; optional `route` with the bend points drawn in the editor, e.g. `[[240, 110], [240, 300]]`. |
 | `overlays` | Value labels: `entity_id`, `position`, optional `name`, `template`, `rules`, actions. |
 | `pipe_style` | `orthogonal` (default) or `curved`. |
@@ -147,6 +148,14 @@ The more specific entity wins over the heat pump's own state entity:
 
 The outdoor unit lists supply, return and outdoor temperature first. With a `flow` and a `power` value and the water temperatures (`hx_outlet` or `supply`, and `return`) it also shows the COP: heat = flow × 1.163 × ΔT (kW with flow in m³/h; L/min, L/h and L/s are converted), COP = heat / power. A `heat_output` or `cop` value is used instead when you have one.
 
+#### Heat pump detail
+
+The detail shows the inside of the heat pump from its add-ons: outdoor air and evaporator, fan, compressor (spinning with its frequency), expansion valve, plate heat exchanger, circulation pump and backup heater, every temperature and value in its slot, and power, heat output, COP, flow and ΔT at the bottom. The refrigerant is colored by its state (hot gas red, liquid orange, cold mixture light blue, suction gas blue), flows faster with a higher compressor frequency and runs backwards while defrosting. Sensors you do not have are simply left out.
+
+- `detail_pin: top_left | top_right | bottom_left | bottom_right` keeps a compact detail (circuit, operation, frequency and four large values: outdoor, supply, return, COP) in that corner of the card. On narrow cards it moves below the schema. Tap it for the full detail.
+- The action `detail` (`tap_action: { action: detail }`, also for hold or double tap) opens the full detail from the heat pump drawing.
+- `variant: split` draws the outdoor and the indoor unit separately; the default is `monoblock`.
+
 ### Devices
 
 | Type | Ports | Add-ons (slots / maximum) |
@@ -177,7 +186,7 @@ Devices only model what Home Assistant can observe – a boiler has no fuel type
 
 ### Actions
 
-`tap_action`, `hold_action` and `double_tap_action` on devices and overlays accept the standard [Home Assistant actions](https://www.home-assistant.io/dashboards/actions/). Tap defaults to more info of the bound entity; hold and double tap do nothing unless configured. Focused devices react to Enter and Space.
+`tap_action`, `hold_action` and `double_tap_action` on devices and overlays accept the standard [Home Assistant actions](https://www.home-assistant.io/dashboards/actions/). Tap defaults to more info of the bound entity; hold and double tap do nothing unless configured. Focused devices react to Enter and Space. Heat pumps also accept `action: detail`, which opens the heat pump detail in the card.
 
 ### Overlay templates and rules
 

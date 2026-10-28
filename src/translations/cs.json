@@ -5,6 +5,10 @@
       "ports": {
         "cold_in": "Vratka topné vody",
         "hot_out": "Výstup topné vody"
+      },
+      "variants": {
+        "monoblock": "Monoblok",
+        "split": "Split (venkovní + vnitřní jednotka)"
       }
     },
     "valve_3way": {
@@ -278,6 +282,14 @@
     "action_toggle": "Přepnout",
     "action_navigate": "Přejít na stránku",
     "action_none": "Nic",
+    "action_detail": "Detail zařízení",
+    "detail_pin": "Připnutý detail",
+    "detail_pin_helper": "Zmenšený detail (oběh chladiva, kompresor, hlavní teploty) trvale v rohu karty; klepnutím se otevře celý. Celý detail otevře také akce „Detail zařízení“.",
+    "detail_pin_none": "Nepřipnout",
+    "detail_pin_top_left": "Vlevo nahoře",
+    "detail_pin_top_right": "Vpravo nahoře",
+    "detail_pin_bottom_left": "Vlevo dole",
+    "detail_pin_bottom_right": "Vpravo dole",
     "navigation_path": "Cesta stránky",
     "pipe_style": "Vzhled potrubí",
     "pipe_style_orthogonal": "Pravoúhlé potrubí",
@@ -376,6 +388,19 @@
   },
   "card": {
     "empty": "Schéma není nakonfigurováno. Upravte kartu a navrhněte topné schéma."
+  },
+  "detail": {
+    "open": "Otevřít detail: {0}",
+    "close": "Zavřít detail",
+    "monoblock": "Monoblok",
+    "split": "Split",
+    "outdoor_unit": "Venkovní jednotka",
+    "indoor_unit": "Vnitřní jednotka",
+    "expansion_valve": "Expanzní ventil",
+    "plate_exchanger": "Deskový výměník",
+    "voltage_current": "Napětí / proud",
+    "unit": "Jednotka",
+    "heat_output": "Topný výkon"
   },
   "a11y": {
     "schema": "Schéma vytápění",

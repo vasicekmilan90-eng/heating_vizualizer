@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HeatingSchema } from "../src/models/schema.js";
-import { actionTarget, canTap, hasAction } from "../src/utils/actions.js";
+import { actionTarget, canTap, DETAIL_ACTION, hasAction } from "../src/utils/actions.js";
 
 const schema: HeatingSchema = {
   nodes: [
@@ -36,5 +36,13 @@ describe("actions", () => {
     expect(canTap(actionTarget(schema, { nodeId: "junction" })!)).toBe(false);
     expect(canTap(actionTarget(schema, { overlayId: "o" })!)).toBe(false);
     expect(actionTarget(schema, { nodeId: "missing" })).toBeUndefined();
+  });
+
+  it("taps a device without entity when it opens the detail", () => {
+    const detail: HeatingSchema = {
+      ...schema,
+      nodes: [{ id: "hp", type: "heat_pump", position: { x: 0, y: 0 }, tap_action: { action: DETAIL_ACTION } }],
+    };
+    expect(canTap(actionTarget(detail, { nodeId: "hp" })!)).toBe(true);
   });
 });
