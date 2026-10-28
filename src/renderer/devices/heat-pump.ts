@@ -36,9 +36,9 @@ interface ValueRow {
 }
 
 /** Value lines of the outdoor unit: key temperatures, the COP, then the remaining values. */
-export function outdoorUnitRows(addons: ResolvedAddon[], t: Translator): ValueRow[] {
+export function outdoorUnitRows(addons: ResolvedAddon[], t: Translator, showCop = true): ValueRow[] {
   const bound = addons.filter(
-    (a) => a.config.entity_id && (a.config.type === "temperature" || a.config.type === "value")
+    (a) => a.config.entity_id && !a.config.hidden && (a.config.type === "temperature" || a.config.type === "value")
   );
   const rank = (a: ResolvedAddon): number => {
     const i = a.config.type === "temperature" ? ROW_PRIORITY.indexOf(a.config.slot ?? "") : -1;
@@ -52,8 +52,9 @@ export function outdoorUnitRows(addons: ResolvedAddon[], t: Translator): ValueRo
       color: a.config.type === "temperature" ? temperatureColor(a.state.numeric) : undefined,
     }));
   const hasCopSensor = bound.some((a) => a.config.type === "value" && a.config.slot === "cop");
+  // Hidden flow and power still feed the COP.
   const { cop } = heatPumpPerformance(addons);
-  if (cop !== undefined && !hasCopSensor) {
+  if (showCop && cop !== undefined && !hasCopSensor) {
     const key = Math.min(rows.length, bound.filter((a) => rank(a) < ROW_PRIORITY.length).length);
     const cop1 = new Intl.NumberFormat(t.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(cop);
     rows.splice(key, 0, { label: t.t("slots.cop"), text: `COP ${cop1}` });
@@ -366,8 +367,10 @@ function renderOutdoorUnit(
   const defrost = state.operation === "defrost";
   const fan = heatPumpFan(state, extras.addons ?? []);
   const fanColor = defrost ? DEFROST_COLOR : "var(--primary-color, #03a9f4)";
-  const heaters = heaterStates(extras);
-  const rows = outdoorUnitRows(extras.addons ?? [], t);
+  const heaters = (extras.addons ?? [])
+    .filter((a) => a.config.type === "electric_heater" && !a.config.hidden)
+    .map((a) => a.state);
+  const rows = outdoorUnitRows(extras.addons ?? [], t, !extras.hideCop);
 
   return svg`
     <g class="device device-outdoor-unit">

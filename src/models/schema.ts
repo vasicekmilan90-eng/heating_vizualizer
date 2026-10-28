@@ -51,6 +51,8 @@ export interface AddonConfig extends NodeStateBinding {
   name?: string;
   /** Loops only: optional room temperature. */
   temperature_entity_id?: string;
+  /** Not drawn in the schema (badge, value line); the heat pump detail still shows it. */
+  hidden?: boolean;
 }
 
 /** Home Assistant action (`more-info`, `toggle`, `navigate`, …), handed to the frontend unchanged. */
@@ -80,11 +82,25 @@ export interface SchemaNode extends NodeStateBinding, ActionBinding {
   variant?: string;
   /** Heat pumps: corner of the card where the compact detail stays pinned. */
   detail_pin?: DetailPin;
+  /** Heat pumps: width of the pinned detail in % of the schema width (default 40). */
+  detail_size?: number;
+  /** Heat pumps: no computed COP line on the outdoor unit. */
+  hide_cop?: boolean;
   addons?: AddonConfig[];
 }
 
 export const DETAIL_PINS = ["top_left", "top_right", "bottom_left", "bottom_right"] as const;
 export type DetailPin = (typeof DETAIL_PINS)[number];
+export const DETAIL_SIZE_DEFAULT = 40;
+export const DETAIL_SIZE_MIN = 15;
+export const DETAIL_SIZE_MAX = 80;
+
+/** Width of the pinned detail in % of the schema, kept in a usable range. */
+export function pinnedSize(node: SchemaNode): number {
+  const size = Number(node.detail_size ?? DETAIL_SIZE_DEFAULT);
+  if (!Number.isFinite(size)) return DETAIL_SIZE_DEFAULT;
+  return Math.min(DETAIL_SIZE_MAX, Math.max(DETAIL_SIZE_MIN, size));
+}
 
 export interface PortRef {
   nodeId: string;

@@ -116,7 +116,7 @@ overlays:
 
 ### Add-ons
 
-Each add-on has a `type`, optional `slot` (position on the drawing), `name` and the entity binding above. Loops also accept `temperature_entity_id` (room temperature).
+Each add-on has a `type`, optional `slot` (position on the drawing), `name` and the entity binding above. Loops also accept `temperature_entity_id` (room temperature). `hidden: true` keeps an add-on out of the schema (its badge, or a heat pump value line or backup heater) – the editor offers it as *Show in the schema*; the heat pump detail still shows everything. `hide_cop: true` on a heat pump drops the computed COP line from the outdoor unit.
 
 | Type | Shown as |
 | --- | --- |
@@ -152,7 +152,7 @@ The outdoor unit lists supply, return and outdoor temperature first. With a `flo
 
 The detail shows the inside of the heat pump from its add-ons: outdoor air and evaporator, fan, compressor (spinning with its frequency), expansion valve, plate heat exchanger, circulation pump and backup heater, every temperature and value in its slot, and power, heat output, COP, flow and ΔT at the bottom. The refrigerant is colored by its state (hot gas red, liquid orange, cold mixture light blue, suction gas blue), flows faster with a higher compressor frequency and runs backwards while defrosting. Sensors you do not have are simply left out.
 
-- `detail_pin: top_left | top_right | bottom_left | bottom_right` keeps a compact detail (circuit, operation, frequency and four large values: outdoor, supply, return, COP) in that corner of the card. On narrow cards it moves below the schema. Tap it for the full detail.
+- `detail_pin: top_left | top_right | bottom_left | bottom_right` keeps a compact detail (circuit, operation, frequency and four large values: outdoor, supply, return, COP) in that corner of the card. `detail_size` sets its width in % of the schema width (15–80, default 40). On narrow cards it moves below the schema. Tap it for the full detail.
 - The action `detail` (`tap_action: { action: detail }`, also for hold or double tap) opens the full detail from the heat pump drawing.
 - `variant: split` draws the outdoor and the indoor unit separately; the default is `monoblock`.
 

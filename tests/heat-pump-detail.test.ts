@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { detailDescription, heatPumpDetail } from "../src/renderer/devices/heat-pump-detail.js";
 import type { ResolvedAddon } from "../src/renderer/devices/common.js";
-import type { AddonConfig } from "../src/models/schema.js";
+import { pinnedSize, type AddonConfig } from "../src/models/schema.js";
 import type { NodeVisualState } from "../src/utils/entity.js";
 import { createTranslator } from "../src/i18n/index.js";
 
@@ -10,6 +10,17 @@ function addon(config: Partial<AddonConfig> & Pick<AddonConfig, "type">, state: 
 }
 
 const t = createTranslator("en");
+
+describe("pinnedSize", () => {
+  const node = (detail_size?: number) => ({ id: "hp", type: "heat_pump", position: { x: 0, y: 0 }, detail_size });
+
+  it("defaults to 40 % and stays within 15–80 %", () => {
+    expect(pinnedSize(node())).toBe(40);
+    expect(pinnedSize(node(55))).toBe(55);
+    expect(pinnedSize(node(5))).toBe(15);
+    expect(pinnedSize(node(200))).toBe(80);
+  });
+});
 
 describe("heatPumpDetail", () => {
   const addons = [

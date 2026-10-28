@@ -118,4 +118,15 @@ describe("outdoorUnitRows", () => {
     );
     expect(rows.map((r) => r.text)).toEqual(["42 °C", "36 °C", "COP 4.7", "58 Hz", "1 m³/h", "1.5 kW"]);
   });
+
+  it("skips hidden values but still computes the COP from them, unless the COP is turned off", () => {
+    const addons = [
+      addon({ type: "temperature", slot: "supply" }, { value: "42 °C", numeric: 42 }),
+      addon({ type: "temperature", slot: "return" }, { value: "36 °C", numeric: 36 }),
+      addon({ type: "value", slot: "flow", hidden: true }, { value: "1 m³/h", numeric: 1, unit: "m³/h" }),
+      addon({ type: "value", slot: "power", hidden: true }, { value: "1.5 kW", numeric: 1.5, unit: "kW" }),
+    ];
+    expect(outdoorUnitRows(addons, t).map((r) => r.text)).toEqual(["42 °C", "36 °C", "COP 4.7"]);
+    expect(outdoorUnitRows(addons, t, false).map((r) => r.text)).toEqual(["42 °C", "36 °C"]);
+  });
 });

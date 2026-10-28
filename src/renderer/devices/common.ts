@@ -16,6 +16,8 @@ export interface ResolvedAddon {
 /** Node-specific states beyond the main binding. */
 export interface DeviceExtras {
   addons?: ResolvedAddon[];
+  /** Heat pump: no computed COP line. */
+  hideCop?: boolean;
 }
 
 export function addonStates(extras: DeviceExtras, type: AddonType): NodeVisualState[] {
