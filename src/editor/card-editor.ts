@@ -31,6 +31,9 @@ import { autoLayout } from "../models/layout.js";
 import {
   connectionId,
   DETAIL_PINS,
+  DETAIL_SIZE_DEFAULT,
+  DETAIL_SIZE_MAX,
+  DETAIL_SIZE_MIN,
   formatPortRef,
   generateId,
   parsePortRef,
@@ -52,6 +55,7 @@ import {
 import { createTranslator, type Translator } from "../i18n/index.js";
 import { normalizeRotation } from "../utils/geometry.js";
 import { DETAIL_ACTION } from "../utils/actions.js";
+import { hideableOnSchema } from "../renderer/devices/addon-badges.js";
 import type { FieldKind, FieldOption } from "./controls.js";
 import {
   attributeOptions,
@@ -729,6 +733,23 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               ]}"
               .value="${node.detail_pin ?? ""}"
               @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { detail_pin: asText(ev) as DetailPin | undefined })}"
+            ></hv-field>
+            ${node.detail_pin
+              ? html`<hv-field
+                  kind="number"
+                  .label="${t.t("editor.detail_size")}"
+                  .helper="${t.t("editor.detail_size_helper", String(DETAIL_SIZE_MIN), String(DETAIL_SIZE_MAX))}"
+                  .placeholder="${String(DETAIL_SIZE_DEFAULT)}"
+                  .value="${node.detail_size}"
+                  @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { detail_size: asNumber(ev) })}"
+                ></hv-field>`
+              : nothing}
+            <hv-field
+              kind="boolean"
+              .label="${t.t("editor.show_cop")}"
+              .helper="${t.t("editor.show_cop_helper")}"
+              .value="${!node.hide_cop}"
+              @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { hide_cop: ev.detail.value ? undefined : true })}"
             ></hv-field>`
           : nothing}
         ${def?.volume
@@ -1036,6 +1057,15 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           : this._renderBinding(t, addon as Binding, addonFields(addon.type, addon.slot), preference, (patch) =>
               this._patchAddon(node.id, index, patch)
             )}
+        ${hideableOnSchema(node.type, addon.type)
+          ? html`<hv-field
+              kind="boolean"
+              .label="${t.t("editor.show_on_schema")}"
+              .helper="${t.t(node.type === "heat_pump" ? "editor.show_on_schema_heat_pump" : "editor.show_on_schema_helper")}"
+              .value="${!addon.hidden}"
+              @hv-change="${(ev: FieldEvent) => this._patchAddon(node.id, index, { hidden: ev.detail.value ? undefined : true })}"
+            ></hv-field>`
+          : nothing}
       </section>
       <div class="toolbar">
         <button type="button" class="danger" @click="${() => this._removeAddon(node.id, index)}">
@@ -1278,7 +1308,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   private _addonSummary(t: Translator, addon: AddonConfig): string {
     if (ADDON_TYPES[addon.type].entityless) return t.t(`addons.${addon.type}.hint`);
     if (!addon.entity_id) return t.t("editor.no_entity");
-    return describeEntity(this._hass, addon.entity_id) ?? addon.entity_id;
+    const entity = describeEntity(this._hass, addon.entity_id) ?? addon.entity_id;
+    return addon.hidden ? `${entity} · ${t.t("editor.hidden_on_schema")}` : entity;
   }
 
   private _portRefLabel(t: Translator, schema: HeatingSchema, ref: PortRef): string {

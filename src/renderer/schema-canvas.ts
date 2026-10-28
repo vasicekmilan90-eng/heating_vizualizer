@@ -6,7 +6,7 @@ import type {
   HomeAssistantInternationalization,
 } from "../types/home-assistant.js";
 import type { Connection, HeatingSchema, PipeStyle, SchemaNode } from "../models/schema.js";
-import { connectionId, parsePortRef } from "../models/schema.js";
+import { connectionId, parsePortRef, pinnedSize } from "../models/schema.js";
 import { getNodeDefinition } from "../models/device-registry.js";
 import { createTranslator } from "../i18n/index.js";
 import type { Translator } from "../i18n/translations.js";
@@ -315,7 +315,8 @@ export class HeatingSchemaCanvas extends LitElement {
     }
     .pinned {
       position: absolute;
-      width: clamp(200px, 40%, 380px);
+      width: max(200px, var(--pin-size, 40%));
+      max-width: 100%;
       border-radius: 14px;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
       cursor: pointer;
@@ -480,6 +481,7 @@ export class HeatingSchemaCanvas extends LitElement {
         return html`
           <div
             class="pinned ${node.detail_pin}"
+            style="--pin-size: ${pinnedSize(node)}%"
             role="button"
             tabindex="0"
             aria-label="${t.t("detail.open", detail.name)}${status}"
@@ -694,7 +696,7 @@ export class HeatingSchemaCanvas extends LitElement {
 
     const selected = this.selectedNodeId === node.id;
     const { addons, visual: visualState } = resolved;
-    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, { addons });
+    const deviceSvg = renderDeviceByType(node.type, def, t, selected, visualState, { addons, hideCop: node.hide_cop });
     if (!deviceSvg) return html``;
 
     const rotation = normalizeRotation(node.rotation);

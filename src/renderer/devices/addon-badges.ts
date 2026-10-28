@@ -33,10 +33,21 @@ const ICON_WIDTH = 16;
 const CHAR_WIDTH = 6.5;
 const TEXT_PADDING = 6;
 
+/** Drawn add-ons the user may still hide from the schema; the others change the drawing's state. */
+const HIDEABLE_DRAWN: Record<string, AddonType[]> = {
+  heat_pump: ["temperature", "value", "electric_heater"],
+};
+
+export function hideableOnSchema(deviceType: string, type: AddonType): boolean {
+  if (ADDON_TYPES[type].entityless) return false;
+  return !(DRAWN_BY_DEVICE[deviceType] ?? []).includes(type) || (HIDEABLE_DRAWN[deviceType] ?? []).includes(type);
+}
+
 export function badgeAddons(deviceType: string, addons: ResolvedAddon[]): ResolvedAddon[] {
   const drawn = DRAWN_BY_DEVICE[deviceType] ?? [];
   return addons.filter(
-    (a) => a.config.entity_id && !ADDON_TYPES[a.config.type].entityless && !drawn.includes(a.config.type)
+    (a) =>
+      a.config.entity_id && !a.config.hidden && !ADDON_TYPES[a.config.type].entityless && !drawn.includes(a.config.type)
   );
 }
 
