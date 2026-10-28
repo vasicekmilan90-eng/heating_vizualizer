@@ -1,5 +1,5 @@
 import { css, html, LitElement, nothing, svg, TemplateResult } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import type {
   HassEntities,
   HomeAssistantFormatters,
@@ -33,12 +33,13 @@ import {
   resolveOverlayStyle,
 } from "../utils/entity.js";
 import { HA_CONTEXT, HassContextConsumer } from "../utils/context.js";
-import { actionTarget, canTap, hasAction, type ActionHandlerConfig, type ActionKind } from "../utils/actions.js";
+import { actionTarget, canTap, DETAIL_ACTION, hasAction, type ActionHandlerConfig, type ActionKind } from "../utils/actions.js";
 import { renderDeviceByType } from "./devices/heat-pump.js";
 import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
 import type { ResolvedAddon } from "./devices/common.js";
 import { activeFromAddons, withNumericActivity } from "./devices/common.js";
 import { heatPumpState } from "./devices/heat-pump-state.js";
+import { detailStyles, heatPumpDetail, renderHeatPumpDetail } from "./devices/heat-pump-detail.js";
 import { ADDON_TYPES } from "../models/addons.js";
 import {
   dhwValveBranch,
@@ -130,6 +131,8 @@ const MOVE_TOLERANCE = 10;
 interface Press {
   key: string;
   config: ActionHandlerConfig;
+  /** Device pressed, for actions the card handles itself. */
+  nodeId?: string;
   x: number;
   y: number;
   timer?: number;
@@ -166,13 +169,15 @@ export class HeatingSchemaCanvas extends LitElement {
   @property({ attribute: false }) public selectedEdgeId?: string;
   @property({ attribute: false }) public selectedPort?: { nodeId: string; portId: string };
 
-  static styles = css`
+  static styles = [
+    detailStyles,
+    css`
     :host {
       display: block;
       width: 100%;
       overflow: auto;
     }
-    svg {
+    svg.schema {
       width: 100%;
       min-height: 280px;
       background: var(--ha-card-background, var(--card-background-color, #1c1c1c));
@@ -304,7 +309,81 @@ export class HeatingSchemaCanvas extends LitElement {
       stroke: var(--primary-color, #03a9f4) !important;
       stroke-width: 3 !important;
     }
-  `;
+    .stage {
+      position: relative;
+      container-type: inline-size;
+    }
+    .pinned {
+      position: absolute;
+      width: clamp(200px, 40%, 380px);
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+    }
+    /* On narrow cards a corner window would be too small to read, so it goes below the schema. */
+    @container (max-width: 560px) {
+      .pinned {
+        position: static;
+        width: auto;
+        margin-top: 8px;
+        box-shadow: none;
+      }
+    }
+    .pinned:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: 2px;
+    }
+    .pinned.top_left {
+      top: 8px;
+      left: 8px;
+    }
+    .pinned.top_right {
+      top: 8px;
+      right: 8px;
+    }
+    .pinned.bottom_left {
+      bottom: 8px;
+      left: 8px;
+    }
+    .pinned.bottom_right {
+      bottom: 8px;
+      right: 8px;
+    }
+    dialog.detail {
+      width: min(96vw, 1040px);
+      max-height: 96vh;
+      padding: 8px 12px 12px;
+      color: var(--primary-text-color, #e0e0e0);
+      background: var(--ha-card-background, var(--card-background-color, #1c1c1c));
+      border: none;
+      border-radius: var(--ha-card-border-radius, 12px);
+      box-sizing: border-box;
+    }
+    dialog.detail::backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+    .detail-head {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .detail-head button {
+      width: 36px;
+      height: 36px;
+      font-size: 22px;
+      color: inherit;
+      background: none;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .detail-head button:hover {
+      background: rgba(127, 127, 127, 0.2);
+    }
+  `,
+  ];
+
+  /** Heat pump whose detail is open in the dialog. */
+  @state() private _detailNodeId?: string;
 
   private _dragNodeId?: string;
   private _segmentDrag?: SegmentDrag;
@@ -332,6 +411,8 @@ export class HeatingSchemaCanvas extends LitElement {
     if (changed.has("drawing") || changed.has("editable")) {
       this.toggleAttribute("drawing", this.editable && this.drawing);
     }
+    const dialog = this.renderRoot.querySelector<HTMLDialogElement>("dialog.detail");
+    if (dialog && !dialog.open) dialog.showModal();
   }
 
   protected render(): TemplateResult {
@@ -350,7 +431,9 @@ export class HeatingSchemaCanvas extends LitElement {
     const verticals = verticalSegments(pipes);
 
     return html`
+      <div class="stage">
       <svg
+        class="schema"
         viewBox="${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}"
         role="group"
         aria-label="${t.t("a11y.schema")}"
@@ -376,7 +459,76 @@ export class HeatingSchemaCanvas extends LitElement {
         ${nodes.map((node) => this._renderNode(node, t, resolved.get(node.id)))}
         ${overlays.map((overlay) => this._renderOverlay(overlay))}
       </svg>
+      ${this.editable ? nothing : this._renderPinnedDetails(t, resolved)}
+      ${this._renderDetailDialog(t, resolved)}
+      </div>
     `;
+  }
+
+  private _detailOf(node: SchemaNode, t: Translator, resolved: ResolvedNode | undefined): ReturnType<typeof heatPumpDetail> {
+    const name = node.name || t.t("devices.heat_pump.name");
+    const { visual, addons } = resolved ?? this._resolveNode(node);
+    return heatPumpDetail(name, node.variant, visual, addons, t);
+  }
+
+  private _renderPinnedDetails(t: Translator, resolved: Map<string, ResolvedNode>): TemplateResult[] {
+    return this.schema.nodes
+      .filter((node) => node.type === "heat_pump" && node.detail_pin)
+      .map((node) => {
+        const detail = this._detailOf(node, t, resolved.get(node.id));
+        const status = detail.operation ? `, ${t.t(`operation.${detail.operation}`)}` : "";
+        return html`
+          <div
+            class="pinned ${node.detail_pin}"
+            role="button"
+            tabindex="0"
+            aria-label="${t.t("detail.open", detail.name)}${status}"
+            @click="${() => this._openDetail(node.id)}"
+            @keydown="${(ev: KeyboardEvent) => {
+              if (ev.key !== "Enter" && ev.key !== " ") return;
+              ev.preventDefault();
+              this._openDetail(node.id);
+            }}"
+          >
+            ${renderHeatPumpDetail(detail, t, true)}
+          </div>
+        `;
+      });
+  }
+
+  private _renderDetailDialog(t: Translator, resolved: Map<string, ResolvedNode>): TemplateResult | typeof nothing {
+    const node = this.schema.nodes.find((n) => n.id === this._detailNodeId && n.type === "heat_pump");
+    if (!node) return nothing;
+    const detail = this._detailOf(node, t, resolved.get(node.id));
+    return html`
+      <dialog
+        class="detail"
+        aria-label="${detail.name}"
+        @close="${() => {
+          this._detailNodeId = undefined;
+        }}"
+        @click="${(ev: MouseEvent) => {
+          // A click on the backdrop lands on the dialog element itself.
+          if (ev.target === ev.currentTarget) (ev.currentTarget as HTMLDialogElement).close();
+        }}"
+        @keydown="${(ev: KeyboardEvent) => {
+          if (ev.key === "Escape") (ev.currentTarget as HTMLDialogElement).close();
+        }}"
+      >
+        <div class="detail-head">
+          <button
+            type="button"
+            aria-label="${t.t("detail.close")}"
+            @click="${(ev: Event) => ((ev.target as HTMLElement).closest("dialog") as HTMLDialogElement).close()}"
+          >×</button>
+        </div>
+        ${renderHeatPumpDetail(detail, t)}
+      </dialog>
+    `;
+  }
+
+  private _openDetail(nodeId: string): void {
+    this._detailNodeId = nodeId;
   }
 
   private _translator(): Translator {
@@ -749,11 +901,11 @@ export class HeatingSchemaCanvas extends LitElement {
     const config = actionTarget(this.schema, { nodeId, overlayId });
     if (!config || !canTap(config)) return;
     ev.preventDefault();
-    this._fireAction(config, "tap");
+    this._fireAction(config, "tap", nodeId);
   }
 
   private _toLocal(ev: PointerEvent): Point | undefined {
-    const svgEl = this.renderRoot.querySelector("svg");
+    const svgEl = this.renderRoot.querySelector<SVGSVGElement>("svg.schema");
     const ctm = svgEl?.getScreenCTM();
     if (!svgEl || !ctm) return undefined;
     const pt = svgEl.createSVGPoint();
@@ -829,11 +981,18 @@ export class HeatingSchemaCanvas extends LitElement {
     });
     if (!config) return;
 
-    const press: Press = { key: `${overlayId ?? nodeId}/${addon ?? ""}`, config, x: ev.clientX, y: ev.clientY, held: false };
+    const press: Press = {
+      key: `${overlayId ?? nodeId}/${addon ?? ""}`,
+      config,
+      nodeId: overlayId ? undefined : nodeId,
+      x: ev.clientX,
+      y: ev.clientY,
+      held: false,
+    };
     if (hasAction(config.hold_action)) {
       press.timer = window.setTimeout(() => {
         press.held = true;
-        this._fireAction(config, "hold");
+        this._fireAction(config, "hold", press.nodeId);
       }, HOLD_MS);
     }
     this._press = press;
@@ -848,16 +1007,16 @@ export class HeatingSchemaCanvas extends LitElement {
     const press = this._press;
     this._cancelPress();
     if (!press || press.held) return;
-    const { config, key } = press;
+    const { config, key, nodeId } = press;
 
     if (!hasAction(config.double_tap_action)) {
-      if (canTap(config)) this._fireAction(config, "tap");
+      if (canTap(config)) this._fireAction(config, "tap", nodeId);
       return;
     }
     if (this._pendingTap?.key === key) {
       window.clearTimeout(this._pendingTap.timer);
       this._pendingTap = undefined;
-      this._fireAction(config, "double_tap");
+      this._fireAction(config, "double_tap", nodeId);
       return;
     }
     window.clearTimeout(this._pendingTap?.timer);
@@ -865,12 +1024,17 @@ export class HeatingSchemaCanvas extends LitElement {
       key,
       timer: window.setTimeout(() => {
         this._pendingTap = undefined;
-        if (canTap(config)) this._fireAction(config, "tap");
+        if (canTap(config)) this._fireAction(config, "tap", nodeId);
       }, DOUBLE_TAP_MS),
     };
   }
 
-  private _fireAction(config: ActionHandlerConfig, action: ActionKind): void {
+  /** `detail` opens the heat pump detail in the card; everything else goes to the Home Assistant frontend. */
+  private _fireAction(config: ActionHandlerConfig, action: ActionKind, nodeId?: string): void {
+    if (config[`${action}_action`]?.action === DETAIL_ACTION) {
+      if (nodeId) this._openDetail(nodeId);
+      return;
+    }
     this.dispatchEvent(new CustomEvent("hass-action", { detail: { config, action }, bubbles: true, composed: true }));
   }
 

@@ -55,7 +55,8 @@ export function outdoorUnitRows(addons: ResolvedAddon[], t: Translator): ValueRo
   const { cop } = heatPumpPerformance(addons);
   if (cop !== undefined && !hasCopSensor) {
     const key = Math.min(rows.length, bound.filter((a) => rank(a) < ROW_PRIORITY.length).length);
-    rows.splice(key, 0, { label: t.t("slots.cop"), text: `COP ${cop.toFixed(1)}` });
+    const cop1 = new Intl.NumberFormat(t.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(cop);
+    rows.splice(key, 0, { label: t.t("slots.cop"), text: `COP ${cop1}` });
   }
   return rows.slice(0, OUTDOOR_UNIT_ROWS);
 }

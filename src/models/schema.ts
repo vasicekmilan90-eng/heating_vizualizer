@@ -78,8 +78,13 @@ export interface SchemaNode extends NodeStateBinding, ActionBinding {
   volume?: number;
   /** One of the device's `variants`, e.g. `merge` for a junction. */
   variant?: string;
+  /** Heat pumps: corner of the card where the compact detail stays pinned. */
+  detail_pin?: DetailPin;
   addons?: AddonConfig[];
 }
+
+export const DETAIL_PINS = ["top_left", "top_right", "bottom_left", "bottom_right"] as const;
+export type DetailPin = (typeof DETAIL_PINS)[number];
 
 export interface PortRef {
   nodeId: string;

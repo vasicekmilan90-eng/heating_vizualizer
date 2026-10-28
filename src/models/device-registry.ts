@@ -356,6 +356,8 @@ export const HEAT_PUMP: DeviceDefinition = {
   labelKey: "devices.heat_pump.name",
   width: 170,
   height: 120,
+  // Only changes the detail drawing: one housing, or outdoor and indoor unit.
+  variants: ["monoblock", "split"],
   ports: [
     {
       id: "hot_out",

@@ -5,6 +5,10 @@
       "ports": {
         "cold_in": "Heating water return",
         "hot_out": "Heating water out"
+      },
+      "variants": {
+        "monoblock": "Monoblock",
+        "split": "Split (outdoor + indoor unit)"
       }
     },
     "valve_3way": {
@@ -278,6 +282,14 @@
     "action_toggle": "Toggle",
     "action_navigate": "Navigate",
     "action_none": "Nothing",
+    "action_detail": "Device detail",
+    "detail_pin": "Pinned detail",
+    "detail_pin_helper": "A compact detail (refrigerant circuit, compressor, key temperatures) stays in a corner of the card; tap it for the full view. The \"Device detail\" action opens the full view too.",
+    "detail_pin_none": "Not pinned",
+    "detail_pin_top_left": "Top left",
+    "detail_pin_top_right": "Top right",
+    "detail_pin_bottom_left": "Bottom left",
+    "detail_pin_bottom_right": "Bottom right",
     "navigation_path": "Navigation path",
     "pipe_style": "Pipe style",
     "pipe_style_orthogonal": "Right-angled pipes",
@@ -376,6 +388,19 @@
   },
   "card": {
     "empty": "No schema configured. Edit this card to design your heating layout."
+  },
+  "detail": {
+    "open": "Open detail: {0}",
+    "close": "Close detail",
+    "monoblock": "Monoblock",
+    "split": "Split",
+    "outdoor_unit": "Outdoor unit",
+    "indoor_unit": "Indoor unit",
+    "expansion_valve": "Expansion valve",
+    "plate_exchanger": "Plate heat exchanger",
+    "voltage_current": "Voltage / current",
+    "unit": "Unit",
+    "heat_output": "Heat output"
   },
   "a11y": {
     "schema": "Heating schema",

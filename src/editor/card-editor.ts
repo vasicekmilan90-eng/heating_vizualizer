@@ -30,6 +30,7 @@ import { instantiateTemplate, SCHEMA_TEMPLATES } from "../models/templates.js";
 import { autoLayout } from "../models/layout.js";
 import {
   connectionId,
+  DETAIL_PINS,
   formatPortRef,
   generateId,
   parsePortRef,
@@ -39,6 +40,7 @@ import {
   type ActionConfig,
   type AddonConfig,
   type Connection,
+  type DetailPin,
   type HeatingSchema,
   type HeatingVisualizerConfig,
   type OverlayStateRule,
@@ -49,6 +51,7 @@ import {
 } from "../models/schema.js";
 import { createTranslator, type Translator } from "../i18n/index.js";
 import { normalizeRotation } from "../utils/geometry.js";
+import { DETAIL_ACTION } from "../utils/actions.js";
 import type { FieldKind, FieldOption } from "./controls.js";
 import {
   attributeOptions,
@@ -715,6 +718,19 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               @hv-change="${(ev: FieldEvent) => this._setVariant(node.id, asText(ev), def.variants?.[0])}"
             ></hv-field>`
           : nothing}
+        ${node.type === "heat_pump"
+          ? html`<hv-field
+              kind="select"
+              .label="${t.t("editor.detail_pin")}"
+              .helper="${t.t("editor.detail_pin_helper")}"
+              .options="${[
+                { value: "", label: t.t("editor.detail_pin_none") },
+                ...DETAIL_PINS.map((value) => ({ value, label: t.t(`editor.detail_pin_${value}`) })),
+              ]}"
+              .value="${node.detail_pin ?? ""}"
+              @hv-change="${(ev: FieldEvent) => this._patchNode(node.id, { detail_pin: asText(ev) as DetailPin | undefined })}"
+            ></hv-field>`
+          : nothing}
         ${def?.volume
           ? html`<hv-field
               kind="number"
@@ -745,7 +761,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
       ${this._renderAddons(t, node)}
       ${this._renderSuggestions(t, node)}
       ${this._renderConnections(t, schema, node)}
-      ${this._renderActions(t, node, (patch) => this._patchNode(node.id, patch))}
+      ${this._renderActions(t, node, (patch) => this._patchNode(node.id, patch), node.type === "heat_pump" ? [DETAIL_ACTION] : [])}
 
       <section class="card">
         <h3>${t.t("editor.position_title")}</h3>
@@ -829,21 +845,23 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
   private _renderActions(
     t: Translator,
     binding: ActionBinding,
-    onChange: (patch: ActionBinding) => void
+    onChange: (patch: ActionBinding) => void,
+    cardActions: string[] = []
   ): TemplateResult {
+    const offered = [...cardActions, ...EDITOR_ACTIONS];
     return html`
       <section class="card">
         <h3>${t.t("editor.actions_title")}</h3>
         ${ACTION_KEYS.map((key) => {
           const current = binding[key];
-          const values = current && !EDITOR_ACTIONS.includes(current.action)
-            ? [...EDITOR_ACTIONS, current.action]
-            : EDITOR_ACTIONS;
+          const values = current && !offered.includes(current.action)
+            ? [...offered, current.action]
+            : offered;
           const options: FieldOption[] = [
             { value: "", label: t.t(key === "tap_action" ? "editor.action_default_tap" : "editor.action_default") },
             ...values.map((value) => ({
               value,
-              label: EDITOR_ACTIONS.includes(value) ? t.t(`editor.action_${value.replace("-", "_")}`) : value,
+              label: offered.includes(value) ? t.t(`editor.action_${value.replace("-", "_")}`) : value,
             })),
           ];
           return html`

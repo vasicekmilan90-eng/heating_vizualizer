@@ -7,6 +7,9 @@ export interface ActionHandlerConfig extends ActionBinding {
 
 export type ActionKind = "tap" | "hold" | "double_tap";
 
+/** Card-side action: opens the heat pump detail instead of calling the Home Assistant frontend. */
+export const DETAIL_ACTION = "detail";
+
 export function hasAction(action: ActionConfig | undefined): boolean {
   return action !== undefined && action.action !== "none";
 }
