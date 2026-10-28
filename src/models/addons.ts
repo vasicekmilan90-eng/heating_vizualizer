@@ -7,6 +7,8 @@ export type AddonType =
   | "value"
   | "electric_heater"
   | "pump"
+  | "compressor"
+  | "operation"
   | "actuator"
   | "fan"
   | "mode"
@@ -45,6 +47,19 @@ export const ADDON_TYPES: Record<AddonType, AddonTypeDefinition> = {
     deviceClasses: ["power", "heat", "running"],
   },
   pump: { type: "pump", display: "binary", domains: ["switch", "binary_sensor", "sensor"], deviceClasses: ["running"] },
+  compressor: {
+    type: "compressor",
+    display: "binary",
+    domains: ["binary_sensor", "sensor", "switch"],
+    deviceClasses: ["running", "frequency"],
+  },
+  // Slot `status` is a text (or climate `hvac_action`); the other slots are on/off entities of one mode.
+  operation: {
+    type: "operation",
+    display: "text",
+    domains: ["sensor", "binary_sensor", "climate", "select"],
+    deviceClasses: ["enum", "running"],
+  },
   actuator: { type: "actuator", display: "position", domains: ["valve", "switch", "binary_sensor", "number", "sensor"] },
   fan: { type: "fan", display: "binary", domains: ["fan", "sensor", "binary_sensor"] },
   mode: {

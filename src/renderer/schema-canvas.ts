@@ -38,8 +38,15 @@ import { renderDeviceByType } from "./devices/heat-pump.js";
 import { badgeAddons, layoutBadges, renderAddonBadges } from "./devices/addon-badges.js";
 import type { ResolvedAddon } from "./devices/common.js";
 import { activeFromAddons, withNumericActivity } from "./devices/common.js";
+import { heatPumpState } from "./devices/heat-pump-state.js";
 import { ADDON_TYPES } from "../models/addons.js";
-import { flowingConnections, pipeMedia, type FlowNodeState, type Medium } from "../models/hydraulics.js";
+import {
+  dhwValveBranch,
+  flowingConnections,
+  pipeMedia,
+  type FlowNodeState,
+  type Medium,
+} from "../models/hydraulics.js";
 import type { NodeVisualState } from "../utils/entity.js";
 
 const MEDIUM_COLORS: Record<Medium, string> = {
@@ -105,6 +112,7 @@ function flowState(node: ResolvedNode | undefined): FlowNodeState {
     active: node.visual.active,
     valveBranch: node.visual.valveBranch,
     pumpActive: ofType("pump").some((a) => a.config.entity_id && a.state.active),
+    pumpBound: ofType("pump").some((a) => a.config.entity_id),
     // Loops without an actuator entity are always open.
     loops: ofType("loop").map((a) => !a.config.entity_id || a.state.active),
   };
@@ -331,6 +339,7 @@ export class HeatingSchemaCanvas extends LitElement {
     const { nodes, connections, overlays } = this.schema;
     const bounds = this._dragBounds ?? this._computeBounds(nodes);
     const resolved = new Map(nodes.map((n) => [n.id, this._resolveNode(n)]));
+    this._inferOperations(resolved);
     const media = this.pipeColors ? pipeMedia(this.schema) : new Map<string, Medium>();
     const flowing = this.flowAnimation
       ? flowingConnections(this.schema, (n) => flowState(resolved.get(n.id)))
@@ -478,8 +487,30 @@ export class HeatingSchemaCanvas extends LitElement {
   private _resolveNode(node: SchemaNode): ResolvedNode {
     const addons = this._resolveAddons(node);
     const visual = resolveNodeVisualState(this._states.value, node, this._formatters.value);
-    if (!node.entity_id) visual.active = activeFromAddons(addons);
+    if (node.type === "heat_pump") {
+      const hp = heatPumpState(visual, addons, Boolean(node.entity_id));
+      visual.active = hp.running;
+      visual.operation = hp.operation;
+    } else if (!node.entity_id) {
+      visual.active = activeFromAddons(addons);
+    }
     return { visual, addons };
+  }
+
+  /**
+   * A running heat pump without status entities heats hot water while its 3-way valve points to the tank;
+   * this also refines a climate's generic `hvac_action: heating`.
+   */
+  private _inferOperations(resolved: Map<string, ResolvedNode>): void {
+    for (const node of this.schema.nodes) {
+      const visual = resolved.get(node.id)?.visual;
+      if (node.type !== "heat_pump" || !visual?.active) continue;
+      const hasStatus = node.addons?.some((a) => a.type === "operation" && a.entity_id);
+      if (visual.operation && (hasStatus || visual.operation !== "heating")) continue;
+      const valve = dhwValveBranch(this.schema, node.id);
+      const branch = valve && resolved.get(valve.valveId)?.visual.valveBranch;
+      if (valve && branch) visual.operation = branch === valve.branch ? "dhw" : "heating";
+    }
   }
 
   private _resolveAddons(node: SchemaNode): ResolvedAddon[] {
@@ -520,7 +551,8 @@ export class HeatingSchemaCanvas extends LitElement {
     const topPort = def.ports.some((p) => (getAbsolutePort(node, p.id)?.y ?? Infinity) <= rect.y + 1);
     const labelY = rect.y - node.position.y - (topPort ? 12 : 4);
     const badges = badgeAddons(node.type, addons);
-    const name = node.name || t.t(def.labelKey);
+    const typeName = node.name || t.t(def.labelKey);
+    const name = visualState.operation ? `${typeName} · ${t.t(`operation.${visualState.operation}`)}` : typeName;
     const actionable = this._isActionable({ nodeId: node.id });
 
     return svg`

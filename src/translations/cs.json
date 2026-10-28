@@ -168,6 +168,8 @@
     "value": { "name": "Hodnota" },
     "electric_heater": { "name": "Elektrická patrona" },
     "pump": { "name": "Čerpadlo" },
+    "compressor": { "name": "Kompresor" },
+    "operation": { "name": "Provozní stav" },
     "actuator": { "name": "Pohon" },
     "fan": { "name": "Ventilátor" },
     "mode": { "name": "Provozní režim" },
@@ -216,7 +218,18 @@
     "primary_supply": "primár – přívod",
     "primary_return": "primár – vratka",
     "secondary_supply": "sekundár – přívod",
-    "secondary_return": "sekundár – vratka"
+    "secondary_return": "sekundár – vratka",
+    "status": "stav (text)",
+    "heating": "topení",
+    "dhw": "ohřev TUV",
+    "cooling": "chlazení"
+  },
+  "operation": {
+    "heating": "Topení",
+    "dhw": "Ohřev TUV",
+    "cooling": "Chlazení",
+    "defrost": "Odmrazování",
+    "idle": "Stojí"
   },
   "templates": {
     "heat_pump_floor": "Tepelné čerpadlo + podlahové topení",
@@ -301,6 +314,7 @@
     "remaining": "zbývá {0}",
     "slot": "Umístění",
     "addon_name_helper": "Prázdné = typ doplňku a umístění",
+    "operation_status_helper": "Text jako Topení / TUV / Odmrazování / Stojí, nebo entita climate (hvac_action)",
     "connections_title": "Propojení",
     "not_connected": "Nepřipojeno",
     "connect_to": "Připojit k",

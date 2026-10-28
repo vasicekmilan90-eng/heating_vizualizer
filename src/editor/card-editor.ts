@@ -119,13 +119,19 @@ function nodeFields(type: string): BindingField[] {
   return [STATE_ENTITY, ACTIVE_STATE];
 }
 
-function addonFields(type: AddonType): BindingField[] {
+function addonFields(type: AddonType, slot?: string): BindingField[] {
   if (type === "loop") {
     return [
       { ...ENTITY, label: "editor.actuator_entity" },
       ACTIVE_STATE,
       { key: "temperature_entity_id", label: "editor.loop_temperature" },
     ];
+  }
+  // Operating status: a text to interpret, or an on/off entity of one mode.
+  if (type === "operation") {
+    return !slot || slot === "status"
+      ? [{ ...ENTITY, helper: "editor.operation_status_helper" }, VALUE_ATTRIBUTE]
+      : [ENTITY, ACTIVE_STATE];
   }
   switch (ADDON_TYPES[type].display) {
     case "value":
@@ -1008,7 +1014,7 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
         ></hv-field>
         ${definition.entityless
           ? html`<p class="hint">${t.t(`addons.${addon.type}.hint`)}</p>`
-          : this._renderBinding(t, addon as Binding, addonFields(addon.type), preference, (patch) =>
+          : this._renderBinding(t, addon as Binding, addonFields(addon.type, addon.slot), preference, (patch) =>
               this._patchAddon(node.id, index, patch)
             )}
       </section>

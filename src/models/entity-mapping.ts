@@ -84,6 +84,12 @@ export function guessAddonType(entity: HassEntity): AddonType | undefined {
   if (has(text, "defrost|odmraz|odtav")) return "defrost";
   if (has(text, "heater|heating element|backup|booster|spiral|topn\\w* tyc|bivalen")) return "electric_heater";
   if (has(text, "pump|cerpadl")) return "pump";
+  if (has(text, "compressor|kompresor")) return "compressor";
+  // On/off status entities only count when they name a mode, e.g. `status_heating`.
+  const modeFlag = domain !== "binary_sensor" || has(text, "heating|topeni|dhw|hot water|tuv|cool|chlaz");
+  if (has(text, "operating|operation|hvac action|provozni stav") || (has(text, "status|stav") && modeFlag)) {
+    return "operation";
+  }
   if (domain === "fan" || has(text, "fan|ventilator")) return "fan";
   if (domain === "select" || domain === "input_select" || deviceClass === "enum" || has(text, "mode|rezim")) {
     return "mode";
@@ -114,12 +120,20 @@ const SLOT_KEYWORDS: Record<string, string> = {
   inlet: "inlet|vstup",
   outlet: "outlet|vystup",
   collector: "collector|panel|kolektor",
+  status: "operating|operation|status|state|stav|provoz|hvac",
+  heating: "heating|topeni",
+  dhw: "dhw|hot water|domestic|tuv|tepla voda",
+  cooling: "cool|chlaz",
 };
+
+/** Slots whose keywords also appear in names of the specific slots, e.g. `status_heating`. */
+const GENERIC_SLOTS = new Set(["status"]);
 
 function guessSlot(entity: HassEntity, slots: string[], used: Set<string | undefined>): string | undefined {
   const text = words(entity);
   const free = slots.filter((slot) => !used.has(slot));
-  return free.find((slot) => SLOT_KEYWORDS[slot] && has(text, SLOT_KEYWORDS[slot])) ?? free[0];
+  const ordered = [...free.filter((s) => !GENERIC_SLOTS.has(s)), ...free.filter((s) => GENERIC_SLOTS.has(s))];
+  return ordered.find((slot) => SLOT_KEYWORDS[slot] && has(text, SLOT_KEYWORDS[slot])) ?? free[0];
 }
 
 /**
@@ -156,8 +170,9 @@ export function suggestAddons(
 
   for (const entity of candidates) {
     const guessed = guessAddonType(entity);
-    // A temperature the device has no slot for is still worth showing as a value.
-    const types: AddonType[] = guessed === "temperature" ? ["temperature", "value"] : guessed ? [guessed] : [];
+    // A temperature the device has no slot for is still worth showing as a value, so is a second compressor reading.
+    const types: AddonType[] =
+      guessed === "temperature" || guessed === "compressor" ? [guessed, "value"] : guessed ? [guessed] : [];
     for (const type of types) {
       const spec = specs.find((s) => s.type === type);
       const same = addons.filter((a) => a.type === type);
