@@ -109,4 +109,45 @@ describe("suggestAddons", () => {
     const buffer = { ...dhwTank, id: "buf", addons: [{ type: "direct_source" as const }] };
     expect(suggestAddons(sharedHass, buffer)).toEqual([]);
   });
+
+  it("places heat pump service sensors into their slots", () => {
+    const sensors = [
+      entity("sensor.hp_t1", "42", { device_class: "temperature" }),
+      entity("sensor.hp_t2", "33", { device_class: "temperature" }),
+      entity("sensor.hp_t2b", "47", { device_class: "temperature" }),
+      entity("sensor.hp_t3", "-2", { device_class: "temperature" }),
+      entity("sensor.hp_t4", "3", { device_class: "temperature" }),
+      entity("sensor.hp_tw_in", "36", { device_class: "temperature" }),
+      entity("sensor.hp_tw_out", "42", { device_class: "temperature" }),
+      entity("sensor.hp_compressor_frequency", "58", { unit_of_measurement: "Hz" }),
+      entity("sensor.hp_compressor_current", "6", { unit_of_measurement: "A" }),
+      entity("sensor.hp_high_pressure", "26", { unit_of_measurement: "bar" }),
+      entity("sensor.hp_power", "1510", { unit_of_measurement: "W" }),
+      entity("sensor.hp_signal", "3"),
+    ];
+    const serviceHass = {
+      states: Object.fromEntries(sensors.map((s) => [s.entity_id, s])),
+      entities: Object.fromEntries(sensors.map((s) => [s.entity_id, { entity_id: s.entity_id, device_id: "hp" }])),
+    } as unknown as HomeAssistant;
+    const slots = Object.fromEntries(
+      suggestAddons(serviceHass, { id: "hp", type: "heat_pump", position: { x: 0, y: 0 }, device_id: "hp" }).map((a) => [
+        a.entity_id,
+        `${a.type}:${a.slot ?? ""}`,
+      ])
+    );
+    expect(slots).toEqual({
+      "sensor.hp_t1": "temperature:supply",
+      "sensor.hp_t2": "temperature:refrigerant_liquid",
+      "sensor.hp_t2b": "temperature:refrigerant_gas",
+      "sensor.hp_t3": "temperature:evaporator",
+      "sensor.hp_t4": "temperature:outdoor",
+      "sensor.hp_tw_in": "temperature:return",
+      "sensor.hp_tw_out": "temperature:hx_outlet",
+      "sensor.hp_compressor_frequency": "compressor:",
+      "sensor.hp_compressor_current": "value:compressor_current",
+      "sensor.hp_high_pressure": "value:high_pressure",
+      "sensor.hp_power": "value:power",
+      "sensor.hp_signal": "value:",
+    });
+  });
 });

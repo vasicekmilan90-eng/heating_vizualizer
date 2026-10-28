@@ -325,6 +325,32 @@ export const ELECTRIC_HEATER: DeviceDefinition = {
   addons: [temperatures("inlet", "outlet"), values(2), MODE, ALARM],
 };
 
+/** Heat pump sensors; besides the water side they describe the refrigerant circuit shown in the detail. */
+export const HEAT_PUMP_TEMPERATURE_SLOTS = [
+  "supply",
+  "return",
+  "evaporator",
+  "outdoor",
+  "hx_outlet",
+  "suction",
+  "discharge",
+  "refrigerant_gas",
+  "refrigerant_liquid",
+  "inverter",
+];
+export const HEAT_PUMP_VALUE_SLOTS = [
+  "frequency",
+  "compressor_current",
+  "high_pressure",
+  "low_pressure",
+  "voltage",
+  "current",
+  "power",
+  "flow",
+  "heat_output",
+  "cop",
+];
+
 export const HEAT_PUMP: DeviceDefinition = {
   type: "heat_pump",
   labelKey: "devices.heat_pump.name",
@@ -345,8 +371,8 @@ export const HEAT_PUMP: DeviceDefinition = {
     },
   ],
   addons: [
-    temperatures("supply", "return", "outdoor", "evaporator"),
-    values(6),
+    temperatures(...HEAT_PUMP_TEMPERATURE_SLOTS),
+    { type: "value", max: 12, slots: HEAT_PUMP_VALUE_SLOTS, slotsOptional: true },
     { type: "electric_heater", max: 3 },
     { type: "pump", max: 1 },
     { type: "fan", max: 1 },

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { heatPumpFan, heatPumpState, operationFromText } from "../src/renderer/devices/heat-pump-state.js";
+import { heatPumpFan, heatPumpPerformance, heatPumpState, operationFromText } from "../src/renderer/devices/heat-pump-state.js";
+import { outdoorUnitRows } from "../src/renderer/devices/heat-pump.js";
+import { createTranslator } from "../src/i18n/index.js";
 import type { ResolvedAddon } from "../src/renderer/devices/common.js";
 import type { AddonConfig } from "../src/models/schema.js";
 import type { NodeVisualState } from "../src/utils/entity.js";
@@ -68,5 +70,52 @@ describe("heatPumpFan", () => {
   it("stops while defrosting when there is no fan add-on", () => {
     expect(heatPumpFan({ active: true }, []).active).toBe(true);
     expect(heatPumpFan({ active: true, operation: "defrost" }, []).active).toBe(false);
+  });
+});
+
+describe("heatPumpPerformance", () => {
+  const water = [
+    addon({ type: "temperature", slot: "hx_outlet" }, { numeric: 42.4, unit: "°C" }),
+    addon({ type: "temperature", slot: "supply" }, { numeric: 45, unit: "°C" }),
+    addon({ type: "temperature", slot: "return" }, { numeric: 36.1, unit: "°C" }),
+    addon({ type: "value", slot: "flow" }, { numeric: 15.6, unit: "L/min" }),
+    addon({ type: "value", slot: "power" }, { numeric: 1510, unit: "W" }),
+  ];
+
+  it("computes heat from flow and the temperature difference across the exchanger", () => {
+    const result = heatPumpPerformance(water);
+    expect(result.deltaT).toBeCloseTo(6.3, 5);
+    expect(result.flowM3h).toBeCloseTo(0.936, 5);
+    expect(result.powerKw).toBeCloseTo(1.51, 5);
+    expect(result.heatKw).toBeCloseTo(0.936 * 1.163 * 6.3, 5);
+    expect(result.cop).toBeCloseTo((0.936 * 1.163 * 6.3) / 1.51, 5);
+  });
+
+  it("prefers sensors for heat output and COP, and gives no COP while defrosting", () => {
+    const sensors = [...water, addon({ type: "value", slot: "heat_output" }, { numeric: 6.2, unit: "kW" })];
+    expect(heatPumpPerformance(sensors).heatKw).toBe(6.2);
+    expect(heatPumpPerformance([...sensors, addon({ type: "value", slot: "cop" }, { numeric: 3.9 })]).cop).toBe(3.9);
+
+    const defrost = water.map((a) => (a.config.slot === "hx_outlet" ? { ...a, state: { active: false, numeric: 31.4 } } : a));
+    expect(heatPumpPerformance(defrost).heatKw).toBeLessThan(0);
+    expect(heatPumpPerformance(defrost).cop).toBeUndefined();
+  });
+});
+
+describe("outdoorUnitRows", () => {
+  const t = createTranslator("en");
+
+  it("puts key temperatures first, then the computed COP", () => {
+    const rows = outdoorUnitRows(
+      [
+        addon({ type: "value", slot: "frequency" }, { value: "58 Hz", numeric: 58 }),
+        addon({ type: "temperature", slot: "supply" }, { value: "42 °C", numeric: 42 }),
+        addon({ type: "temperature", slot: "return" }, { value: "36 °C", numeric: 36 }),
+        addon({ type: "value", slot: "flow" }, { value: "1 m³/h", numeric: 1, unit: "m³/h" }),
+        addon({ type: "value", slot: "power" }, { value: "1.5 kW", numeric: 1.5, unit: "kW" }),
+      ],
+      t
+    );
+    expect(rows.map((r) => r.text)).toEqual(["42 °C", "36 °C", "COP 4.7", "58 Hz", "1 m³/h", "1.5 kW"]);
   });
 });

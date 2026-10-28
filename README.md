@@ -120,7 +120,7 @@ Each add-on has a `type`, optional `slot` (position on the drawing), `name` and 
 | Type | Shown as |
 | --- | --- |
 | `temperature` | value colored from blue to red |
-| `value` | any value (power, pressure, flow, COP, …) |
+| `value` | any value (power, pressure, flow, COP, …); heat pump values can take a slot so the detail and the COP know what they are |
 | `electric_heater`, `pump`, `fan`, `defrost`, `alarm`, `window` | on/off indicator; a heat pump fan bound to rpm or % spins at a matching speed (rpm shown at a tenth) |
 | `actuator` | opening in % |
 | `mode` | state text |
@@ -145,11 +145,13 @@ The more specific entity wins over the heat pump's own state entity:
 - **Fan** – the `fan` add-on; otherwise it turns while the unit runs and is not defrosting.
 - **Water flow** – the `pump` add-on; otherwise the unit's running state.
 
+The outdoor unit lists supply, return and outdoor temperature first. With a `flow` and a `power` value and the water temperatures (`hx_outlet` or `supply`, and `return`) it also shows the COP: heat = flow × 1.163 × ΔT (kW with flow in m³/h; L/min, L/h and L/s are converted), COP = heat / power. A `heat_output` or `cop` value is used instead when you have one.
+
 ### Devices
 
 | Type | Ports | Add-ons (slots / maximum) |
 | --- | --- | --- |
-| `heat_pump` | `hot_out`, `cold_in` | temperature (supply, return, outdoor, evaporator), value 6, electric heater 3, pump, fan, compressor, operation (status, heating, dhw, cooling), mode, setpoint, defrost, alarm |
+| `heat_pump` | `hot_out`, `cold_in` | temperature (supply, return, evaporator, outdoor, hx_outlet, suction, discharge, refrigerant_gas, refrigerant_liquid, inverter), value 12 (optional slots: frequency, compressor_current, high_pressure, low_pressure, voltage, current, power, flow, heat_output, cop), electric heater 3, pump, fan, compressor, operation (status, heating, dhw, cooling), mode, setpoint, defrost, alarm |
 | `heating_boiler` | `supply_out`, `return_in` | temperature (supply, return), value 4, pump, mode, setpoint, alarm |
 | `solar_collector` | `hot_out`, `cold_in` | temperature (collector), value 2, pump, alarm |
 | `tank` | from its modules (see add-ons) | temperature (top, upper, middle, lower, bottom), value 2, electric heater 2, pump, mode, setpoint, alarm, heat exchanger 2, heat source connection, heating system connection, domestic hot water, circulation. The editor offers it as *Buffer tank* and *DHW tank* with the matching modules; `volume` (default 200 l) sets its height. |

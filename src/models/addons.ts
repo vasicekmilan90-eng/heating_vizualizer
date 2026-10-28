@@ -91,8 +91,10 @@ export interface AddonSpec {
   type: AddonType;
   max: number;
   slots?: string[];
+  /** Slots are offered but not required, so up to `max` add-ons are allowed. */
+  slotsOptional?: boolean;
 }
 
 export function addonLimit(spec: AddonSpec): number {
-  return spec.slots ? spec.slots.length : spec.max;
+  return spec.slots && !spec.slotsOptional ? spec.slots.length : spec.max;
 }

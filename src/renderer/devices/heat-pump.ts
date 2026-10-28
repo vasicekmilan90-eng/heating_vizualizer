@@ -21,8 +21,44 @@ import {
   temperatureColor,
   temperatureSlots,
   type DeviceExtras,
+  type ResolvedAddon,
 } from "./common.js";
-import { heatPumpFan } from "./heat-pump-state.js";
+import { heatPumpFan, heatPumpPerformance } from "./heat-pump-state.js";
+
+const OUTDOOR_UNIT_ROWS = 6;
+/** Slots shown first on the small drawing; the detail shows everything. */
+const ROW_PRIORITY = ["supply", "return", "outdoor"];
+
+interface ValueRow {
+  label: string;
+  text: string;
+  color?: string;
+}
+
+/** Value lines of the outdoor unit: key temperatures, the COP, then the remaining values. */
+export function outdoorUnitRows(addons: ResolvedAddon[], t: Translator): ValueRow[] {
+  const bound = addons.filter(
+    (a) => a.config.entity_id && (a.config.type === "temperature" || a.config.type === "value")
+  );
+  const rank = (a: ResolvedAddon): number => {
+    const i = a.config.type === "temperature" ? ROW_PRIORITY.indexOf(a.config.slot ?? "") : -1;
+    return i < 0 ? ROW_PRIORITY.length : i;
+  };
+  const rows: ValueRow[] = [...bound]
+    .sort((a, b) => rank(a) - rank(b))
+    .map((a) => ({
+      label: a.config.name ?? (a.config.slot ? t.t(`slots.${a.config.slot}`) : ""),
+      text: a.state.value ?? "—",
+      color: a.config.type === "temperature" ? temperatureColor(a.state.numeric) : undefined,
+    }));
+  const hasCopSensor = bound.some((a) => a.config.type === "value" && a.config.slot === "cop");
+  const { cop } = heatPumpPerformance(addons);
+  if (cop !== undefined && !hasCopSensor) {
+    const key = Math.min(rows.length, bound.filter((a) => rank(a) < ROW_PRIORITY.length).length);
+    rows.splice(key, 0, { label: t.t("slots.cop"), text: `COP ${cop.toFixed(1)}` });
+  }
+  return rows.slice(0, OUTDOOR_UNIT_ROWS);
+}
 import { renderExtraDevice } from "./extra.js";
 
 const TANK_LEFT = 14;
@@ -330,9 +366,7 @@ function renderOutdoorUnit(
   const fan = heatPumpFan(state, extras.addons ?? []);
   const fanColor = defrost ? DEFROST_COLOR : "var(--primary-color, #03a9f4)";
   const heaters = heaterStates(extras);
-  const rows = (extras.addons ?? []).filter(
-    (a) => a.config.entity_id && (a.config.type === "temperature" || a.config.type === "value")
-  );
+  const rows = outdoorUnitRows(extras.addons ?? [], t);
 
   return svg`
     <g class="device device-outdoor-unit">
@@ -350,15 +384,11 @@ function renderOutdoorUnit(
         ? svg`<path class="defrost" d="M ${cx} ${cy - 44} v 14 M ${cx - 6} ${cy - 40} l 12 6 M ${cx - 6} ${cy - 34} l 12 -6"
             stroke="${fanColor}" stroke-width="2" stroke-linecap="round" />`
         : svg``}
-      ${rows.slice(0, 6).map((row, i) => {
-        const color = row.config.type === "temperature" ? temperatureColor(row.state.numeric) : "";
-        const label = row.config.name ?? (row.config.slot ? t.t(`slots.${row.config.slot}`) : "");
-        return svg`
-          <text x="104" y="${30 + i * 15}" class="device-value" style="${color ? `fill: ${color}` : ""}">
-            <title>${label}</title>${row.state.value ?? "—"}
-          </text>
-        `;
-      })}
+      ${rows.map((row, i) => svg`
+        <text x="104" y="${30 + i * 15}" class="device-value" style="${row.color ? `fill: ${row.color}` : ""}">
+          <title>${row.label}</title>${row.text}
+        </text>
+      `)}
       ${heaters.slice(0, 3).map((heater, i) => svg`
         <g class="heating-rod ${heater.active ? "active" : ""}">
           ${renderHeaterCoil(24 + i * 34, def.height - 18, 26, heater)}

@@ -80,3 +80,72 @@ export function heatPumpFan(state: NodeVisualState, addons: ResolvedAddon[]): { 
   if (fan) return { active: fan.state.active, duration: spinDuration(fan.state) };
   return { active: state.active && state.operation !== "defrost" };
 }
+
+/** Bound add-on of a type in a slot. */
+export function slotState(addons: ResolvedAddon[], type: string, slot: string): NodeVisualState | undefined {
+  return addons.find((a) => a.config.type === type && a.config.slot === slot && a.config.entity_id)?.state;
+}
+
+/** Water: 4.186 kJ/(kg·K) × 1000 kg/m³ / 3600 s/h. */
+const WATER_KWH_PER_M3K = 1.163;
+const MIN_POWER_KW = 0.05;
+
+function kilowatts(state: NodeVisualState | undefined): number | undefined {
+  if (state?.numeric === undefined) return undefined;
+  const unit = state.unit?.toLowerCase();
+  if (unit === "w") return state.numeric / 1000;
+  if (unit === "mw") return state.numeric * 1000;
+  return state.numeric;
+}
+
+const FLOW_TO_M3H: Record<string, number> = {
+  "m³/h": 1,
+  "m3/h": 1,
+  "l/min": 0.06,
+  "l/h": 0.001,
+  "l/s": 3.6,
+  "m³/s": 3600,
+};
+
+function cubicMetersPerHour(state: NodeVisualState | undefined): number | undefined {
+  if (state?.numeric === undefined) return undefined;
+  const factor = state.unit ? FLOW_TO_M3H[state.unit.toLowerCase()] : 1;
+  return factor === undefined ? undefined : state.numeric * factor;
+}
+
+export interface HeatPumpPerformance {
+  /** Electric input. */
+  powerKw?: number;
+  /** Heat delivered to the water; negative while defrosting. */
+  heatKw?: number;
+  cop?: number;
+  flowM3h?: number;
+  /** Water outlet minus inlet, in kelvin. */
+  deltaT?: number;
+}
+
+/**
+ * Heat output and COP from sensors: a heat output or COP entity wins, otherwise heat is computed from the
+ * water flow and the temperature difference across the unit.
+ */
+export function heatPumpPerformance(addons: ResolvedAddon[]): HeatPumpPerformance {
+  const temperature = (slot: string): NodeVisualState | undefined => slotState(addons, "temperature", slot);
+  const value = (slot: string): NodeVisualState | undefined => slotState(addons, "value", slot);
+  const outlet = temperature("hx_outlet") ?? temperature("supply");
+  const inlet = temperature("return");
+  const fahrenheit = outlet?.unit === "°F";
+  const deltaT =
+    outlet?.numeric !== undefined && inlet?.numeric !== undefined
+      ? (outlet.numeric - inlet.numeric) * (fahrenheit ? 5 / 9 : 1)
+      : undefined;
+  const flowM3h = cubicMetersPerHour(value("flow"));
+  const powerKw = kilowatts(value("power"));
+  const heatKw =
+    kilowatts(value("heat_output")) ??
+    (flowM3h !== undefined && deltaT !== undefined ? flowM3h * WATER_KWH_PER_M3K * deltaT : undefined);
+  const copSensor = value("cop")?.numeric;
+  const cop =
+    copSensor ??
+    (heatKw !== undefined && heatKw > 0 && powerKw !== undefined && powerKw > MIN_POWER_KW ? heatKw / powerKw : undefined);
+  return { powerKw, heatKw, cop, flowM3h, deltaT };
+}
