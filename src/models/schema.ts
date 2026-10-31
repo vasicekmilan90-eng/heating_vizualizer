@@ -78,6 +78,8 @@ export interface SchemaNode extends NodeStateBinding, ActionBinding {
   rotation?: number;
   /** Tanks: volume in liters. */
   volume?: number;
+  /** Tanks: drawing size factor (1 = 100 %); ports and coils scale with it. */
+  scale?: number;
   /** One of the device's `variants`, e.g. `merge` for a junction. */
   variant?: string;
   /** Heat pumps: corner of the card where the compact detail stays pinned. */

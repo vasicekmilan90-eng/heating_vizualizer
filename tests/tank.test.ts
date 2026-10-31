@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getNodeDefinition, tankHeight } from "../src/models/device-registry.js";
+import { getNodeDefinition, getPreset, tankHeight } from "../src/models/device-registry.js";
 import type { SchemaNode } from "../src/models/schema.js";
 import { spinDuration, withNumericActivity } from "../src/renderer/devices/common.js";
 
@@ -30,6 +30,64 @@ describe("tank", () => {
     expect(tankHeight(100_000)).toBe(300);
     const small = getNodeDefinition({ id: "t", type: "tank", position: at, volume: 50 })!;
     expect(small.height).toBe(tankHeight(50));
+  });
+});
+
+describe("DHW tank with two coils", () => {
+  const preset = getPreset("tank_dhw_2coil")!;
+  const node: SchemaNode = {
+    id: "t",
+    type: "tank",
+    position: at,
+    addons: preset.addons,
+    scale: preset.scale,
+    variant: preset.variant,
+  };
+
+  it("has a second coil and is 20 % larger by default", () => {
+    expect(preset.scale).toBe(1.2);
+    const base = getNodeDefinition({ id: "t", type: "tank", position: at, addons: [{ type: "heat_exchanger" }, { type: "dhw" }] })!;
+    const def = getNodeDefinition(node)!;
+    expect(def.width).toBe(120);
+    expect(def.height).toBeGreaterThan(base.height);
+  });
+
+  it("heats the tank with the left coil and domestic water flow-through with the right coil", () => {
+    const def = getNodeDefinition({ ...node, addons: [...preset.addons!, { type: "circulation" }] })!;
+    const port = (id: string) => def.ports.find((p) => p.id === id)!;
+    // Left coil: supply at the top, return at the bottom.
+    expect(port("coil_in").position.x).toBe(0);
+    expect(port("coil_in").position.y).toBeLessThan(port("coil_out").position.y);
+    expect(port("coil_in").kind).toBe("inlet");
+    // Right coil: cold water in at the bottom, hot water out at the top.
+    expect(port("coil2_in").position.x).toBe(def.width);
+    expect(port("coil2_in").position.y).toBeGreaterThan(port("coil2_out").position.y);
+    expect(port("coil2_in").kind).toBe("inlet");
+    expect(port("coil2_out").kind).toBe("outlet");
+    // Tank outlets on top, heating outlet in the middle of the right wall, return at the bottom.
+    expect(port("hot_out").position.y).toBe(0);
+    expect(port("hot_out2").position.y).toBe(0);
+    expect(port("hot_out").position.x).toBeLessThan(port("hot_out2").position.x);
+    expect([port("hot_out").kind, port("hot_out2").kind, port("supply_out").kind]).toEqual(["outlet", "outlet", "outlet"]);
+    expect(port("supply_out").position.x).toBe(def.width);
+    expect(port("return_in").position.y).toBe(def.height);
+    expect(port("return_in").kind).toBe("inlet");
+    expect(def.ports.find((p) => p.id === "cold_in")).toBeUndefined();
+  });
+
+  it("never stacks two ports on the same spot", () => {
+    const def = getNodeDefinition({
+      ...node,
+      addons: [...preset.addons!, { type: "circulation" }, { type: "direct_source" }, { type: "direct_heating" }],
+    })!;
+    const spots = def.ports.map((p) => `${p.position.x},${p.position.y}`);
+    expect(new Set(spots).size).toBe(spots.length);
+  });
+
+  it("leaves unscaled tanks unchanged", () => {
+    const plain = getNodeDefinition({ id: "t", type: "tank", position: at })!;
+    expect(plain.width).toBe(100);
+    expect(plain.height).toBe(tankHeight(undefined));
   });
 });
 

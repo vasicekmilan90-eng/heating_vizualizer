@@ -122,8 +122,11 @@ const FOUR_PORT_FLOW: Record<string, string[]> = {
 function outletsFrom(node: SchemaNode, inlet: string, state: FlowNodeState): string[] {
   const outlets = (getNodeDefinition(node)?.ports ?? []).filter((p) => p.kind === "outlet").map((p) => p.id);
   switch (node.type) {
-    case "tank":
-      return (TANK_FLOW[inlet] ?? []).filter((id) => outlets.includes(id));
+    case "tank": {
+      // Dual-coil tank: the return feeds both tank outlets and the heating outlet.
+      const flow = node.variant === "dual_coil" && inlet === "return_in" ? ["supply_out", "hot_out", "hot_out2"] : TANK_FLOW[inlet];
+      return (flow ?? []).filter((id) => outlets.includes(id));
+    }
     case "hydraulic_separator":
     case "plate_heat_exchanger":
       return FOUR_PORT_FLOW[inlet] ?? [];
@@ -236,7 +239,9 @@ export function dhwValveBranch(
   const heatsDhw = (branch: "a" | "b"): boolean => {
     let found = false;
     walkDownstream(schema, [`${valveId}.out_${branch}`], (node, inlet) => {
-      if (node.type === "tank" && tankRole(node) === "tank_dhw" && TANK_HEATING_INLETS.has(inlet)) found = true;
+      // In the dual-coil tank the second coil carries domestic water, not heating water.
+      const heating = TANK_HEATING_INLETS.has(inlet) && !(node.variant === "dual_coil" && inlet === "coil2_in");
+      if (node.type === "tank" && tankRole(node) === "tank_dhw" && heating) found = true;
       return !found && node.id !== sourceId && node.id !== valveId;
     });
     return found;

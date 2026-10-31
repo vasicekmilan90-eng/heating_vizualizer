@@ -11,6 +11,8 @@ import {
   MANIFOLD,
   MANIFOLD_DEFAULT_LOOPS,
   TANK_DEFAULT_VOLUME,
+  TANK_SCALE_MAX,
+  TANK_SCALE_MIN,
 } from "../models/device-registry.js";
 import {
   candidatePorts,
@@ -765,6 +767,23 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
               }}"
             ></hv-field>`
           : nothing}
+        ${def?.volume
+          ? html`<hv-field
+              kind="number"
+              .label="${t.t("editor.tank_size")}"
+              .helper="${t.t("editor.tank_size_helper")}"
+              .placeholder="100"
+              .value="${node.scale === undefined ? undefined : Math.round(node.scale * 100)}"
+              @hv-change="${(ev: FieldEvent) => {
+                const percent = asNumber(ev);
+                const scale =
+                  percent && percent > 0
+                    ? Math.min(TANK_SCALE_MAX, Math.max(TANK_SCALE_MIN, percent / 100))
+                    : undefined;
+                this._patchNode(node.id, { scale: scale === 1 ? undefined : scale });
+              }}"
+            ></hv-field>`
+          : nothing}
         <hv-field
           kind="combo"
           strict
@@ -1428,6 +1447,8 @@ export class HeatingVisualizerEditor extends LitElement implements LovelaceCardE
           y: NEW_NODE_GRID.originY + Math.floor(count / NEW_NODE_GRID.columns) * NEW_NODE_GRID.stepY,
         },
         addons: preset.addons?.map((a) => ({ ...a })),
+        scale: preset.scale,
+        variant: preset.variant,
       };
       if (type === MANIFOLD.type) {
         node.addons = Array.from({ length: MANIFOLD_DEFAULT_LOOPS }, () => ({ type: "loop" as const }));

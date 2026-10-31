@@ -23,6 +23,7 @@
       "name": "Nádrž",
       "name_buffer": "Akumulační nádrž",
       "name_dhw": "Zásobník teplé vody (bojler)",
+      "name_dhw_2coil": "Zásobník teplé vody (2 výměníky)",
       "ports": {
         "source_in": "Od zdroje tepla",
         "source_out": "Zpět ke zdroji tepla",
@@ -31,10 +32,15 @@
         "coil2_in": "Druhý výměník – přívod",
         "coil2_out": "Druhý výměník – vratka",
         "hot_out": "Teplá voda – výstup",
+        "hot_out2": "Výstup teplé vody 2",
         "supply_out": "Do topného systému",
         "circulation_in": "Cirkulace teplé vody",
         "return_in": "Vratka z topného systému",
         "cold_in": "Studená voda – vstup"
+      },
+      "variants": {
+        "standard": "Standardní",
+        "dual_coil": "Dva výměníky (každý na jedné straně)"
       }
     },
     "junction": {
@@ -322,6 +328,8 @@
     "variant": "Provedení",
     "volume": "Objem (l)",
     "volume_helper": "Určuje velikost výkresu.",
+    "tank_size": "Velikost (%)",
+    "tank_size_helper": "Mění velikost výkresu nádrže i jejích přípojek (50–200). Zásobník se dvěma výměníky začíná na 120.",
     "entity": "Entita",
     "state_entity": "Stavová entita (volitelné)",
     "state_entity_helper": "Určuje, zda zařízení běží (zelený rámeček, animace), a otevře se po klepnutí. Nemá-li zařízení vlastní entitu, nechte prázdné – činnost pak ukazují doplňky.",

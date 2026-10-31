@@ -23,6 +23,7 @@
       "name": "Tank",
       "name_buffer": "Buffer tank",
       "name_dhw": "DHW tank",
+      "name_dhw_2coil": "DHW tank (2 coils)",
       "ports": {
         "source_in": "From heat source",
         "source_out": "Back to heat source",
@@ -31,10 +32,15 @@
         "coil2_in": "Second coil supply",
         "coil2_out": "Second coil return",
         "hot_out": "Hot water outlet",
+        "hot_out2": "Hot water outlet 2",
         "supply_out": "To heating system",
         "circulation_in": "Hot water circulation",
         "return_in": "Return from heating system",
         "cold_in": "Cold water inlet"
+      },
+      "variants": {
+        "standard": "Standard",
+        "dual_coil": "Two coils (one per wall)"
       }
     },
     "junction": {
@@ -322,6 +328,8 @@
     "variant": "Variant",
     "volume": "Volume (l)",
     "volume_helper": "Sets the size of the drawing.",
+    "tank_size": "Size (%)",
+    "tank_size_helper": "Scales the tank drawing and its ports (50–200). A DHW tank with two coils starts at 120.",
     "entity": "Entity",
     "state_entity": "State entity (optional)",
     "state_entity_helper": "Shows whether the device is running (green frame, animation) and opens on tap. Leave empty if the device has no entity of its own – add-ons then show the activity.",

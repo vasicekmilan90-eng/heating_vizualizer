@@ -44,6 +44,10 @@ export const VALVE_3WAY: DeviceDefinition = {
 
 const TANK_WIDTH = 100;
 export const TANK_DEFAULT_VOLUME = 200;
+export const TANK_SCALE_MIN = 0.5;
+export const TANK_SCALE_MAX = 2;
+/** DHW tank with two coils is drawn 20 % larger so the extra ports fit. */
+export const TANK_2COIL_SCALE = 1.2;
 const TANK_MIN_HEIGHT = 100;
 const TANK_MAX_HEIGHT = 300;
 
@@ -54,10 +58,17 @@ export function tankHeight(volume: number | undefined): number {
   return Math.round(Math.min(TANK_MAX_HEIGHT, Math.max(TANK_MIN_HEIGHT, height)));
 }
 
+/** Size factor of a tank node, kept in a usable range. */
+export function tankScale(node: SchemaNode): number {
+  const scale = Number(node.scale ?? 1);
+  if (!Number.isFinite(scale) || scale <= 0) return 1;
+  return Math.min(TANK_SCALE_MAX, Math.max(TANK_SCALE_MIN, scale));
+}
+
 // Ports top to bottom; each side is spread evenly over the tank height.
 const TANK_LEFT_PORTS = ["source_in", "coil_in", "coil_out", "coil2_in", "coil2_out", "source_out"];
 const TANK_RIGHT_PORTS = ["hot_out", "supply_out", "circulation_in", "return_in", "cold_in"];
-const TANK_OUTLETS = new Set(["source_out", "coil_out", "coil2_out", "hot_out", "supply_out"]);
+const TANK_OUTLETS = new Set(["source_out", "coil_out", "coil2_out", "hot_out", "hot_out2", "supply_out"]);
 const TANK_PORT_TOP = 0.15;
 const TANK_PORT_SPAN = 0.7;
 
@@ -68,9 +79,47 @@ function tankPortIds(node: SchemaNode): Set<string> {
   if (count("heat_exchanger") >= 1) ["coil_in", "coil_out"].forEach((id) => ids.add(id));
   if (count("heat_exchanger") >= 2) ["coil2_in", "coil2_out"].forEach((id) => ids.add(id));
   if (count("dhw")) ["hot_out", "cold_in"].forEach((id) => ids.add(id));
+  if (count("dhw") && node.variant === TANK_DUAL_COIL) {
+    ids.delete("cold_in");
+    ids.add("hot_out2");
+  }
   if (count("direct_heating")) ["supply_out", "return_in"].forEach((id) => ids.add(id));
   if (count("circulation")) ids.add("circulation_in");
   return ids;
+}
+
+export const TANK_DUAL_COIL = "dual_coil";
+
+/**
+ * Dual-coil layout: the left coil is the heating coil (supply at the top, return at the bottom); the right
+ * coil heats domestic hot water flow-through (cold water in at the bottom, hot water out at the top).
+ * Tank outlets sit on the top edge, the heating outlet in the middle of the right wall, the return at the bottom edge.
+ */
+function dualCoilPorts(ids: Set<string>, width: number, height: number): PortDefinition[] {
+  const port = (id: string, x: number, y: number): PortDefinition => ({
+    id,
+    labelKey: `devices.tank.ports.${id}`,
+    kind: TANK_OUTLETS.has(id) ? "outlet" : "inlet",
+    position: { x, y },
+  });
+  const upper = snapPort(height * TANK_PORT_TOP);
+  const lower = snapPort(height * (TANK_PORT_TOP + TANK_PORT_SPAN));
+  const left = snapPort(width * 0.2);
+  const right = snapPort(width * 0.8);
+  const layout: [string, number, number][] = [
+    ["hot_out", left, 0],
+    ["hot_out2", right, 0],
+    ["coil_in", 0, upper],
+    ["source_in", 0, snapPort(height * 0.4)],
+    ["source_out", 0, snapPort(height * 0.6)],
+    ["coil_out", 0, lower],
+    ["coil2_out", width, upper],
+    ["supply_out", width, snapPort(height * 0.5)],
+    ["circulation_in", width, snapPort(height * 0.68)],
+    ["coil2_in", width, lower],
+    ["return_in", right, height],
+  ];
+  return layout.filter(([id]) => ids.has(id)).map(([id, x, y]) => port(id, x, y));
 }
 
 function spreadPorts(ids: string[], x: number, height: number): PortDefinition[] {
@@ -98,6 +147,7 @@ export const TANK: DeviceDefinition = {
   height: tankHeight(undefined),
   ports: [],
   volume: true,
+  variants: ["standard", TANK_DUAL_COIL],
   addons: [
     temperatures(...TANK_TEMPERATURE_SLOTS),
     values(2),
@@ -113,16 +163,23 @@ export const TANK: DeviceDefinition = {
     { type: "circulation", max: 1 },
   ],
   resolve: (node) => {
-    const height = tankHeight(node.volume);
+    const scale = tankScale(node);
+    // A scaled tank stays on the port grid so pipes between ports can run straight.
+    const width = scale === 1 ? TANK_WIDTH : snapPort(TANK_WIDTH * scale);
+    const height = scale === 1 ? tankHeight(node.volume) : snapPort(tankHeight(node.volume) * scale);
     const ids = tankPortIds(node);
     return {
       ...TANK,
       labelKey: `devices.tank.${tankRole(node) === "tank_dhw" ? "name_dhw" : ids.size ? "name_buffer" : "name"}`,
+      width,
       height,
-      ports: [
-        ...spreadPorts(TANK_LEFT_PORTS.filter((id) => ids.has(id)), 0, height),
-        ...spreadPorts(TANK_RIGHT_PORTS.filter((id) => ids.has(id)), TANK_WIDTH, height),
-      ],
+      ports:
+        node.variant === TANK_DUAL_COIL
+          ? dualCoilPorts(ids, width, height)
+          : [
+              ...spreadPorts(TANK_LEFT_PORTS.filter((id) => ids.has(id)), 0, height),
+              ...spreadPorts(TANK_RIGHT_PORTS.filter((id) => ids.has(id)), width, height),
+            ],
     };
   },
 };
@@ -638,6 +695,10 @@ export interface DevicePreset {
   type: string;
   labelKey: string;
   addons?: AddonConfig[];
+  /** Initial `scale` of the new node. */
+  scale?: number;
+  /** Initial `variant` of the new node. */
+  variant?: string;
 }
 
 const TANK_PRESETS: DevicePreset[] = [
@@ -652,6 +713,14 @@ const TANK_PRESETS: DevicePreset[] = [
     type: TANK.type,
     labelKey: "devices.tank.name_dhw",
     addons: [{ type: "heat_exchanger" }, { type: "dhw" }],
+  },
+  {
+    id: "tank_dhw_2coil",
+    type: TANK.type,
+    labelKey: "devices.tank.name_dhw_2coil",
+    addons: [{ type: "heat_exchanger" }, { type: "heat_exchanger" }, { type: "dhw" }, { type: "direct_heating" }],
+    scale: TANK_2COIL_SCALE,
+    variant: TANK_DUAL_COIL,
   },
 ];
 
